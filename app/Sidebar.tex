@@ -1,0 +1,59 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+
+export default function Sidebar() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      {/* زر الموبايل أعلى الصفحة */}
+      <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center w-full">
+        <div className="flex items-center gap-2">
+          <div className="bg-emerald-600 text-white font-bold px-2 py-1 rounded text-xs">G&G</div>
+          <span className="font-bold text-sm">Grill & Greens</span>
+        </div>
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className="bg-emerald-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+        >
+          {isOpen ? 'إغلاق ✕' : 'القائمة ☰'}
+        </button>
+      </div>
+
+      {/* خلفية معتمة للموبايل عند فتح القائمة */}
+      {isOpen && (
+        <div 
+          onClick={() => setIsOpen(false)}
+          className="md:hidden fixed inset-0 bg-black/60 z-40"
+        />
+      )}
+
+      {/* القائمة الجانبية */}
+      <aside className={`
+        fixed md:static top-0 right-0 z-50 h-full w-64 bg-slate-900 text-white p-4 flex flex-col justify-between transition-transform duration-200
+        ${isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+      `}>
+        <div>
+          <div className="pb-4 mb-4 border-b border-slate-800 hidden md:block">
+            <h1 className="text-xl font-bold">Grill & Greens</h1>
+            <p className="text-xs text-emerald-400">Cloud ERP v1.0</p>
+          </div>
+
+          <nav className="flex flex-col gap-1">
+            <Link href="/" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium">لوحة التحكم</Link>
+            <Link href="/pos" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">الكاشير و POS</Link>
+            <Link href="/orders" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">المبيعات والطلبات</Link>
+            <Link href="/invoices" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">الفواتير</Link>
+            <Link href="/customers" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">العملاء</Link>
+            <Link href="/inventory" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">المخزون</Link>
+            <Link href="/recipes" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">الوصفات والتكاليف</Link>
+            <Link href="/expenses" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">المصروفات</Link>
+            <Link href="/reports" onClick={() => setIsOpen(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 text-sm font-medium">التقارير</Link>
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+}
