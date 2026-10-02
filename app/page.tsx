@@ -2,7 +2,53 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MENU_ITEMS, CATEGORIES, MenuItem } from './menuData';
+
+// تعريف أنواع البيانات داخلياً لتجنب أخطاء الاستيراد
+export interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  image?: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export const CATEGORIES: Category[] = [
+  { id: 'all', name: 'الكل 🍽️' },
+  { id: 'grill', name: 'مشويات 🥩' },
+  { id: 'chicken', name: 'فراخ ودجاج 🍗' },
+  { id: 'casserole', name: 'طواجن وبشاميل 🍲' },
+  { id: 'sides', name: 'سلطات ومقبلات 🥗' },
+];
+
+export const MENU_ITEMS: MenuItem[] = [
+  {
+    id: '1',
+    name: 'كفتة بلدي مشوية',
+    description: 'كفتة بلدي متبلة بخلطة الجريل الخاصة ومشويه على الفحم',
+    price: 150,
+    category: 'grill',
+  },
+  {
+    id: '2',
+    name: 'بانيه مقرمش',
+    description: 'قطع دجاج بانيه متبلة ومقرمشة طلبتك المفضل',
+    price: 120,
+    category: 'chicken',
+  },
+  {
+    id: '3',
+    name: 'مكرونة بالبشاميل',
+    description: 'طاجن مكرونة بالبشاميل الغني واللحمة المفرومة على أصولها',
+    price: 90,
+    category: 'casserole',
+  },
+];
 
 interface CartItem {
   product: MenuItem;
@@ -10,18 +56,18 @@ interface CartItem {
 }
 
 export default function CustomerMenu() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [orderSent, setOrderSent] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [orderSent, setOrderSent] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string | null>(null);
 
   // بيانات نموذج الطلب
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [customerName, setCustomerName] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState<string>('');
 
   // روابط وسائل التواصل الاجتماعي المباشرة لـ Grill & Greens
   const SOCIAL_LINKS = {
@@ -62,7 +108,7 @@ export default function CustomerMenu() {
   const filteredItems =
     selectedCategory === 'all'
       ? MENU_ITEMS
-      : MENU_ITEMS.filter((item) => item.category === selectedCategory);
+      : MENU_ITEMS.filter((item: MenuItem) => item.category === selectedCategory);
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +194,7 @@ export default function CustomerMenu() {
       {/* شريط التصنيفات */}
       <div className="bg-white border-b border-slate-200 sticky top-[60px] z-20 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
-          {CATEGORIES.map((cat) => (
+          {CATEGORIES.map((cat: Category) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
@@ -191,7 +237,7 @@ export default function CustomerMenu() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredItems.map((item) => (
+            {filteredItems.map((item: MenuItem) => (
               <div
                 key={item.id}
                 className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center gap-4 hover:border-emerald-200 transition-colors"
@@ -263,7 +309,7 @@ export default function CustomerMenu() {
 
             {/* ملخص المأكولات */}
             <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
-              {cart.map(({ product, quantity }) => (
+              {cart.map(({ product, quantity }: CartItem) => (
                 <div
                   key={product.id}
                   className="flex justify-between items-center text-sm border-b border-slate-50 pb-2"
