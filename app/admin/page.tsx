@@ -7,6 +7,83 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// الأصناف المجلوبة من كود العملاء كبيانات مبدئية
+const INITIAL_MENU_ITEMS = [
+  // --- المشاوي عالفحم ---
+  { id: 'g1', name: 'فرخة كاملة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 360, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g2', name: 'نصف فرخة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 195, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g3', name: 'ربع فرخة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 120, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g4', name: 'ك كباب ستيك', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 800, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g5', name: 'نصف كباب ستيك', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 430, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g6', name: 'ربع كباب ستيك', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 250, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g7', name: 'ك كفتة بلدي', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 750, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g8', name: 'نصف كفتة بلدي', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 400, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g9', name: 'ربع كفتة بلدي', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 230, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g10', name: 'ك شيش طاووق', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 400, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g11', name: 'نصف شيش طاووق', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 220, category: 'المشاوي عالفحم 🥩', image_url: '' },
+  { id: 'g12', name: 'ربع شيش طاووق', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 130, category: 'المشاوي عالفحم 🥩', image_url: '' },
+
+  // --- المحاشي ---
+  { id: 'm1', name: 'ك محشي مشكل', description: 'كيلو محشي مشكل', price: 160, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm2', name: 'نصف محشي مشكل', description: 'نصف كيلو محشي مشكل', price: 90, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm3', name: 'ربع محشي مشكل', description: 'ربع كيلو محشي مشكل', price: 50, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm4', name: 'ك محشي كرنب', description: 'كيلو محشي كرنب', price: 180, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm5', name: 'نصف محشي كرنب', description: 'نصف كيلو محشي كرنب', price: 100, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm6', name: 'ربع محشي كرنب', description: 'ربع كيلو محشي كرنب', price: 60, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm7', name: 'ك محشي ورق عنب', description: 'كيلو محشي ورق عنب', price: 200, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm8', name: 'نصف محشي ورق عنب', description: 'نصف كيلو محشي ورق عنب', price: 110, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm9', name: 'ربع محشي ورق عنب', description: 'ربع كيلو محشي ورق عنب', price: 65, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm10', name: 'ك محشي ممبار', description: 'كيلو محشي ممبار', price: 260, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm11', name: 'نصف محشي ممبار', description: 'نصف كيلو محشي ممبار', price: 140, category: 'المحاشي 🥬', image_url: '' },
+  { id: 'm12', name: 'ربع محشي ممبار', description: 'ربع كيلو محشي ممبار', price: 80, category: 'المحاشي 🥬', image_url: '' },
+
+  // --- الصواني والطواجن ---
+  { id: 'c1', name: 'صينية مكرونة بالبشاميل', description: 'صينية مكرونة بالبشاميل عائلية', price: 300, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c2', name: 'صينية جلاش باللحمة', description: 'صينية جلاش باللحم المفروم', price: 250, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c3', name: 'صينية بطاطس بالفراخ', description: 'صينية بطاطس بقطع الفراخ', price: 400, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c4', name: 'صينية بطاطس باللحمة', description: 'صينية بطاطس بقطع اللحم البلدي', price: 430, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c5', name: 'طاجن مكرونة بالبشاميل', description: 'طاجن بشاميل فردي', price: 100, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c6', name: 'طاجن لحمة بالبصل', description: 'طاجن لحم بلدي مع البصل والأعشاب', price: 330, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c7', name: 'طاجن بامية باللحمة', description: 'طاجن بامية باللحم البلدي', price: 310, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c8', name: 'طاجن فريك باللحمة', description: 'طاجن فريك بلدي باللحمة', price: 310, category: 'الصواني والطواجن 🍲', image_url: '' },
+  { id: 'c9', name: 'طاجن بطاطس باللحمة', description: 'طاجن بطاطس باللحمة البلدي', price: 290, category: 'الصواني والطواجن 🍲', image_url: '' },
+
+  // --- الطيور ---
+  { id: 'p1', name: 'فرد حمام محشي فريك', description: 'حمام محشي فريك', price: 240, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p2', name: 'فرد حمام محشي رز', description: 'حمام محشي أرز', price: 230, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p3', name: 'جوز حمام محشي فريك / رز', description: 'زوج حمام محشي فريك أو أرز', price: 450, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p4', name: 'بطة محشي فريك', description: 'بطة كاملة محشية فريك', price: 730, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p5', name: 'بطة محشي رز', description: 'بطة كاملة محشية أرز', price: 700, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p6', name: 'بطة محشي ورق عنب', description: 'بطة كاملة محشية ورق عنب', price: 780, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p7', name: 'فرخة مسلوق محمر', description: 'فرخة كاملة مسلوقة ومحمرة', price: 330, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p8', name: 'نصف فرخة مسلوق محمر', description: 'نصف فرخة مسلوقة ومحمرة', price: 170, category: 'الطيور 🍗', image_url: '' },
+  { id: 'p9', name: 'ربع فرخة مسلوق محمر', description: 'ربع فرخة مسلوق ومحمر', price: 95, category: 'الطيور 🍗', image_url: '' },
+
+  // --- الوجبات ---
+  { id: 'w1', name: 'وجبة ربع فرخة مشوي / محمر', description: 'رز + سلطة + طحينة + عيش', price: 120, category: 'الوجبات 🍱', image_url: '' },
+  { id: 'w2', name: 'وجبة ربع فراخ بانية بلدي', description: 'رز + سلطة + عيش', price: 130, category: 'الوجبات 🍱', image_url: '' },
+  { id: 'w3', name: 'وجبة ربع فراخ بانية بلدي ميكس', description: 'مكرونة بالبشاميل + سلطة + عيش', price: 210, category: 'الوجبات 🍱', image_url: '' },
+  { id: 'w4', name: 'وجبة ربع شيش طاووق مشوي', description: 'رز + سلطة + طحينة + عيش', price: 130, category: 'الوجبات 🍱', image_url: '' },
+  { id: 'w5', name: 'وجبة ربع كفتة مشوية', description: 'رز + سلطة + طحينة + عيش', price: 230, category: 'الوجبات 🍱', image_url: '' },
+  { id: 'w6', name: 'وجبة ربع كفتة بالصلصة', description: 'رز + سلطة + عيش', price: 230, category: 'الوجبات 🍱', image_url: '' },
+  { id: 'w7', name: 'ورقة كبدة بلدي بالخلطة', description: 'رز + سلطة + عيش', price: 230, category: 'الوجبات 🍱', image_url: '' },
+  { id: 'w8', name: 'طاجن مكرونة بالجمبري', description: '200 جرام جمبري فريش وايت صوص', price: 300, category: 'الوجبات 🍱', image_url: '' },
+
+  // --- أصناف إضافية ---
+  { id: 's1', name: 'فريك خضار سادة', description: 'طباق فريك خضار', price: 70, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's2', name: 'بامية خضار سادة', description: 'طبق بامية سادة', price: 70, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's3', name: 'بطاطس خضار سادة', description: 'طبق بطاطس مطبوخة سادة', price: 60, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's4', name: 'ملوخية خضرا', description: 'طبق ملوخية خضراء بيتي', price: 60, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's5', name: 'شوربة لسان عصفور', description: 'شوربة لسان عصفور سخنة', price: 25, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's6', name: 'شوربة خضار', description: 'شوربة خضار مشكل', price: 30, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's7', name: 'حواوشي بلدي', description: 'رغيف حواوشي بلدي + سلطة + طحينة', price: 90, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's8', name: 'بطاطس بوم فريت', description: 'طبق بطاطس بوم فريت مقرمش', price: 40, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's9', name: 'رز بسمتي', description: 'طبق أرز بسمتي', price: 35, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's10', name: 'رز بالشعرية', description: 'طبق أرز مصري بالشعرية', price: 25, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's11', name: 'بانية بلدي مقلي 1ك', description: 'كيلو بانية بلدي جاهز', price: 400, category: 'أصناف إضافية 🥗', image_url: '' },
+  { id: 's12', name: 'نصف بانية بلدي مقلي', description: 'نصف كيلو بانية بلدي', price: 220, category: 'أصناف إضافية 🥗', image_url: '' },
+];
+
 export default function CompleteEnterpriseAdminDashboard() {
   const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings'>('live_orders');
   
@@ -21,6 +98,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [selectedItemCard, setSelectedItemCard] = useState<string | null>(null);
   const [selectedCustomerModal, setSelectedCustomerModal] = useState<any | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
 
   // Sales Filters
   const [salesDateFrom, setSalesDateFrom] = useState('');
@@ -37,11 +115,11 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [productDesc, setProductDesc] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productCost, setProductCost] = useState('');
-  const [productCategory, setProductCategory] = useState('الوجبات');
+  const [productCategory, setProductCategory] = useState('المشاوي عالفحم 🥩');
   const [productImage, setProductImage] = useState('');
 
   // Settings
-  const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
+  const [whatsappPhone, setWhatsappPhone] = useState('201101616480');
 
   useEffect(() => {
     fetchAllData();
@@ -68,13 +146,23 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (logs) setPurchaseLogs(logs);
   };
 
-  // جلب المنيو مع التحقق من جدولي menu_items و products
+  // جلب المنيو الموحد من جدول menu_items مع استخدام بيانات العميل المبدئية عند الحاجة
   const fetchProducts = async () => {
-    let { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*');
+    let { data: menuData } = await supabase.from('menu_items').select('*').order('created_at', { ascending: true });
     
     if (!menuData || menuData.length === 0) {
-      let { data: prodData } = await supabase.from('products').select('*');
-      if (prodData) menuData = prodData;
+      // إدراج المنيو الأساسي في قاعدة البيانات فوراً إذا كانت فارغة
+      await supabase.from('menu_items').insert(INITIAL_MENU_ITEMS.map(item => ({
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        cost: 0,
+        category: item.category,
+        image_url: item.image_url,
+        is_available: true
+      })));
+      const { data: refreshed } = await supabase.from('menu_items').select('*');
+      menuData = refreshed;
     }
 
     if (menuData) {
@@ -84,7 +172,7 @@ export default function CompleteEnterpriseAdminDashboard() {
         description: item.description || '',
         price: item.price || 0,
         cost: item.cost || 0,
-        category: item.category || 'الوجبات',
+        category: item.category || 'الوجبات 🍱',
         image_url: item.image_url || item.image || '',
         is_available: item.is_available !== undefined ? item.is_available : true,
         stock_quantity: item.stock_quantity || 0
@@ -194,7 +282,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // إضافـة حركة مشتريات مع معالجة الأخطاء
+  // إضافـة حركة مشتريات وتحديث التكلفة
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPurchaseItem || !purchaseQty || !purchasePrice) {
@@ -221,7 +309,6 @@ export default function CompleteEnterpriseAdminDashboard() {
       return;
     }
 
-    // تحديث السعر والمخزون اختياري دون إيقاف الحفظ
     try {
       const matchedProduct = products.find(p => p.name?.toLowerCase() === itemName.toLowerCase());
       if (matchedProduct) {
@@ -254,21 +341,15 @@ export default function CompleteEnterpriseAdminDashboard() {
 
     const payload = {
       name: productName,
-      title: productName,
       description: productDesc,
       price: parseFloat(productPrice),
       cost: productCost ? parseFloat(productCost) : 0,
       category: productCategory,
       image_url: productImage,
-      image: productImage,
       is_available: true
     };
 
-    let { error } = await supabase.from('menu_items').insert([payload]);
-    if (error) {
-      const fallback = await supabase.from('products').insert([payload]);
-      error = fallback.error;
-    }
+    const { error } = await supabase.from('menu_items').insert([payload]);
 
     if (error) {
       alert('حدث خطأ أثناء حفظ الصنف: ' + error.message);
@@ -283,11 +364,31 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  const toggleProductAvailability = async (id: number, currentStatus: boolean) => {
-    let { error } = await supabase.from('menu_items').update({ is_available: !currentStatus }).eq('id', id);
+  // تعديل صنف حالي في المنيو
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    const { error } = await supabase.from('menu_items').update({
+      name: editingProduct.name,
+      description: editingProduct.description,
+      price: parseFloat(editingProduct.price),
+      cost: parseFloat(editingProduct.cost || 0),
+      category: editingProduct.category,
+      image_url: editingProduct.image_url,
+    }).eq('id', editingProduct.id);
+
     if (error) {
-      await supabase.from('products').update({ is_available: !currentStatus }).eq('id', id);
+      alert('حدث خطأ أثناء التعديل: ' + error.message);
+    } else {
+      alert('تم تعديل الصنف وصورته بنجاح ✅ وسوف يظهر فوراً للعملاء');
+      setEditingProduct(null);
+      fetchProducts();
     }
+  };
+
+  const toggleProductAvailability = async (id: number | string, currentStatus: boolean) => {
+    await supabase.from('menu_items').update({ is_available: !currentStatus }).eq('id', id);
     fetchProducts();
   };
 
@@ -448,7 +549,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
                       <td className="p-3 flex gap-2 items-center">
                         <button onClick={() => handlePrintOrder(sale)} className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1">
-                          <span>👁️</span> معاينة وطباعة
+                          <span>👁️️</span> معاينة وطباعة
                         </button>
                         <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء 🚫</button>
                       </td>
@@ -539,7 +640,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 4. قسم المشتريات */}
+        {/* 4. قسم المشتريات المعدل والمطور */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
@@ -549,7 +650,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                   <input
                     type="text"
                     list="items-list"
-                    placeholder="اسم الصنف (مثلاً: كفتة)"
+                    placeholder="اسم الصنف (مثلاً: كفتة بلدي)"
                     value={newPurchaseItem}
                     onChange={e => setNewPurchaseItem(e.target.value)}
                     className="border p-2 rounded text-sm w-full"
@@ -649,7 +750,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 5. قسم إدارة المنيو */}
+        {/* 5. قسم إدارة المنيو المعدل مع حقول تعديل الصور والصنف */}
         {activeTab === 'menu' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
@@ -660,10 +761,12 @@ export default function CompleteEnterpriseAdminDashboard() {
                 <input type="number" placeholder="تكلفة الصنف على المطعم (اختياري)" value={productCost} onChange={e => setProductCost(e.target.value)} className="border p-2 rounded text-sm" />
                 <input type="text" placeholder="رابط صورة الوجبة (URL)" value={productImage} onChange={e => setProductImage(e.target.value)} className="border p-2 rounded text-sm" />
                 <select value={productCategory} onChange={e => setProductCategory(e.target.value)} className="border p-2 rounded text-sm">
-                  <option value="الوجبات">الوجبات</option>
-                  <option value="المشويات">المشويات</option>
-                  <option value="الطواجن">الطواجن</option>
-                  <option value="المشروبات">المشروبات</option>
+                  <option value="المشاوي عالفحم 🥩">المشاوي عالفحم 🥩</option>
+                  <option value="المحاشي 🥬">المحاشي 🥬</option>
+                  <option value="الصواني والطواجن 🍲">الصواني والطواجن 🍲</option>
+                  <option value="الطيور 🍗">الطيور 🍗</option>
+                  <option value="الوجبات 🍱">الوجبات 🍱</option>
+                  <option value="أصناف إضافية 🥗">أصناف إضافية 🥗</option>
                 </select>
                 <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ وإضافة للمنيو 🍔</button>
               </form>
@@ -672,32 +775,125 @@ export default function CompleteEnterpriseAdminDashboard() {
             <div className="bg-white p-4 rounded-xl shadow-sm border">
               <h2 className="text-lg font-bold mb-4 text-emerald-900">أصناف المنيو الحالية ({products.length})</h2>
               {products.length === 0 ? (
-                <div className="text-center p-6 text-gray-500">لا توجد أصناف مسجلة حتى الآن. يمكنك إضافة أصناف جديدة من النموذج أعلاه.</div>
+                <div className="text-center p-6 text-gray-500">لا توجد أصناف مسجلة حتى الآن.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {products.map(product => (
-                    <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
+                    <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50 relative">
                       <div>
-                        {product.image_url && (
-                          <img src={product.image_url} alt={product.name} className="w-full h-32 object-cover rounded mb-2" />
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} className="w-full h-36 object-cover rounded mb-2 border" />
+                        ) : (
+                          <div className="w-full h-36 bg-gray-200 rounded mb-2 flex items-center justify-center text-gray-400 text-xs font-bold">
+                            لا توجد صورة مضافة
+                          </div>
                         )}
                         <h3 className="font-bold text-md">{product.name}</h3>
                         <p className="text-xs text-gray-500">{product.category}</p>
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{product.description}</p>
                         <p className="text-sm font-bold text-green-700 mt-1">سعر البيع: {product.price} ج.م</p>
                         {product.cost > 0 && <p className="text-xs text-red-600">التكلفة الأخيرة: {product.cost} ج.م</p>}
                       </div>
 
-                      <button
-                        onClick={() => toggleProductAvailability(product.id, product.is_available)}
-                        className={`mt-3 py-1 rounded text-xs font-bold text-white ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
-                      >
-                        {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
-                      </button>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => setEditingProduct(product)}
+                          className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-1.5 rounded text-xs font-bold"
+                        >
+                          تعديل الصنف / الصورة ✏️️
+                        </button>
+                        <button
+                          onClick={() => toggleProductAvailability(product.id, product.is_available)}
+                          className={`py-1.5 px-3 rounded text-xs font-bold text-white ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                        >
+                          {product.is_available ? 'متوفر ✅' : 'نفذ ❌'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+
+            {/* Modal تعديل صنف والصورة */}
+            {editingProduct && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl relative">
+                  <button onClick={() => setEditingProduct(null)} className="absolute top-4 left-4 text-gray-500 font-bold text-lg">✖</button>
+                  <h3 className="text-lg font-bold text-emerald-900 mb-4">✏️️ تعديل صنف: {editingProduct.name}</h3>
+                  <form onSubmit={handleUpdateProduct} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold mb-1">اسم الصنف:</label>
+                      <input
+                        type="text"
+                        value={editingProduct.name}
+                        onChange={e => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                        className="w-full border p-2 rounded text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold mb-1">الوصف:</label>
+                      <input
+                        type="text"
+                        value={editingProduct.description || ''}
+                        onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                        className="w-full border p-2 rounded text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-bold mb-1">سعر البيع (ج.م):</label>
+                        <input
+                          type="number"
+                          value={editingProduct.price}
+                          onChange={e => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                          className="w-full border p-2 rounded text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold mb-1">التكلفة (ج.م):</label>
+                        <input
+                          type="number"
+                          value={editingProduct.cost || 0}
+                          onChange={e => setEditingProduct({ ...editingProduct, cost: e.target.value })}
+                          className="w-full border p-2 rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold mb-1">القسم:</label>
+                      <select
+                        value={editingProduct.category}
+                        onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                        className="w-full border p-2 rounded text-sm"
+                      >
+                        <option value="المشاوي عالفحم 🥩">المشاوي عالفحم 🥩</option>
+                        <option value="المحاشي 🥬">المحاشي 🥬</option>
+                        <option value="الصواني والطواجن 🍲">الصواني والطواجن 🍲</option>
+                        <option value="الطيور 🍗">الطيور 🍗</option>
+                        <option value="الوجبات 🍱">الوجبات 🍱</option>
+                        <option value="أصناف إضافية 🥗">أصناف إضافية 🥗</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold mb-1">رابط صورة الوجبة (Image URL):</label>
+                      <input
+                        type="text"
+                        placeholder="ضع رابط الصورة هنا..."
+                        value={editingProduct.image_url || ''}
+                        onChange={e => setEditingProduct({ ...editingProduct, image_url: e.target.value })}
+                        className="w-full border p-2 rounded text-sm"
+                      />
+                    </div>
+                    <button type="submit" className="w-full bg-emerald-800 text-white font-bold py-2 rounded text-sm hover:bg-emerald-900 mt-2">
+                      حفظ التغييرات وصورة الصنف 💾
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
