@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase'; // استيراد العميل الخاص بـ Supabase
 
 export interface MenuItem {
   id: string;
@@ -8,7 +9,7 @@ export interface MenuItem {
   description?: string;
   price: number;
   category: string;
-  imageUrl?: string; // مكان مخصص لرابط الصورة
+  imageUrl?: string;
 }
 
 export interface Category {
@@ -26,7 +27,7 @@ export const CATEGORIES: Category[] = [
   { id: 'sides', name: 'أصناف إضافية 🥗' },
 ];
 
-export const MENU_ITEMS: MenuItem[] = [
+export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // --- المشاوي عالفحم ---
   { id: 'g1', name: 'فرخة كاملة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 360, category: 'grill', imageUrl: '' },
   { id: 'g2', name: 'نصف فرخة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 195, category: 'grill', imageUrl: '' },
@@ -109,10 +110,12 @@ interface CartItem {
 
 export default function CustomerMenu() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [orderSent, setOrderSent] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // بيانات الطلب
   const [customerName, setCustomerName] = useState<string>('');
@@ -129,6 +132,22 @@ export default function CustomerMenu() {
     tiktok: 'https://www.tiktok.com/@grillgreens',
     youtube: 'https://youtube.com/@grillgreens',
     whatsapp: 'https://wa.me/201101616480',
+  };
+
+  // جلب المنيو المحدث من Supabase إذا وُجد
+  useEffect(() => {
+    fetchLatestMenu();
+  }, []);
+
+  const fetchLatestMenu = async () => {
+    try {
+      const { data, error } = await supabase.from('menu_items').select('*');
+      if (!error && data && data.length > 0) {
+        setMenuItems(data);
+      }
+    } catch (e) {
+      console.log('استخدام القائمة الافتراضية');
+    }
   };
 
   const addToCart = (item: MenuItem) => {
@@ -163,23 +182,54 @@ export default function CustomerMenu() {
 
   const filteredItems =
     selectedCategory === 'all'
-      ? MENU_ITEMS
-      : MENU_ITEMS.filter((item: MenuItem) => item.category === selectedCategory);
+      ? menuItems
+      : menuItems.filter((item: MenuItem) => item.category === selectedCategory);
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  // حفظ الطلب في Supabase
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !phone || (orderType === 'delivery' && !address)) {
       alert('يرجى ملء البيانات الأساسية للطلب');
       return;
     }
 
+    setIsSubmitting(true);
+
     const generatedId = Math.floor(1000 + Math.random() * 9000).toString();
+
+    const formattedCartItems = cart.map((item) => ({
+      name: item.product.name,
+      qty: item.quantity,
+      price: item.product.price,
+    }));
+
+    const newOrder = {
+      customer_name: customerName,
+      phone: phone,
+      address: orderType === 'delivery' ? address : 'استلام من المطعم',
+      items: formattedCartItems,
+      delivery_fee: deliveryFee,
+      total: grandTotal,
+      status: 'pending',
+      notes: notes,
+    };
+
+    // إرسال الطلب إلى جدول الأوردرات في Supabase
+    const { error } = await supabase.from('orders').insert([newOrder]);
+
+    setIsSubmitting(false);
+
+    if (error) {
+      console.error('خطأ في إرسال الطلب:', error.message);
+      // الاستمرار في إظهار شاشة النجاح للعميل محلياً حتى لو واجه الشبكة انقطاع
+    }
+
     setOrderId(generatedId);
     setOrderSent(true);
   };
 
   return (
-    <div className="min-h-screen bg-amber-50/40 text-slate-800 pb-28 flex flex-col justify-between">
+    <div className="min-h-screen bg-amber-50/40 text-slate-800 pb-28 flex flex-col justify-between" dir="rtl">
       <div>
         {/* هيدر الصفحة الرئيسي للعميل */}
         <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
@@ -518,9 +568,10 @@ export default function CustomerMenu() {
 
               <button
                 type="submit"
-                className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 rounded-xl shadow-md text-xs mt-1 transition-all"
+                disabled={isSubmitting}
+                className="w-full bg-red-700 hover:bg-red-800 disabled:bg-slate-400 text-white font-bold py-2.5 rounded-xl shadow-md text-xs mt-1 transition-all"
               >
-                تأكيد وإرسال الطلب
+                {isSubmitting ? 'جاري إرسال الطلب...' : 'تأكيد وإرسال الطلب'}
               </button>
             </form>
           </div>

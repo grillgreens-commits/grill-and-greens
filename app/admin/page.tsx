@@ -24,10 +24,9 @@ interface Order {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "menu" | "reports" | "settings">("orders");
   const [loading, setLoading] = useState(false);
 
-  // States للبيانات الحقيقية
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState({
@@ -37,12 +36,26 @@ export default function AdminPage() {
     min_order: 50,
   });
 
-  // إضافة صنف جديد
-  const [newItem, setNewItem] = useState({ name: "", category: "مشويات", price: 0 });
+  const [newItem, setNewItem] = useState({ name: "", category: "مشويات", price: "" });
 
-  // جلب البيانات عند تحكم الصفحة
   useEffect(() => {
     fetchData();
+
+    // الاستماع اللحظي للطلبات الجديدة (Realtime)
+    const channel = supabase
+      .channel("realtime-orders")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "orders" },
+        (payload) => {
+          setOrders((prevOrders) => [payload.new as Order, ...prevOrders]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchData = async () => {
@@ -51,48 +64,39 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // 1. جلب المنيو من Supabase
   const fetchMenu = async () => {
-    const { data, error } = await supabase.from("menu_items").select("*").order("id", { ascending: true });
-    if (!error && data) setMenuItems(data);
+    const { data } = await supabase.from("menu_items").select("*").order("id", { ascending: true });
+    if (data) setMenuItems(data);
   };
 
-  // 2. جلب الطلبات من Supabase
   const fetchOrders = async () => {
-    const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
-    if (!error && data) setOrders(data);
+    const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+    if (data) setOrders(data);
   };
 
-  // 3. جلب الإعدادات من Supabase
   const fetchSettings = async () => {
-    const { data, error } = await supabase.from("settings").select("*").eq("id", 1).single();
-    if (!error && data) {
-      setSettings(data);
-    }
+    const { data } = await supabase.from("settings").select("*").eq("id", 1).single();
+    if (data) setSettings(data);
   };
 
-  // إضافة صنف للمنيو في Supabase
   const handleAddMenuItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItem.name || newItem.price <= 0) return;
+    if (!newItem.name || !newItem.price) return;
 
-    const { data, error } = await supabase.from("menu_items").insert([
-      { name: newItem.name, category: newItem.category, price: newItem.price, available: true }
-    ]).select();
+    const priceNum = parseFloat(newItem.price);
+    const { data, error } = await supabase
+      .from("menu_items")
+      .insert([{ name: newItem.name, category: newItem.category, price: priceNum, available: true }])
+      .select();
 
     if (!error && data) {
       setMenuItems((prev) => [...prev, data[0]]);
-      setNewItem({ name: "", category: "مشويات", price: 0 });
+      setNewItem({ name: "", category: "مشويات", price: "" });
     }
   };
 
-  // تغيير توفر الصنف في Supabase
   const toggleAvailability = async (id: number, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from("menu_items")
-      .update({ available: !currentStatus })
-      .eq("id", id);
-
+    const { error } = await supabase.from("menu_items").update({ available: !currentStatus }).eq("id", id);
     if (!error) {
       setMenuItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, available: !currentStatus } : item))
@@ -100,46 +104,34 @@ export default function AdminPage() {
     }
   };
 
-  // حذف صنف من Supabase
   const deleteMenuItem = async (id: number) => {
+    if (!confirm("هل أنت تأكد من حذف هذا الصنف من المنيو؟")) return;
     const { error } = await supabase.from("menu_items").delete().eq("id", id);
     if (!error) {
       setMenuItems((prev) => prev.filter((item) => item.id !== id));
     }
   };
 
-  // تحديث حالة الطلب في Supabase
   const updateOrderStatus = async (id: number, newStatus: string) => {
     const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", id);
     if (!error) {
-      setOrders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
-      );
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o)));
     }
   };
 
-  // حفظ الإعدادات في Supabase
   const handleSaveSettings = async () => {
-    const { error } = await supabase
-      .from("settings")
-      .upsert({ id: 1, ...settings });
-
-    if (!error) {
-      alert("تم حفظ الإعدادات بنجاح في قاعدة البيانات!");
-    }
+    const { error } = await supabase.from("settings").upsert({ id: 1, ...settings });
+    if (!error) alert("تم حفظ الإعدادات بنجاح!");
   };
 
-  // طباعة الفاتورة
   const handlePrintInvoice = (order: Order) => {
     const printWindow = window.open("", "_blank", "width=600,height=700");
     if (!printWindow) return;
 
-    const itemsHtml = order.items
+    const itemsHtml = (order.items || [])
       .map(
         (i) =>
-          `<tr><td>${i.name}</td><td>${i.qty}</td><td>${i.price} ج.م</td><td>${
-            i.qty * i.price
-          } ج.م</td></tr>`
+          `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${i.name}</td><td style="padding:8px;border-bottom:1px solid #eee;">${i.qty}</td><td style="padding:8px;border-bottom:1px solid #eee;">${i.price} ج.م</td><td style="padding:8px;border-bottom:1px solid #eee;">${i.qty * i.price} ج.م</td></tr>`
       )
       .join("");
 
@@ -148,22 +140,22 @@ export default function AdminPage() {
         <head>
           <title>فاتورة #${order.id} - Grill & Greens</title>
           <style>
-            body { font-family: system-ui, sans-serif; padding: 20px; text-align: center; }
-            .bill { border: 2px dashed #1a2e22; padding: 20px; border-radius: 12px; max-width: 380px; margin: auto; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: right; }
-            .total { font-weight: bold; font-size: 1.3rem; margin-top: 15px; color: #1a2e22; }
+            body { font-family: system-ui, sans-serif; padding: 20px; text-align: center; color: #1a2e22; }
+            .bill { border: 2px dashed #1a2e22; padding: 24px; border-radius: 12px; max-width: 380px; margin: auto; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: right; }
+            th { border-bottom: 2px solid #1a2e22; padding: 8px; }
+            .total { font-weight: bold; font-size: 1.2rem; margin-top: 15px; color: #16a34a; }
           </style>
         </head>
         <body>
           <div class="bill">
-            <h2>🔥 Grill & Greens</h2>
-            <p>سوهاج - طلبات المطبخ المنزلي</p>
+            <h2>Grill & Greens</h2>
+            <p style="margin-top:-10px; color:#666;">سوهاج - المطبخ المنزلي</p>
             <hr/>
-            <p><strong>رقم الطلب:</strong> #${order.id}</p>
-            <p><strong>العميل:</strong> ${order.customer_name} (${order.phone})</p>
-            <p><strong>العنوان:</strong> ${order.address}</p>
-            <p><strong>التاريخ:</strong> ${new Date(order.created_at).toLocaleString("ar-EG")}</p>
+            <p style="text-align:right;"><strong>رقم الطلب:</strong> #${order.id}</p>
+            <p style="text-align:right;"><strong>العميل:</strong> ${order.customer_name}</p>
+            <p style="text-align:right;"><strong>الهاتف:</strong> ${order.phone}</p>
+            <p style="text-align:right;"><strong>العنوان:</strong> ${order.address}</p>
             <table>
               <thead>
                 <tr><th>الوجبة</th><th>العدد</th><th>السعر</th><th>الإجمالي</th></tr>
@@ -171,9 +163,9 @@ export default function AdminPage() {
               <tbody>${itemsHtml}</tbody>
             </table>
             <hr/>
-            <p>خدمة التوصيل: ${order.delivery_fee} ج.م</p>
-            <p class="total">المبلغ الإجمالي: ${order.total} ج.م</p>
-            <p>شكراً لطلبكم من Grill & Greens!</p>
+            <p style="text-align:right;">التوصيل: ${order.delivery_fee} ج.م</p>
+            <p class="total">الإجمالي: ${order.total} ج.م</p>
+            <p style="font-size:0.85rem; color:#888; margin-top:20px;">شكراً لطلبكم من Grill & Greens!</p>
           </div>
           <script>
             window.onload = function() { window.print(); window.close(); }
@@ -188,393 +180,327 @@ export default function AdminPage() {
   const totalSales = completedOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
   return (
-    <>
-      <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css"
-      />
-      <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"
-        rel="stylesheet"
-      />
+    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row dir-rtl" dir="rtl">
+      {/* Sidebar */}
+      <aside className="w-full md:w-64 bg-emerald-950 text-white p-5 flex flex-col justify-between shadow-xl">
+        <div>
+          <div className="text-center py-4 border-b border-emerald-800 mb-6">
+            <h1 className="text-2xl font-extrabold text-emerald-400 tracking-wide">Grill & Greens</h1>
+            <p className="text-xs text-emerald-200 mt-1">لوحة التحكم وإدارة المطعم</p>
+          </div>
 
-      <style jsx global>{`
-        body {
-          font-family: 'Cairo', sans-serif;
-          background-color: #f3f4f6;
-        }
-        .sidebar {
-          min-height: 100vh;
-          background: linear-gradient(180deg, #1a2e22 0%, #0d1812 100%);
-          color: #fff;
-          box-shadow: 4px 0 15px rgba(0,0,0,0.05);
-        }
-        .brand-logo {
-          color: #2ecc71;
-          font-weight: 800;
-          font-size: 1.5rem;
-        }
-        .sidebar .nav-link {
-          color: #94a3b8;
-          font-size: 0.95rem;
-          padding: 12px 16px;
-          border-radius: 10px;
-          margin-bottom: 8px;
-          transition: all 0.2s ease;
-          border: none;
-        }
-        .sidebar .nav-link:hover {
-          color: #fff;
-          background-color: rgba(255, 255, 255, 0.05);
-        }
-        .sidebar .nav-link.active {
-          background-color: #2ecc71;
-          color: #000;
-          font-weight: 700;
-        }
-        .card-custom {
-          border: none;
-          border-radius: 16px;
-          background: #ffffff;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-        }
-        .header-title {
-          color: #1a2e22;
-          font-weight: 800;
-        }
-      `}</style>
+          <nav className="space-y-2">
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-between ${
+                activeTab === "orders" ? "bg-emerald-500 text-slate-950 shadow-md" : "text-gray-300 hover:bg-emerald-900"
+              }`}
+            >
+              <span>الطلبات الواردة</span>
+              {orders.filter((o) => o.status !== "completed").length > 0 && (
+                <span className="bg-amber-400 text-xs text-black px-2 py-0.5 rounded-full font-bold">
+                  {orders.filter((o) => o.status !== "completed").length}
+                </span>
+              )}
+            </button>
 
-      <div className="container-fluid">
-        <div className="row">
-          {/* Sidebar */}
-          <div className="col-md-3 col-lg-2 p-3 sidebar">
-            <div className="text-center my-3">
-              <div className="brand-logo">
-                <i className="fa-solid fa-fire text-warning me-1"></i> Grill & Greens
-              </div>
-              <small className="text-muted">الإدارة المباشرة</small>
+            <button
+              onClick={() => setActiveTab("menu")}
+              className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all ${
+                activeTab === "menu" ? "bg-emerald-500 text-slate-950 shadow-md" : "text-gray-300 hover:bg-emerald-900"
+              }`}
+            >
+              إدارة المنيو والأسعار
+            </button>
+
+            <button
+              onClick={() => setActiveTab("reports")}
+              className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all ${
+                activeTab === "reports" ? "bg-emerald-500 text-slate-950 shadow-md" : "text-gray-300 hover:bg-emerald-900"
+              }`}
+            >
+              التقارير والمبيعات
+            </button>
+
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`w-full text-right px-4 py-3 rounded-xl font-semibold transition-all ${
+                activeTab === "settings" ? "bg-emerald-500 text-slate-950 shadow-md" : "text-gray-300 hover:bg-emerald-900"
+              }`}
+            >
+              إعدادات التوصيل
+            </button>
+          </nav>
+        </div>
+
+        <div className="pt-6 border-t border-emerald-800">
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="w-full bg-emerald-800 hover:bg-emerald-700 text-emerald-100 py-2.5 px-4 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2"
+          >
+            {loading ? "جاري التحديث..." : "تحديث البيانات"}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        {activeTab === "orders" && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">إدارة الطلبات</h2>
+              <span className="text-sm bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full">
+                إجمالي الطلبات: {orders.length}
+              </span>
             </div>
-            <hr className="border-secondary mb-4" />
-            <ul className="nav nav-pills flex-column">
-              <li className="nav-item">
-                <button
-                  type="button"
-                  className={`nav-link w-100 text-start ${activeTab === "orders" ? "active" : ""}`}
-                  onClick={() => setActiveTab("orders")}
-                >
-                  <i className="fa-solid fa-receipt me-2"></i> الطلبات الواردة
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  type="button"
-                  className={`nav-link w-100 text-start ${activeTab === "menu" ? "active" : ""}`}
-                  onClick={() => setActiveTab("menu")}
-                >
-                  <i className="fa-solid fa-utensils me-2"></i> المنيو والأسعار
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  type="button"
-                  className={`nav-link w-100 text-start ${activeTab === "reports" ? "active" : ""}`}
-                  onClick={() => setActiveTab("reports")}
-                >
-                  <i className="fa-solid fa-chart-line me-2"></i> التقارير والمبيعات
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  type="button"
-                  className={`nav-link w-100 text-start ${activeTab === "settings" ? "active" : ""}`}
-                  onClick={() => setActiveTab("settings")}
-                >
-                  <i className="fa-solid fa-gear me-2"></i> الإعدادات
-                </button>
-              </li>
-            </ul>
 
-            <div className="mt-auto pt-4 text-center">
+            {orders.length === 0 ? (
+              <div className="bg-white rounded-2xl p-12 text-center text-gray-500 border border-gray-200">
+                لا توجد طلبات واردة حالياً.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {orders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex justify-between items-center pb-3 border-b border-gray-100 mb-3">
+                        <span className="font-extrabold text-lg text-emerald-900">طلب #{order.id}</span>
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+                            order.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : order.status === "processing"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {order.status === "completed"
+                            ? "مكتمل"
+                            : order.status === "processing"
+                            ? "قيد التجهيز"
+                            : "طلب جديد"}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-sm text-gray-600 mb-4">
+                        <p><strong className="text-gray-800">العميل:</strong> {order.customer_name}</p>
+                        <p><strong className="text-gray-800">الهاتف:</strong> {order.phone}</p>
+                        <p><strong className="text-gray-800">العنوان:</strong> {order.address}</p>
+                      </div>
+
+                      <div className="bg-gray-50 p-3 rounded-xl mb-4">
+                        <p className="text-xs font-bold text-gray-500 mb-2">الأصناف المطلوبة:</p>
+                        <ul className="text-xs space-y-1 text-gray-700">
+                          {order.items?.map((item, idx) => (
+                            <li key={idx} className="flex justify-between">
+                              <span>{item.qty}x {item.name}</span>
+                              <span className="font-semibold">{item.price * item.qty} ج.م</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between font-bold text-sm text-emerald-900">
+                          <span>الإجمالي:</span>
+                          <span>{order.total} ج.م</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <a
+                        href={`https://wa.me/2${order.phone}?text=${encodeURIComponent(
+                          `مرحباً ${order.customer_name}، جاري تجهيز طلبك رقم #${order.id} من Grill & Greens!`
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-xs transition"
+                      >
+                        مراسلة عبر الواتساب
+                      </a>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        {order.status !== "completed" && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, "processing")}
+                            className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold py-1.5 rounded-lg text-xs"
+                          >
+                            تجهيز
+                          </button>
+                        )}
+                        <button
+                          onClick={() => updateOrderStatus(order.id, "completed")}
+                          className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold py-1.5 rounded-lg text-xs"
+                        >
+                          تسليم
+                        </button>
+                        <button
+                          onClick={() => handlePrintInvoice(order)}
+                          className="bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold py-1.5 rounded-lg text-xs"
+                        >
+                          طباعة
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "menu" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800">إدارة أصناف المنيو</h2>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+              <h3 className="font-bold text-gray-800 mb-4">إضافة صنف جديد</h3>
+              <form onSubmit={handleAddMenuItem} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">اسم الصنف</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: كفتة بلدي"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">التصنيف</label>
+                  <select
+                    value={newItem.category}
+                    onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="مشويات">مشويات</option>
+                    <option value="وجبات">وجبات</option>
+                    <option value="طواجن">طواجن</option>
+                    <option value="حلويات">حلويات</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">السعر (ج.م)</label>
+                  <input
+                    type="number"
+                    placeholder="150"
+                    value={newItem.price}
+                    onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition"
+                  >
+                    حفظ في المنيو
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+              <table className="w-full text-right text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold">
+                  <tr>
+                    <th className="p-4">الصنف</th>
+                    <th className="p-4">التصنيف</th>
+                    <th className="p-4">السعر</th>
+                    <th className="p-4">التوفر</th>
+                    <th className="p-4">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {menuItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition">
+                      <td className="p-4 font-bold text-gray-800">{item.name}</td>
+                      <td className="p-4">
+                        <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg text-xs">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="p-4 font-bold text-emerald-700">{item.price} ج.م</td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => toggleAvailability(item.id, item.available)}
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            item.available ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"
+                          }`}
+                        >
+                          {item.available ? "متوفر" : "غير متوفر"}
+                        </button>
+                      </td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => deleteMenuItem(item.id)}
+                          className="text-red-600 hover:text-red-800 font-semibold text-xs"
+                        >
+                          حذف
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "reports" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800">تقارير المبيعات</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-2xl border border-emerald-200 border-r-4 border-r-emerald-600 shadow-sm">
+                <p className="text-sm text-gray-500 font-bold mb-1">إجمالي المبيعات المكتملة</p>
+                <p className="text-3xl font-extrabold text-emerald-700">{totalSales} ج.م</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl border border-blue-200 border-r-4 border-r-blue-600 shadow-sm">
+                <p className="text-sm text-gray-500 font-bold mb-1">عدد الطلبات المكتملة</p>
+                <p className="text-3xl font-extrabold text-blue-700">{completedOrders.length}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "settings" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800">إعدادات الموقع والتوصيل</h2>
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 max-w-xl">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">رسوم التوصيل داخل سوهاج (ج.م)</label>
+                <input
+                  type="number"
+                  value={settings.delivery_fee}
+                  onChange={(e) => setSettings({ ...settings, delivery_fee: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">رقم الواتساب لاستقبال الطلبات</label>
+                <input
+                  type="text"
+                  value={settings.whatsapp}
+                  onChange={(e) => setSettings({ ...settings, whatsapp: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
               <button
-                className="btn btn-outline-light btn-sm w-100"
-                onClick={fetchData}
+                onClick={handleSaveSettings}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition"
               >
-                <i className={`fa-solid fa-rotate me-1 ${loading ? "fa-spin" : ""}`}></i> تحديث البيانات
+                حفظ الإعدادات
               </button>
             </div>
           </div>
-
-          {/* Main Content */}
-          <div className="col-md-9 col-lg-10 p-4">
-            {/* 1. الطلبات */}
-            {activeTab === "orders" && (
-              <div>
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                  <h3 className="header-title">
-                    <i className="fa-solid fa-bell text-warning me-2"></i> إدارة الطلبات الفعالة
-                  </h3>
-                  <button className="btn btn-sm btn-outline-secondary" onClick={fetchOrders}>
-                    إعادة تحميل
-                  </button>
-                </div>
-
-                <div className="row g-3">
-                  {orders.length === 0 ? (
-                    <div className="col-12">
-                      <div className="card card-custom p-5 text-center text-muted">
-                        لا توجد طلبات مسجلة حالياً
-                      </div>
-                    </div>
-                  ) : (
-                    orders.map((order) => (
-                      <div className="col-md-6 col-lg-4" key={order.id}>
-                        <div className="card card-custom p-3 border-start border-4 border-warning">
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <h5 className="fw-bold mb-0">طلب #{order.id}</h5>
-                            <span
-                              className={`badge ${
-                                order.status === "completed"
-                                  ? "bg-success"
-                                  : order.status === "processing"
-                                  ? "bg-info text-white"
-                                  : "bg-warning text-dark"
-                              }`}
-                            >
-                              {order.status === "completed"
-                                ? "مكتمل"
-                                : order.status === "processing"
-                                ? "قيد التجهيز"
-                                : "جديد"}
-                            </span>
-                          </div>
-                          <p className="mb-1"><strong>العميل:</strong> {order.customer_name}</p>
-                          <p className="mb-1"><strong>الهاتف:</strong> {order.phone}</p>
-                          <p className="mb-2"><strong>العنوان:</strong> {order.address}</p>
-                          <hr />
-                          <h6 className="fw-bold">الأصناف:</h6>
-                          <ul className="ps-3 mb-2 small">
-                            {order.items?.map((item, idx) => (
-                              <li key={idx}>
-                                {item.qty}x {item.name} ({item.price * item.qty} ج.م)
-                              </li>
-                            ))}
-                          </ul>
-                          <p className="fw-bold text-success mb-3 fs-5">
-                            الإجمالي: {order.total} ج.م
-                          </p>
-
-                          <div className="d-grid gap-2">
-                            <a
-                              href={`https://wa.me/2${order.phone}?text=${encodeURIComponent(
-                                `مرحباً ${order.customer_name}، جاري تجهيز طلبك رقم #${order.id} في Grill & Greens! 🔥`
-                              )}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-success btn-sm text-center"
-                            >
-                              <i className="fa-brands fa-whatsapp me-1"></i> واتساب
-                            </a>
-                            <div className="btn-group">
-                              {order.status !== "completed" && (
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-primary btn-sm"
-                                  onClick={() => updateOrderStatus(order.id, "processing")}
-                                >
-                                  تجهيز
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="btn btn-success btn-sm"
-                                onClick={() => updateOrderStatus(order.id, "completed")}
-                              >
-                                تسليم
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-dark btn-sm"
-                                onClick={() => handlePrintInvoice(order)}
-                              >
-                                طباعة
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 2. المنيو والأسعار (مربوط بقاعدة البيانات) */}
-            {activeTab === "menu" && (
-              <div>
-                <h3 className="header-title mb-4">
-                  <i className="fa-solid fa-utensils text-success me-2"></i> التحكم في أصناف المنيو
-                </h3>
-
-                {/* نموذج إضافة صنف */}
-                <div className="card card-custom p-4 mb-4">
-                  <h5 className="fw-bold mb-3">إضافة وجبة أو صنف جديد</h5>
-                  <form onSubmit={handleAddMenuItem} className="row g-3 align-items-end">
-                    <div className="col-md-4">
-                      <label className="form-label fw-bold">اسم الصنف:</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="مثال: كفتة بلدي مشوية"
-                        value={newItem.name}
-                        onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label fw-bold">التصنيف:</label>
-                      <select
-                        className="form-select"
-                        value={newItem.category}
-                        onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                      >
-                        <option value="مشويات">مشويات</option>
-                        <option value="وجبات">وجبات</option>
-                        <option value="طواجن">طواجن</option>
-                        <option value="حلويات">حلويات</option>
-                      </select>
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label fw-bold">السعر (ج.م):</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        placeholder="100"
-                        value={newItem.price || ""}
-                        onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-2">
-                      <button type="submit" className="btn btn-success w-100">
-                        حفظ الصنف
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                {/* جدول المنيو */}
-                <div className="card card-custom p-3">
-                  <table className="table table-hover align-middle">
-                    <thead className="table-dark">
-                      <tr>
-                        <th>الصنف</th>
-                        <th>التصنيف</th>
-                        <th>السعر</th>
-                        <th>الحالة في الموقع</th>
-                        <th>إجراءات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {menuItems.map((item) => (
-                        <tr key={item.id}>
-                          <td className="fw-bold">{item.name}</td>
-                          <td><span className="badge bg-light text-dark border">{item.category}</span></td>
-                          <td>{item.price} ج.م</td>
-                          <td>
-                            <button
-                              type="button"
-                              className={`btn btn-sm ${item.available ? "btn-success" : "btn-secondary"}`}
-                              onClick={() => toggleAvailability(item.id, item.available)}
-                            >
-                              {item.available ? "متوفر" : "غير متوفر"}
-                            </button>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => deleteMenuItem(item.id)}
-                            >
-                              <i className="fa-solid fa-trash"></i>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* 3. التقارير */}
-            {activeTab === "reports" && (
-              <div>
-                <h3 className="header-title mb-4">
-                  <i className="fa-solid fa-chart-line text-danger me-2"></i> التقارير والتحليلات
-                </h3>
-                <div className="row g-3">
-                  <div className="col-md-4">
-                    <div className="card card-custom p-3 border-start border-4 border-success">
-                      <h6>إجمالي المبيعات المكتملة</h6>
-                      <h3 className="text-success fw-bold mb-0">{totalSales} ج.م</h3>
-                    </div>
-                  </div>
-                  <div className="col-md-4">
-                    <div className="card card-custom p-3 border-start border-4 border-primary">
-                      <h6>إجمالي الطلبات</h6>
-                      <h3 className="text-primary fw-bold mb-0">{orders.length}</h3>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 4. الإعدادات */}
-            {activeTab === "settings" && (
-              <div>
-                <h3 className="header-title mb-4">
-                  <i className="fa-solid fa-gear text-secondary me-2"></i> الإعدادات العامة
-                </h3>
-                <div className="card card-custom p-4">
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <label className="form-label fw-bold">خدمة التوصيل (سوهاج):</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={settings.delivery_fee}
-                        onChange={(e) => setSettings({ ...settings, delivery_fee: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label fw-bold">رقم الواتساب:</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={settings.whatsapp}
-                        onChange={(e) => setSettings({ ...settings, whatsapp: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-12 mt-4">
-                      <button
-                        type="button"
-                        className="btn btn-primary px-4"
-                        onClick={handleSaveSettings}
-                      >
-                        حفظ الإعدادات في Supabase
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+        )}
+      </main>
+    </div>
   );
 }
