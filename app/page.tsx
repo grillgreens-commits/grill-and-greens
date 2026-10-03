@@ -8,6 +8,7 @@ export interface MenuItem {
   description?: string;
   price: number;
   category: string;
+  imageUrl?: string; // مكان مخصص لرابط الصورة
 }
 
 export interface Category {
@@ -26,79 +27,79 @@ export const CATEGORIES: Category[] = [
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
-  // --- المشاوي عالفحم (تشمل: رز بسمتي + سلطة + طحينة + عيش) ---
-  { id: 'g1', name: 'فرخة كاملة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 360, category: 'grill' },
-  { id: 'g2', name: 'نصف فرخة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 195, category: 'grill' },
-  { id: 'g3', name: 'ربع فرخة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 120, category: 'grill' },
-  { id: 'g4', name: 'ك كباب ستيك', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 800, category: 'grill' },
-  { id: 'g5', name: 'نصف كباب ستيك', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 430, category: 'grill' },
-  { id: 'g6', name: 'ربع كباب ستيك', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 250, category: 'grill' },
-  { id: 'g7', name: 'ك كفتة بلدي', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 750, category: 'grill' },
-  { id: 'g8', name: 'نصف كفتة بلدي', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 400, category: 'grill' },
-  { id: 'g9', name: 'ربع كفتة بلدي', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 230, category: 'grill' },
-  { id: 'g10', name: 'ك شيش طاووق', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 400, category: 'grill' },
-  { id: 'g11', name: 'نصف شيش طاووق', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 220, category: 'grill' },
-  { id: 'g12', name: 'ربع شيش طاووق', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 130, category: 'grill' },
+  // --- المشاوي عالفحم ---
+  { id: 'g1', name: 'فرخة كاملة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 360, category: 'grill', imageUrl: '' },
+  { id: 'g2', name: 'نصف فرخة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 195, category: 'grill', imageUrl: '' },
+  { id: 'g3', name: 'ربع فرخة', description: 'تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 120, category: 'grill', imageUrl: '' },
+  { id: 'g4', name: 'ك كباب ستيك', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 800, category: 'grill', imageUrl: '' },
+  { id: 'g5', name: 'نصف كباب ستيك', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 430, category: 'grill', imageUrl: '' },
+  { id: 'g6', name: 'ربع كباب ستيك', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 250, category: 'grill', imageUrl: '' },
+  { id: 'g7', name: 'ك كفتة بلدي', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 750, category: 'grill', imageUrl: '' },
+  { id: 'g8', name: 'نصف كفتة بلدي', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 400, category: 'grill', imageUrl: '' },
+  { id: 'g9', name: 'ربع كفتة بلدي', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 230, category: 'grill', imageUrl: '' },
+  { id: 'g10', name: 'ك شيش طاووق', description: 'كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 400, category: 'grill', imageUrl: '' },
+  { id: 'g11', name: 'نصف شيش طاووق', description: 'نصف كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 220, category: 'grill', imageUrl: '' },
+  { id: 'g12', name: 'ربع شيش طاووق', description: 'ربع كيلو - تشمل: رز بسمتي + سلطة + طحينة + عيش', price: 130, category: 'grill', imageUrl: '' },
 
   // --- المحاشي ---
-  { id: 'm1', name: 'ك محشي مشكل', description: 'كيلو محشي مشكل', price: 160, category: 'mahshi' },
-  { id: 'm2', name: 'نصف محشي مشكل', description: 'نصف كيلو محشي مشكل', price: 90, category: 'mahshi' },
-  { id: 'm3', name: 'ربع محشي مشكل', description: 'ربع كيلو محشي مشكل', price: 50, category: 'mahshi' },
-  { id: 'm4', name: 'ك محشي كرنب', description: 'كيلو محشي كرنب', price: 180, category: 'mahshi' },
-  { id: 'm5', name: 'نصف محشي كرنب', description: 'نصف كيلو محشي كرنب', price: 100, category: 'mahshi' },
-  { id: 'm6', name: 'ربع محشي كرنب', description: 'ربع كيلو محشي كرنب', price: 60, category: 'mahshi' },
-  { id: 'm7', name: 'ك محشي ورق عنب', description: 'كيلو محشي ورق عنب', price: 200, category: 'mahshi' },
-  { id: 'm8', name: 'نصف محشي ورق عنب', description: 'نصف كيلو محشي ورق عنب', price: 110, category: 'mahshi' },
-  { id: 'm9', name: 'ربع محشي ورق عنب', description: 'ربع كيلو محشي ورق عنب', price: 65, category: 'mahshi' },
-  { id: 'm10', name: 'ك محشي ممبار', description: 'كيلو محشي ممبار', price: 260, category: 'mahshi' },
-  { id: 'm11', name: 'نصف محشي ممبار', description: 'نصف كيلو محشي ممبار', price: 140, category: 'mahshi' },
-  { id: 'm12', name: 'ربع محشي ممبار', description: 'ربع كيلو محشي ممبار', price: 80, category: 'mahshi' },
+  { id: 'm1', name: 'ك محشي مشكل', description: 'كيلو محشي مشكل', price: 160, category: 'mahshi', imageUrl: '' },
+  { id: 'm2', name: 'نصف محشي مشكل', description: 'نصف كيلو محشي مشكل', price: 90, category: 'mahshi', imageUrl: '' },
+  { id: 'm3', name: 'ربع محشي مشكل', description: 'ربع كيلو محشي مشكل', price: 50, category: 'mahshi', imageUrl: '' },
+  { id: 'm4', name: 'ك محشي كرنب', description: 'كيلو محشي كرنب', price: 180, category: 'mahshi', imageUrl: '' },
+  { id: 'm5', name: 'نصف محشي كرنب', description: 'نصف كيلو محشي كرنب', price: 100, category: 'mahshi', imageUrl: '' },
+  { id: 'm6', name: 'ربع محشي كرنب', description: 'ربع كيلو محشي كرنب', price: 60, category: 'mahshi', imageUrl: '' },
+  { id: 'm7', name: 'ك محشي ورق عنب', description: 'كيلو محشي ورق عنب', price: 200, category: 'mahshi', imageUrl: '' },
+  { id: 'm8', name: 'نصف محشي ورق عنب', description: 'نصف كيلو محشي ورق عنب', price: 110, category: 'mahshi', imageUrl: '' },
+  { id: 'm9', name: 'ربع محشي ورق عنب', description: 'ربع كيلو محشي ورق عنب', price: 65, category: 'mahshi', imageUrl: '' },
+  { id: 'm10', name: 'ك محشي ممبار', description: 'كيلو محشي ممبار', price: 260, category: 'mahshi', imageUrl: '' },
+  { id: 'm11', name: 'نصف محشي ممبار', description: 'نصف كيلو محشي ممبار', price: 140, category: 'mahshi', imageUrl: '' },
+  { id: 'm12', name: 'ربع محشي ممبار', description: 'ربع كيلو محشي ممبار', price: 80, category: 'mahshi', imageUrl: '' },
 
   // --- الصواني والطواجن ---
-  { id: 'c1', name: 'صينية مكرونة بالبشاميل', description: 'صينية مكرونة بالبشاميل عائلية', price: 300, category: 'casserole' },
-  { id: 'c2', name: 'صينية جلاش باللحمة', description: 'صينية جلاش باللحم المفروم', price: 250, category: 'casserole' },
-  { id: 'c3', name: 'صينية بطاطس بالفراخ', description: 'صينية بطاطس بقطع الفراخ', price: 400, category: 'casserole' },
-  { id: 'c4', name: 'صينية بطاطس باللحمة', description: 'صينية بطاطس بقطع اللحم البلدي', price: 430, category: 'casserole' },
-  { id: 'c5', name: 'طاجن مكرونة بالبشاميل', description: 'طاجن بشاميل فردي', price: 100, category: 'casserole' },
-  { id: 'c6', name: 'طاجن لحمة بالبصل', description: 'طاجن لحم بلدي مع البصل والأعشاب', price: 330, category: 'casserole' },
-  { id: 'c7', name: 'طاجن بامية باللحمة', description: 'طاجن بامية باللحم البلدي', price: 310, category: 'casserole' },
-  { id: 'c8', name: 'طاجن فريك باللحمة', description: 'طاجن فريك بلدي باللحمة', price: 310, category: 'casserole' },
-  { id: 'c9', name: 'طاجن بطاطس باللحمة', description: 'طاجن بطاطس باللحمة البلدي', price: 290, category: 'casserole' },
+  { id: 'c1', name: 'صينية مكرونة بالبشاميل', description: 'صينية مكرونة بالبشاميل عائلية', price: 300, category: 'casserole', imageUrl: '' },
+  { id: 'c2', name: 'صينية جلاش باللحمة', description: 'صينية جلاش باللحم المفروم', price: 250, category: 'casserole', imageUrl: '' },
+  { id: 'c3', name: 'صينية بطاطس بالفراخ', description: 'صينية بطاطس بقطع الفراخ', price: 400, category: 'casserole', imageUrl: '' },
+  { id: 'c4', name: 'صينية بطاطس باللحمة', description: 'صينية بطاطس بقطع اللحم البلدي', price: 430, category: 'casserole', imageUrl: '' },
+  { id: 'c5', name: 'طاجن مكرونة بالبشاميل', description: 'طاجن بشاميل فردي', price: 100, category: 'casserole', imageUrl: '' },
+  { id: 'c6', name: 'طاجن لحمة بالبصل', description: 'طاجن لحم بلدي مع البصل والأعشاب', price: 330, category: 'casserole', imageUrl: '' },
+  { id: 'c7', name: 'طاجن بامية باللحمة', description: 'طاجن بامية باللحم البلدي', price: 310, category: 'casserole', imageUrl: '' },
+  { id: 'c8', name: 'طاجن فريك باللحمة', description: 'طاجن فريك بلدي باللحمة', price: 310, category: 'casserole', imageUrl: '' },
+  { id: 'c9', name: 'طاجن بطاطس باللحمة', description: 'طاجن بطاطس باللحمة البلدي', price: 290, category: 'casserole', imageUrl: '' },
 
   // --- الطيور ---
-  { id: 'p1', name: 'فرد حمام محشي فريك', description: 'حمام محشي فريك', price: 240, category: 'poultry' },
-  { id: 'p2', name: 'فرد حمام محشي رز', description: 'حمام محشي أرز', price: 230, category: 'poultry' },
-  { id: 'p3', name: 'جوز حمام محشي فريك / رز', description: 'زوج حمام محشي فريك أو أرز', price: 450, category: 'poultry' },
-  { id: 'p4', name: 'بطة محشي فريك', description: 'بطة كاملة محشية فريك', price: 730, category: 'poultry' },
-  { id: 'p5', name: 'بطة محشي رز', description: 'بطة كاملة محشية أرز', price: 700, category: 'poultry' },
-  { id: 'p6', name: 'بطة محشي ورق عنب', description: 'بطة كاملة محشية ورق عنب', price: 780, category: 'poultry' },
-  { id: 'p7', name: 'فرخة مسلوق محمر', description: 'فرخة كاملة مسلوقة ومحمرة', price: 330, category: 'poultry' },
-  { id: 'p8', name: 'نصف فرخة مسلوق محمر', description: 'نصف فرخة مسلوقة ومحمرة', price: 170, category: 'poultry' },
-  { id: 'p9', name: 'ربع فرخة مسلوق محمر', description: 'ربع فرخة مسلوق ومحمر', price: 95, category: 'poultry' },
+  { id: 'p1', name: 'فرد حمام محشي فريك', description: 'حمام محشي فريك', price: 240, category: 'poultry', imageUrl: '' },
+  { id: 'p2', name: 'فرد حمام محشي رز', description: 'حمام محشي أرز', price: 230, category: 'poultry', imageUrl: '' },
+  { id: 'p3', name: 'جوز حمام محشي فريك / رز', description: 'زوج حمام محشي فريك أو أرز', price: 450, category: 'poultry', imageUrl: '' },
+  { id: 'p4', name: 'بطة محشي فريك', description: 'بطة كاملة محشية فريك', price: 730, category: 'poultry', imageUrl: '' },
+  { id: 'p5', name: 'بطة محشي رز', description: 'بطة كاملة محشية أرز', price: 700, category: 'poultry', imageUrl: '' },
+  { id: 'p6', name: 'بطة محشي ورق عنب', description: 'بطة كاملة محشية ورق عنب', price: 780, category: 'poultry', imageUrl: '' },
+  { id: 'p7', name: 'فرخة مسلوق محمر', description: 'فرخة كاملة مسلوقة ومحمرة', price: 330, category: 'poultry', imageUrl: '' },
+  { id: 'p8', name: 'نصف فرخة مسلوق محمر', description: 'نصف فرخة مسلوقة ومحمرة', price: 170, category: 'poultry', imageUrl: '' },
+  { id: 'p9', name: 'ربع فرخة مسلوق محمر', description: 'ربع فرخة مسلوق ومحمر', price: 95, category: 'poultry', imageUrl: '' },
 
   // --- الوجبات ---
-  { id: 'w1', name: 'وجبة ربع فرخة مشوي / محمر', description: 'رز + سلطة + طحينة + عيش', price: 120, category: 'meals' },
-  { id: 'w2', name: 'وجبة ربع فراخ بانية بلدي', description: 'رز + سلطة + عيش', price: 130, category: 'meals' },
-  { id: 'w3', name: 'وجبة ربع فراخ بانية بلدي ميكس', description: 'مكرونة بالبشاميل + سلطة + عيش', price: 210, category: 'meals' },
-  { id: 'w4', name: 'وجبة ربع شيش طاووق مشوي', description: 'رز + سلطة + طحينة + عيش', price: 130, category: 'meals' },
-  { id: 'w5', name: 'وجبة ربع كفتة مشوية', description: 'رز + سلطة + طحينة + عيش', price: 230, category: 'meals' },
-  { id: 'w6', name: 'وجبة ربع كفتة بالصلصة', description: 'رز + سلطة + عيش', price: 230, category: 'meals' },
-  { id: 'w7', name: 'ورقة كبدة بلدي بالخلطة', description: 'رز + سلطة + عيش', price: 230, category: 'meals' },
-  { id: 'w8', name: 'طاجن مكرونة بالجمبري', description: '200 جرام جمبري فريش وايت صوص', price: 300, category: 'meals' },
+  { id: 'w1', name: 'وجبة ربع فرخة مشوي / محمر', description: 'رز + سلطة + طحينة + عيش', price: 120, category: 'meals', imageUrl: '' },
+  { id: 'w2', name: 'وجبة ربع فراخ بانية بلدي', description: 'رز + سلطة + عيش', price: 130, category: 'meals', imageUrl: '' },
+  { id: 'w3', name: 'وجبة ربع فراخ بانية بلدي ميكس', description: 'مكرونة بالبشاميل + سلطة + عيش', price: 210, category: 'meals', imageUrl: '' },
+  { id: 'w4', name: 'وجبة ربع شيش طاووق مشوي', description: 'رز + سلطة + طحينة + عيش', price: 130, category: 'meals', imageUrl: '' },
+  { id: 'w5', name: 'وجبة ربع كفتة مشوية', description: 'رز + سلطة + طحينة + عيش', price: 230, category: 'meals', imageUrl: '' },
+  { id: 'w6', name: 'وجبة ربع كفتة بالصلصة', description: 'رز + سلطة + عيش', price: 230, category: 'meals', imageUrl: '' },
+  { id: 'w7', name: 'ورقة كبدة بلدي بالخلطة', description: 'رز + سلطة + عيش', price: 230, category: 'meals', imageUrl: '' },
+  { id: 'w8', name: 'طاجن مكرونة بالجمبري', description: '200 جرام جمبري فريش وايت صوص', price: 300, category: 'meals', imageUrl: '' },
 
   // --- أصناف إضافية ---
-  { id: 's1', name: 'فريك خضار سادة', description: 'طباق فريك خضار', price: 70, category: 'sides' },
-  { id: 's2', name: 'بامية خضار سادة', description: 'طبق بامية سادة', price: 70, category: 'sides' },
-  { id: 's3', name: 'بطاطس خضار سادة', description: 'طبق بطاطس مطبوخة سادة', price: 60, category: 'sides' },
-  { id: 's4', name: 'ملوخية خضرا', description: 'طبق ملوخية خضراء بيتي', price: 60, category: 'sides' },
-  { id: 's5', name: 'شوربة لسان عصفور', description: 'شوربة لسان عصفور سخنة', price: 25, category: 'sides' },
-  { id: 's6', name: 'شوربة خضار', description: 'شوربة خضار مشكل', price: 30, category: 'sides' },
-  { id: 's7', name: 'حواوشي بلدي', description: 'رغيف حواوشي بلدي + سلطة + طحينة', price: 90, category: 'sides' },
-  { id: 's8', name: 'بطاطس بوم فريت', description: 'طبق بطاطس بوم فريت مقرمش', price: 40, category: 'sides' },
-  { id: 's9', name: 'رز بسمتي', description: 'طبق أرز بسمتي', price: 35, category: 'sides' },
-  { id: 's10', name: 'رز بالشعرية', description: 'طبق أرز مصري بالشعرية', price: 25, category: 'sides' },
-  { id: 's11', name: 'بانية بلدي مقلي 1ك', description: 'كيلو بانية بلدي جاهز', price: 400, category: 'sides' },
-  { id: 's12', name: 'نصف بانية بلدي مقلي', description: 'نصف كيلو بانية بلدي', price: 220, category: 'sides' },
+  { id: 's1', name: 'فريك خضار سادة', description: 'طباق فريك خضار', price: 70, category: 'sides', imageUrl: '' },
+  { id: 's2', name: 'بامية خضار سادة', description: 'طبق بامية سادة', price: 70, category: 'sides', imageUrl: '' },
+  { id: 's3', name: 'بطاطس خضار سادة', description: 'طبق بطاطس مطبوخة سادة', price: 60, category: 'sides', imageUrl: '' },
+  { id: 's4', name: 'ملوخية خضرا', description: 'طبق ملوخية خضراء بيتي', price: 60, category: 'sides', imageUrl: '' },
+  { id: 's5', name: 'شوربة لسان عصفور', description: 'شوربة لسان عصفور سخنة', price: 25, category: 'sides', imageUrl: '' },
+  { id: 's6', name: 'شوربة خضار', description: 'شوربة خضار مشكل', price: 30, category: 'sides', imageUrl: '' },
+  { id: 's7', name: 'حواوشي بلدي', description: 'رغيف حواوشي بلدي + سلطة + طحينة', price: 90, category: 'sides', imageUrl: '' },
+  { id: 's8', name: 'بطاطس بوم فريت', description: 'طبق بطاطس بوم فريت مقرمش', price: 40, category: 'sides', imageUrl: '' },
+  { id: 's9', name: 'رز بسمتي', description: 'طبق أرز بسمتي', price: 35, category: 'sides', imageUrl: '' },
+  { id: 's10', name: 'رز بالشعرية', description: 'طبق أرز مصري بالشعرية', price: 25, category: 'sides', imageUrl: '' },
+  { id: 's11', name: 'بانية بلدي مقلي 1ك', description: 'كيلو بانية بلدي جاهز', price: 400, category: 'sides', imageUrl: '' },
+  { id: 's12', name: 'نصف بانية بلدي مقلي', description: 'نصف كيلو بانية بلدي', price: 220, category: 'sides', imageUrl: '' },
 ];
 
 interface CartItem {
@@ -123,6 +124,10 @@ export default function CustomerMenu() {
   const DELIVERY_FEE = 30;
 
   const SOCIAL_LINKS = {
+    facebook: 'https://facebook.com/grillgreens',
+    instagram: 'https://www.instagram.com/grillgreens',
+    tiktok: 'https://www.tiktok.com/@grillgreens',
+    youtube: 'https://youtube.com/@grillgreens',
     whatsapp: 'https://wa.me/201101616480',
   };
 
@@ -174,135 +179,184 @@ export default function CustomerMenu() {
   };
 
   return (
-    <div className="min-h-screen bg-amber-50/40 text-slate-800 pb-28">
-      {/* هيدر الصفحة الرئيسي للعميل - خالي تماماً من أزرار أو أشرطة الإدارة */}
-      <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-2xl font-black text-amber-400 tracking-wide">Grill & Greens</h1>
-          <p className="text-xs text-slate-300 mt-0.5">أكل بيتي بجودة عالية - جميع اللحوم بلدي وطازة</p>
-        </div>
-      </header>
-
-      {/* شريط مواعيد العمل والتواصل وطرق الدفع */}
-      <div className="bg-red-800 text-white py-2 px-4 shadow-inner">
-        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs gap-1.5 text-center sm:text-right">
-          <div>
-            <span className="font-bold text-amber-300">مواعيدنا: </span>
-            من 11 صباحاً - 8 مساءً (ماعدا الجمعة) | يتم تجهيز الأوردر من 1 - 2 ساعة
-          </div>
-          <div className="flex gap-3 items-center font-bold">
-            <a
-              href={SOCIAL_LINKS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[11px] flex items-center gap-1"
-            >
-              📱 01101616480
-            </a>
-            <span className="text-amber-200 text-[11px]">كاش - محفظة - انستاباي</span>
-          </div>
-        </div>
-      </div>
-
-      {/* شريط التصنيفات */}
-      <div className="bg-white border-b border-slate-200 sticky top-[65px] z-20 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
-          {CATEGORIES.map((cat: Category) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                selectedCategory === cat.id
-                  ? 'bg-red-700 text-white shadow-sm scale-105'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* قائمة الأصناف */}
-      <main className="max-w-3xl mx-auto p-4">
-        {orderSent ? (
-          <div className="bg-white p-6 rounded-2xl border border-emerald-100 text-center my-8 shadow-sm space-y-4">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto">
-              ⏳
+    <div className="min-h-screen bg-amber-50/40 text-slate-800 pb-28 flex flex-col justify-between">
+      <div>
+        {/* هيدر الصفحة الرئيسي للعميل */}
+        <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
+          <div className="max-w-3xl mx-auto text-center space-y-1">
+            <h1 className="text-2xl font-black text-amber-400 tracking-wide">Grill & Greens</h1>
+            <p className="text-xs text-slate-300">أكل بيتي بجودة عالية - جميع اللحوم بلدي وطازة</p>
+            
+            {/* روابط السوشيال ميديا في الأعلى */}
+            <div className="flex justify-center items-center gap-3 pt-2 text-xs">
+              <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">
+                📘 فيسبوك
+              </a>
+              <span>•</span>
+              <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">
+                📸 انستجرام
+              </a>
+              <span>•</span>
+              <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">
+                🎵 تيك توك
+              </a>
+              <span>•</span>
+              <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">
+                ▶️ يوتيوب
+              </a>
             </div>
-            <h2 className="text-xl font-bold text-slate-800">تم إرسال طلبك بنجاح!</h2>
-            <p className="text-slate-600 text-sm">
-              رقم الطلب: <span className="font-bold text-red-600 text-base">#{orderId}</span>
-            </p>
-
-            {/* تفاصيل الريسيت للعميل */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-right text-xs space-y-2 max-w-sm mx-auto">
-              <p className="font-bold border-b pb-1 text-slate-700">تفاصيل الفاتورة والوصل:</p>
-              <div className="flex justify-between text-slate-600">
-                <span>إجمالي الأصناف:</span>
-                <span>{itemsSubtotal} ج.م</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>نوع الطلب:</span>
-                <span>{orderType === 'delivery' ? 'توصيل دليفري' : 'استلام من المطعم'}</span>
-              </div>
-              {orderType === 'delivery' && (
-                <div className="flex justify-between text-red-700 font-semibold">
-                  <span>خدمة توصيل (دليفري):</span>
-                  <span>+{DELIVERY_FEE} ج.م</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-slate-900 border-t pt-1.5 text-sm">
-                <span>المبلغ الإجمالي المطلوب:</span>
-                <span className="text-red-700">{grandTotal} ج.م</span>
-              </div>
-            </div>
-
-            <div className="inline-block bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-xs font-medium border border-amber-200">
-              حالة الطلب: <span className="font-bold">قيد الانتظار لمراجعة المطعم</span>
-            </div>
-            <p className="text-xs text-slate-400">سيتم التواصل معكم وتجهيز الوجبة فور تأكيد الطلب.</p>
-            <button
-              onClick={() => {
-                setOrderSent(false);
-                setIsCartOpen(false);
-                setCart([]);
-              }}
-              className="mt-4 bg-red-700 text-white px-6 py-2 rounded-xl text-xs font-semibold hover:bg-red-800"
-            >
-              طلب جديد
-            </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {filteredItems.map((item: MenuItem) => (
-              <div
-                key={item.id}
-                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center gap-3 hover:border-red-200 transition-colors"
+        </header>
+
+        {/* شريط مواعيد العمل والتواصل وطرق الدفع */}
+        <div className="bg-red-800 text-white py-2 px-4 shadow-inner">
+          <div className="max-w-3xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs gap-1.5 text-center sm:text-right">
+            <div>
+              <span className="font-bold text-amber-300">مواعيدنا: </span>
+              من 11 صباحاً - 8 مساءً (ماعدا الجمعة) | تجهيز الأوردر من 1 - 2 ساعة
+            </div>
+            <div className="flex gap-3 items-center font-bold">
+              <a
+                href={SOCIAL_LINKS.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[11px] flex items-center gap-1 shadow-sm"
               >
-                <div className="space-y-1 flex-1">
-                  <h3 className="font-bold text-slate-800 text-sm">{item.name}</h3>
-                  {item.description && (
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                      {item.description}
-                    </p>
-                  )}
-                  <p className="text-red-700 font-extrabold text-sm pt-1">
-                    {item.price} <span className="text-xs font-normal">ج.م</span>
-                  </p>
-                </div>
+                💬 واتساب 01101616480
+              </a>
+              <span className="text-amber-200 text-[11px]">كاش - محفظة - انستاباي</span>
+            </div>
+          </div>
+        </div>
 
-                <button
-                  onClick={() => addToCart(item)}
-                  className="bg-red-50 hover:bg-red-700 text-red-700 hover:text-white border border-red-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 active:scale-95"
-                >
-                  + إضافة
-                </button>
-              </div>
+        {/* شريط التصنيفات */}
+        <div className="bg-white border-b border-slate-200 sticky top-[95px] z-20 shadow-sm">
+          <div className="max-w-3xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+            {CATEGORIES.map((cat: Category) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                  selectedCategory === cat.id
+                    ? 'bg-red-700 text-white shadow-sm scale-105'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {cat.name}
+              </button>
             ))}
           </div>
-        )}
-      </main>
+        </div>
+
+        {/* قائمة الأصناف مع مكان الصورة */}
+        <main className="max-w-3xl mx-auto p-4">
+          {orderSent ? (
+            <div className="bg-white p-6 rounded-2xl border border-emerald-100 text-center my-8 shadow-sm space-y-4">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto">
+                ⏳
+              </div>
+              <h2 className="text-xl font-bold text-slate-800">تم إرسال طلبك بنجاح!</h2>
+              <p className="text-slate-600 text-sm">
+                رقم الطلب: <span className="font-bold text-red-600 text-base">#{orderId}</span>
+              </p>
+
+              {/* تفاصيل الريسيت للعميل */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-right text-xs space-y-2 max-w-sm mx-auto">
+                <p className="font-bold border-b pb-1 text-slate-700">تفاصيل الفاتورة والوصل:</p>
+                <div className="flex justify-between text-slate-600">
+                  <span>إجمالي الأصناف:</span>
+                  <span>{itemsSubtotal} ج.م</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>نوع الطلب:</span>
+                  <span>{orderType === 'delivery' ? 'توصيل دليفري' : 'استلام من المطعم'}</span>
+                </div>
+                {orderType === 'delivery' && (
+                  <div className="flex justify-between text-red-700 font-semibold">
+                    <span>خدمة توصيل (دليفري):</span>
+                    <span>+{DELIVERY_FEE} ج.م</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-slate-900 border-t pt-1.5 text-sm">
+                  <span>المبلغ الإجمالي المطلوب:</span>
+                  <span className="text-red-700">{grandTotal} ج.م</span>
+                </div>
+              </div>
+
+              <div className="inline-block bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-xs font-medium border border-amber-200">
+                حالة الطلب: <span className="font-bold">قيد الانتظار لمراجعة المطعم</span>
+              </div>
+              <p className="text-xs text-slate-400">سيتم التواصل معكم وتجهيز الوجبة فور تأكيد الطلب.</p>
+              <button
+                onClick={() => {
+                  setOrderSent(false);
+                  setIsCartOpen(false);
+                  setCart([]);
+                }}
+                className="mt-4 bg-red-700 text-white px-6 py-2 rounded-xl text-xs font-semibold hover:bg-red-800"
+              >
+                طلب جديد
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredItems.map((item: MenuItem) => (
+                <div
+                  key={item.id}
+                  className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm flex gap-3 hover:border-red-200 transition-colors items-center justify-between"
+                >
+                  {/* مكان الصورة المخصص ليكون ديناميكياً */}
+                  <div className="w-20 h-20 bg-amber-50 rounded-xl overflow-hidden shrink-0 border border-slate-100 flex items-center justify-center text-2xl relative">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-amber-300 font-bold text-xl">🍲</span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 flex-1">
+                    <h3 className="font-bold text-slate-800 text-sm leading-snug">{item.name}</h3>
+                    {item.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {item.description}
+                      </p>
+                    )}
+                    <p className="text-red-700 font-extrabold text-sm pt-0.5">
+                      {item.price} <span className="text-xs font-normal">ج.م</span>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => addToCart(item)}
+                    className="bg-red-50 hover:bg-red-700 text-red-700 hover:text-white border border-red-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 active:scale-95"
+                  >
+                    + إضافة
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* الفوتر وسوشيال ميديا في الأسفل */}
+      <footer className="bg-slate-900 text-slate-400 text-xs py-6 px-4 text-center mt-8 space-y-3">
+        <p className="font-bold text-amber-400 text-sm">Grill & Greens - سوهاج</p>
+        <div className="flex justify-center items-center gap-4 text-slate-300 font-medium">
+          <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer">فيسبوك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer">انستجرام</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer">تيك توك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer">يوتيوب</a>
+        </div>
+        <p className="text-[11px] text-slate-500">جميع الحقوق محفوظة © Grill & Greens</p>
+      </footer>
 
       {/* الشريط العائم للسلة */}
       {cart.length > 0 && !orderSent && (
