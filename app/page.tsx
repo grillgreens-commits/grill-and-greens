@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export interface MenuItem {
   id: string;
@@ -8,7 +9,7 @@ export interface MenuItem {
   description?: string;
   price: number;
   category: string;
-  imageUrl?: string; // مكان مخصص لرابط الصورة
+  imageUrl?: string;
 }
 
 export interface Category {
@@ -113,6 +114,7 @@ export default function CustomerMenu() {
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [orderSent, setOrderSent] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // بيانات الطلب
   const [customerName, setCustomerName] = useState<string>('');
@@ -166,16 +168,49 @@ export default function CustomerMenu() {
       ? MENU_ITEMS
       : MENU_ITEMS.filter((item: MenuItem) => item.category === selectedCategory);
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  // دالة إرسال الطلب وحفظه في Supabase
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !phone || (orderType === 'delivery' && !address)) {
       alert('يرجى ملء البيانات الأساسية للطلب');
       return;
     }
 
-    const generatedId = Math.floor(1000 + Math.random() * 9000).toString();
-    setOrderId(generatedId);
-    setOrderSent(true);
+    if (cart.length === 0) {
+      alert('السلة فارغة!');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // إرسال البيانات لداتابيز Supabase
+      const { data, error } = await supabase.from('orders').insert([
+        {
+          customer_name: customerName,
+          phone: phone,
+          address: orderType === 'delivery' ? address : 'استلام من المطعم',
+          items: cart.map(i => ({ name: i.product.name, price: i.product.price, qty: i.quantity })),
+          delivery_fee: deliveryFee,
+          total: grandTotal,
+          status: 'pending',
+          notes: notes,
+        },
+      ]).select();
+
+      if (error) {
+        console.error('Supabase Error:', error);
+        alert('حدث خطأ أثناء حفظ الطلب: ' + error.message);
+      } else {
+        const generatedId = data && data[0] ? data[0].id.toString().slice(0, 4) : Math.floor(1000 + Math.random() * 9000).toString();
+        setOrderId(generatedId);
+        setOrderSent(true);
+      }
+    } catch (err: any) {
+      alert('حدث خطأ غير متوقع: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -518,9 +553,10 @@ export default function CustomerMenu() {
 
               <button
                 type="submit"
-                className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2.5 rounded-xl shadow-md text-xs mt-1 transition-all"
+                disabled={loading}
+                className="w-full bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white font-bold py-2.5 rounded-xl shadow-md text-xs mt-1 transition-all"
               >
-                تأكيد وإرسال الطلب
+                {loading ? 'جاري إرسال الطلب...' : 'تأكيد وإرسال الطلب'}
               </button>
             </form>
           </div>
