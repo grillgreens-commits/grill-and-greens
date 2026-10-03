@@ -68,9 +68,83 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (logs) setPurchaseLogs(logs);
   };
 
+  // الملاحظة 1: جلب المنيو بالكامل وبشكل موحد
   const fetchProducts = async () => {
-    const { data } = await supabase.from('products').select('*').order('id', { ascending: true });
+    let { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
+    if (error || !data || data.length === 0) {
+      const fallback = await supabase.from('menu_items').select('*').order('id', { ascending: true });
+      if (fallback.data) data = fallback.data;
+    }
     if (data) setProducts(data);
+  };
+
+  // دالة الطباعة الشاملة (الملاحظة 3 و 4)
+  const handlePrintOrder = (order: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let itemsArr: any[] = [];
+    if (Array.isArray(order.items)) {
+      itemsArr = order.items;
+    } else if (typeof order.items === 'string') {
+      try { itemsArr = JSON.parse(order.items); } catch (e) { itemsArr = []; }
+    }
+
+    const shortId = String(order.id).split('-')[0].toUpperCase();
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>فاتورة طلب #${shortId}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; text-align: right; padding: 15px; max-width: 350px; margin: 0 auto; }
+            .bill-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+            .title { font-size: 18px; font-weight: bold; margin: 0; }
+            .info { font-size: 13px; color: #333; margin: 4px 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; }
+            .total-row { border-top: 2px solid #000; margin-top: 10px; padding-top: 8px; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
+            .footer { text-align: center; margin-top: 15px; font-size: 11px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="bill-card">
+            <div class="header">
+              <p class="title">🔥 Grill & Greens</p>
+              <p class="info">طلب #${shortId}</p>
+              <p class="info">التاريخ: ${new Date(order.created_at || Date.now()).toLocaleString('ar-EG')}</p>
+            </div>
+            <div>
+              <p class="info"><strong>العميل:</strong> ${order.customer_name || 'عميل'}</p>
+              <p class="info"><strong>الهاتف:</strong> ${order.phone || '-'}</p>
+              <p class="info"><strong>العنوان:</strong> ${order.address || 'استلام من الفرع'}</p>
+              ${order.notes ? `<p class="info" style="color: #b45309;"><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
+            </div>
+            <hr style="border: 0.5px solid #eee; margin: 10px 0;" />
+            <div>
+              <strong style="font-size: 13px;">الأصناف:</strong>
+              ${itemsArr.map((it: any) => `
+                <div class="item-row">
+                  <span>${it.name || it.title} × ${it.qty || it.quantity || 1}</span>
+                  <span>${(it.price || 0) * (it.qty || it.quantity || 1)} ج.م</span>
+                </div>
+              `).join('')}
+            </div>
+            <div class="total-row">
+              <span>الإجمالي:</span>
+              <span>${order.total || order.total_amount || 0} ج.م</span>
+            </div>
+            <div class="footer">
+              <p>شكراً لطلبكم من Grill & Greens! 😋</p>
+            </div>
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   // 1. تحديث حالة الطلب
@@ -108,7 +182,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // 4. إضافة حركة مشتريات جديدة
+  // 4. إضافة حركة مشتريات جديدة وتحديث كارت الصنف (الملاحظة 2)
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPurchaseItem || !purchaseQty || !purchasePrice) return;
@@ -116,9 +190,11 @@ export default function CompleteEnterpriseAdminDashboard() {
     const qty = parseFloat(purchaseQty);
     const price = parseFloat(purchasePrice);
     const total = qty * price;
+    const itemName = newPurchaseItem.trim();
 
-    await supabase.from('purchase_transactions').insert([{
-      item_name: newPurchaseItem.trim(),
+    // أ) تسجيل حركة المشتريات
+    const { error } = await supabase.from('purchase_transactions').insert([{
+      item_name: itemName,
       quantity: qty,
       unit_price: price,
       total_price: total,
@@ -126,11 +202,24 @@ export default function CompleteEnterpriseAdminDashboard() {
       status: 'active'
     }]);
 
-    setNewPurchaseItem('');
-    setPurchaseQty('');
-    setPurchasePrice('');
-    setSupplier('');
-    fetchPurchases();
+    if (!error) {
+      // ب) تحديث كارت الصنف / التكلفة والمخزون في جدول المنتجات تلقائياً
+      const matchedProduct = products.find(p => p.name?.toLowerCase() === itemName.toLowerCase());
+      if (matchedProduct) {
+        const newStock = (matchedProduct.stock_quantity || 0) + qty;
+        await supabase.from('products').update({
+          cost: price,
+          stock_quantity: newStock
+        }).eq('id', matchedProduct.id);
+      }
+
+      setNewPurchaseItem('');
+      setPurchaseQty('');
+      setPurchasePrice('');
+      setSupplier('');
+      fetchPurchases();
+      fetchProducts();
+    }
   };
 
   // 5. إضافة صنف جديد للمنيو
@@ -198,7 +287,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           { id: 'sales', label: `💰 المبيعات (${activeSales.length})` },
           { id: 'customers', label: `👥 قاعدة العملاء (${customers.length})` },
           { id: 'purchases', label: `🛒 المشتريات` },
-          { id: 'menu', label: `🍔 إدارة المنيو (${products.length})` },
+          { id: 'menu', label: `🍔 إدارة المنيو (${products.length})` }, // الملاحظة 1: إظهار عدد أصناف المنيو الصحيح
           { id: 'reports', label: `📊 التقارير الشاملة` },
           { id: 'settings', label: `⚙️ الإعدادات` }
         ].map(tab => (
@@ -246,8 +335,8 @@ export default function CompleteEnterpriseAdminDashboard() {
                         <p className="font-bold border-b pb-1 mb-1">الأصناف:</p>
                         {Array.isArray(order.items) && order.items.map((item: any, idx: number) => (
                           <div key={idx} className="flex justify-between text-xs py-0.5">
-                            <span>{item.name} × {item.qty}</span>
-                            <span>{item.price * item.qty} ج.م</span>
+                            <span>{item.name || item.title} × {item.qty || item.quantity || 1}</span>
+                            <span>{(item.price || 0) * (item.qty || item.quantity || 1)} ج.م</span>
                           </div>
                         ))}
                       </div>
@@ -257,6 +346,16 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <div className="flex justify-between font-bold text-emerald-900 mb-3">
                         <span>الإجمالي:</span>
                         <span>{order.total || order.total_amount} ج.م</span>
+                      </div>
+
+                      {/* الملاحظة 4: إضافة زر طباعة الفاتورة في كارت الطلب الحالي */}
+                      <div className="mb-2">
+                        <button
+                          onClick={() => handlePrintOrder(order)}
+                          className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
+                        >
+                          <span>🖨️</span> طباعة الفاتورة
+                        </button>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-xs">
@@ -274,7 +373,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 2. قسم المبيعات مع الفلترة */}
+        {/* 2. قسم المبيعات مع معاينة وطباعة الفواتير المكتملة */}
         {activeTab === 'sales' && (
           <div className="bg-white p-4 rounded-xl shadow-sm border space-y-4">
             <h2 className="text-lg font-bold text-emerald-900">قسم المبيعات والفواتير المكتملة</h2>
@@ -298,7 +397,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <th className="p-3">رقم الهاتف</th>
                     <th className="p-3">إجمالي الفاتورة</th>
                     <th className="p-3">الحالة</th>
-                    <th className="p-3">الإجراءات</th>
+                    <th className="p-3">الإجراءات والطباعة</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -310,8 +409,15 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <td className="p-3">{sale.phone}</td>
                       <td className="p-3 font-bold text-green-700">{sale.total || sale.total_amount} ج.م</td>
                       <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
-                      <td className="p-3">
-                        <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء (Soft Delete) 🚫</button>
+                      <td className="p-3 flex gap-2 items-center">
+                        {/* الملاحظة 3: زر معاينة وإعادة طباعة الفاتورة */}
+                        <button
+                          onClick={() => handlePrintOrder(sale)}
+                          className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1"
+                        >
+                          <span>👁️</span> معاينة وطباعة
+                        </button>
+                        <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء 🚫</button>
                       </td>
                     </tr>
                   ))}
@@ -383,7 +489,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                         <h4 className="font-bold mb-2">سجل الفواتير والطلبات السابقة:</h4>
                         <table className="w-full text-right text-xs">
                           <thead className="bg-gray-100 font-bold border-b">
-                            <tr><th className="p-2">رقم الفاتورة</th><th className="p-2">التاريخ</th><th className="p-2">المبلغ</th></tr>
+                            <tr><th className="p-2">رقم الفاتورة</th><th className="p-2">التاريخ</th><th className="p-2">المبلغ</th><th className="p-2">الطباعة</th></tr>
                           </thead>
                           <tbody className="divide-y">
                             {custOrders.map((o, i) => (
@@ -391,6 +497,9 @@ export default function CompleteEnterpriseAdminDashboard() {
                                 <td className="p-2 font-bold">#{String(o.id).split('-')[0].toUpperCase()}</td>
                                 <td className="p-2">{new Date(o.created_at).toLocaleDateString('ar-EG')}</td>
                                 <td className="p-2 font-bold text-green-700">{o.total || o.total_amount} ج.م</td>
+                                <td className="p-2">
+                                  <button onClick={() => handlePrintOrder(o)} className="text-emerald-700 font-bold underline">🖨️ طباعة</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -404,25 +513,25 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 4. قسم المشتريات مع كارت الصنف والـ datalist */}
+        {/* 4. قسم المشتريات مع كارت الصنف والربط التلقائي (الملاحظة 2) */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold mb-4 text-emerald-900">تسجيل فاتورة / حركة مشتريات جديدة</h2>
+              <h2 className="text-lg font-bold mb-4 text-emerald-900">تسجيل فاتورة / حركة مشتريات جديدة (تحديث كارت الصنف)</h2>
               <form onSubmit={handleAddPurchase} className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <div>
                   <input
                     type="text"
                     list="items-list"
-                    placeholder="اسم الصنف (مثلاً: لحمة)"
+                    placeholder="اسم الصنف (مثلاً: كفتة)"
                     value={newPurchaseItem}
                     onChange={e => setNewPurchaseItem(e.target.value)}
                     className="border p-2 rounded text-sm w-full"
                     required
                   />
                   <datalist id="items-list">
-                    {Array.from(new Set(purchaseLogs.map(log => log.item_name))).map((itemName, idx) => (
-                      <option key={idx} value={itemName} />
+                    {products.map((prod, idx) => (
+                      <option key={idx} value={prod.name} />
                     ))}
                   </datalist>
                 </div>
@@ -430,7 +539,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                 <input type="number" placeholder="الكمية" value={purchaseQty} onChange={e => setPurchaseQty(e.target.value)} className="border p-2 rounded text-sm" required />
                 <input type="number" placeholder="سعر الوحدة (ج.م)" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} className="border p-2 rounded text-sm" required />
                 <input type="text" placeholder="اسم المورد (اختياري)" value={supplier} onChange={e => setSupplier(e.target.value)} className="border p-2 rounded text-sm" />
-                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ المشتريات ➕</button>
+                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ وتحديث الصنف ➕</button>
               </form>
             </div>
 
@@ -487,7 +596,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <>
                         <div className="grid grid-cols-3 gap-3 mb-4 bg-emerald-50 p-3 rounded-lg text-center mt-3">
                           <div><p className="text-xs text-gray-600">مرات الشراء</p><p className="font-bold text-emerald-900">{itemLogs.length} مرة</p></div>
-                          <div><p className="text-xs text-gray-600">إجمالي الكمية</p><p className="font-bold text-emerald-900">{totalQty}</p></div>
+                          <div><p className="text-xs text-gray-600">إجمالي الكمية الشراء</p><p className="font-bold text-emerald-900">{totalQty}</p></div>
                           <div><p className="text-xs text-gray-600">إجمالي التكلفة</p><p className="font-bold text-red-700">{totalSpent} ج.م</p></div>
                         </div>
 
@@ -515,7 +624,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 5. قسم إدارة المنيو وتحديث الأسعار والتكلفة والصور */}
+        {/* 5. قسم إدارة المنيو (الملاحظة 1) */}
         {activeTab === 'menu' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
@@ -536,16 +645,18 @@ export default function CompleteEnterpriseAdminDashboard() {
             </div>
 
             <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold mb-4 text-emerald-900">أصناف المنيو الحالية</h2>
+              <h2 className="text-lg font-bold mb-4 text-emerald-900">أصناف المنيو الحالية ({products.length})</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {products.map(product => (
                   <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
                     <div>
-                      {product.image_url && <img src={product.image_url} alt={product.name} className="w-full h-32 object-cover rounded mb-2" />}
-                      <h3 className="font-bold text-md">{product.name}</h3>
-                      <p className="text-xs text-gray-500">{product.category}</p>
+                      {(product.image_url || product.image) && (
+                        <img src={product.image_url || product.image} alt={product.name || product.title} className="w-full h-32 object-cover rounded mb-2" />
+                      )}
+                      <h3 className="font-bold text-md">{product.name || product.title}</h3>
+                      <p className="text-xs text-gray-500">{product.category || 'عام'}</p>
                       <p className="text-sm font-bold text-green-700 mt-1">سعر البيع: {product.price} ج.م</p>
-                      {product.cost > 0 && <p className="text-xs text-red-600">التكلفة: {product.cost} ج.م</p>}
+                      {product.cost > 0 && <p className="text-xs text-red-600">التكلفة الأخيرة: {product.cost} ج.م</p>}
                     </div>
 
                     <button
