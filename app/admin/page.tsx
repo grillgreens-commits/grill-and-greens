@@ -268,7 +268,9 @@ export default function AdminPage() {
                   >
                     <div>
                       <div className="flex justify-between items-center pb-3 border-b border-gray-100 mb-3">
-                        <span className="font-extrabold text-lg text-emerald-900">طلب #{order.id}</span>
+                        <span className="font-extrabold text-lg text-emerald-900">
+  طلب #{String(order.id).slice(-6).toUpperCase()}
+</span>
                         <span
                           className={`text-xs px-2.5 py-1 rounded-full font-bold ${
                             order.status === "completed"
