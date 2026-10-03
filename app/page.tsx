@@ -3,14 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// تعريف أنواع البيانات داخلياً لتجنب أخطاء الاستيراد
 export interface MenuItem {
   id: string;
   name: string;
   description?: string;
   price: number;
   category: string;
-  image?: string;
 }
 
 export interface Category {
@@ -21,32 +19,80 @@ export interface Category {
 export const CATEGORIES: Category[] = [
   { id: 'all', name: 'الكل 🍽️' },
   { id: 'grill', name: 'مشويات 🥩' },
-  { id: 'chicken', name: 'فراخ ودجاج 🍗' },
+  { id: 'chicken', name: 'دجاج وبانيه 🍗' },
   { id: 'casserole', name: 'طواجن وبشاميل 🍲' },
   { id: 'sides', name: 'سلطات ومقبلات 🥗' },
+  { id: 'desserts', name: 'حلويات 🍰' },
 ];
 
 export const MENU_ITEMS: MenuItem[] = [
+  // مشويات
   {
     id: '1',
     name: 'كفتة بلدي مشوية',
-    description: 'كفتة بلدي متبلة بخلطة الجريل الخاصة ومشويه على الفحم',
+    description: 'كفتة بلدي متبلة بالبهارات الخاصة ومشوية على الفحم',
     price: 150,
     category: 'grill',
   },
   {
     id: '2',
+    name: 'طرب بلدي مشوي',
+    description: 'طرب بلدي محشي بالخلطة الخاصة ومطبوخ على الفحم',
+    price: 180,
+    category: 'grill',
+  },
+  // دجاج وبانيه
+  {
+    id: '3',
     name: 'بانيه مقرمش',
-    description: 'قطع دجاج بانيه متبلة ومقرمشة طلبتك المفضل',
+    description: 'صدور دجاج متبلة ومقرمشة تقدم مع الخلطة الخاصة',
     price: 120,
     category: 'chicken',
   },
   {
-    id: '3',
+    id: '4',
+    name: 'شيش طاووق',
+    description: 'شيـش طاووق متبل بصوص الزبادي والأعشاب المشوية',
+    price: 140,
+    category: 'chicken',
+  },
+  // طواجن وبشاميل
+  {
+    id: '5',
     name: 'مكرونة بالبشاميل',
-    description: 'طاجن مكرونة بالبشاميل الغني واللحمة المفرومة على أصولها',
+    description: 'طاجن مكرونة بشاميل غني بخلطة اللحم المفروم البلدي',
     price: 90,
     category: 'casserole',
+  },
+  {
+    id: '6',
+    name: 'طاجن خضار باللحم البلدي',
+    description: 'تشكيلة خضار طازجة مع قطع اللحم البلدي في الفرن',
+    price: 160,
+    category: 'casserole',
+  },
+  // سلطات ومقبلات
+  {
+    id: '7',
+    name: 'سلطة خضراء بلدي',
+    description: 'خضار طازج مع الدريسنج البلدي والليمون',
+    price: 25,
+    category: 'sides',
+  },
+  {
+    id: '8',
+    name: 'طحينة بيتي',
+    description: 'طحينة خفيفة ومتبلة على الطريقة المنزلية',
+    price: 20,
+    category: 'sides',
+  },
+  // حلويات
+  {
+    id: '9',
+    name: 'بان كيك ياباني منفوش',
+    description: 'بان كيك ياباني هبّار مغطى بكريمة الماتشا والموتشي والجوز',
+    price: 85,
+    category: 'desserts',
   },
 ];
 
@@ -62,14 +108,13 @@ export default function CustomerMenu() {
   const [orderSent, setOrderSent] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string | null>(null);
 
-  // بيانات نموذج الطلب
+  // بيانات الطلب
   const [customerName, setCustomerName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [address, setAddress] = useState<string>('');
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
   const [notes, setNotes] = useState<string>('');
 
-  // روابط وسائل التواصل الاجتماعي المباشرة لـ Grill & Greens
   const SOCIAL_LINKS = {
     facebook: 'https://facebook.com/grillgreens',
     instagram: 'https://www.instagram.com/grillgreens',
@@ -125,9 +170,9 @@ export default function CustomerMenu() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 pb-28">
-      {/* هيدر المنيو مع شعار ورابط الإدارة */}
+      {/* هيدر الصفحة للعميل */}
       <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
+        <div className="max-w-3xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-extrabold text-emerald-400">Grill & Greens</h1>
             <p className="text-xs text-slate-300 mt-0.5">أكل بيتي شهي ولذيذ - سوهاج</p>
@@ -135,7 +180,7 @@ export default function CustomerMenu() {
 
           <Link
             href="/admin"
-            className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700"
+            className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition-colors"
           >
             دخول الإدارة 🔐
           </Link>
@@ -143,9 +188,9 @@ export default function CustomerMenu() {
       </header>
 
       {/* شريط السوشيال ميديا والتواصل المباشر */}
-      <div className="bg-emerald-800 text-white py-2 px-4 shadow-inner">
-        <div className="max-w-4xl mx-auto flex justify-between items-center text-xs">
-          <span className="font-medium hidden sm:inline">تابعنا على صفحاتنا:</span>
+      <div className="bg-emerald-800 text-white py-2.5 px-4 shadow-inner">
+        <div className="max-w-3xl mx-auto flex justify-between items-center text-xs">
+          <span className="font-medium hidden sm:inline">صفحاتنا الرسمية:</span>
           <div className="flex gap-3 sm:gap-4 items-center mx-auto sm:mx-0 font-semibold flex-wrap justify-center">
             <a
               href={SOCIAL_LINKS.facebook}
@@ -192,13 +237,13 @@ export default function CustomerMenu() {
       </div>
 
       {/* شريط التصنيفات */}
-      <div className="bg-white border-b border-slate-200 sticky top-[60px] z-20 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="bg-white border-b border-slate-200 sticky top-[57px] z-20 shadow-sm">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
           {CATEGORIES.map((cat: Category) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
+              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                 selectedCategory === cat.id
                   ? 'bg-emerald-600 text-white shadow-sm scale-105'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -211,54 +256,45 @@ export default function CustomerMenu() {
       </div>
 
       {/* قائمة الأصناف */}
-      <main className="max-w-4xl mx-auto p-4">
+      <main className="max-w-3xl mx-auto p-4">
         {orderSent ? (
           <div className="bg-white p-6 rounded-2xl border border-emerald-100 text-center my-8 shadow-sm space-y-4">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto">
               ⏳
             </div>
-            <h2 className="text-2xl font-bold text-slate-800">تم إرسال طلبك بنجاح!</h2>
+            <h2 className="text-xl font-bold text-slate-800">تم إرسال طلبك بنجاح!</h2>
             <p className="text-slate-600 text-sm">
-              رقم الطلب الخاص بك: <span className="font-bold text-emerald-600 text-lg">#{orderId}</span>
+              رقم الطلب: <span className="font-bold text-emerald-600 text-base">#{orderId}</span>
             </p>
-            <div className="inline-block bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-sm font-medium border border-amber-200">
-              حالة الطلب الآن: <span className="font-bold">قيد الانتظار لمراجعة المطعم</span>
+            <div className="inline-block bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-xs font-medium border border-amber-200">
+              حالة الطلب: <span className="font-bold">قيد الانتظار لمراجعة المطعم</span>
             </div>
-            <p className="text-xs text-slate-400">سوف يتم تجهيز الوجبات فور تأكيد الطلب من قبل الإدارة.</p>
+            <p className="text-xs text-slate-400">سيتم التواصل معكم وتجهيز الوجبة فور تأكيد الطلب.</p>
             <button
               onClick={() => {
                 setOrderSent(false);
                 setIsCartOpen(false);
               }}
-              className="mt-4 bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700"
+              className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded-xl text-xs font-semibold hover:bg-emerald-700"
             >
               طلب جديد
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {filteredItems.map((item: MenuItem) => (
               <div
                 key={item.id}
-                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center gap-4 hover:border-emerald-200 transition-colors"
+                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center gap-3 hover:border-emerald-200 transition-colors"
               >
-                {/* صورة الصنف إن وجدت */}
-                {item.image && (
-                  <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-
                 <div className="space-y-1 flex-1">
-                  <h3 className="font-bold text-slate-800 text-base">{item.name}</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">{item.name}</h3>
                   {item.description && (
-                    <p className="text-xs text-slate-500 line-clamp-2">{item.description}</p>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {item.description}
+                    </p>
                   )}
-                  <p className="text-emerald-600 font-bold text-sm pt-1">
+                  <p className="text-emerald-600 font-extrabold text-sm pt-1">
                     {item.price} <span className="text-xs font-normal">ج.م</span>
                   </p>
                 </div>
@@ -277,16 +313,16 @@ export default function CustomerMenu() {
 
       {/* الشريط العائم للسلة */}
       {cart.length > 0 && !orderSent && (
-        <div className="fixed bottom-4 left-4 right-4 max-w-xl mx-auto z-40">
+        <div className="fixed bottom-4 left-4 right-4 max-w-lg mx-auto z-40">
           <button
             onClick={() => setIsCartOpen(true)}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-2xl shadow-xl flex justify-between items-center font-bold text-sm transition-all transform active:scale-98"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-2xl shadow-xl flex justify-between items-center font-bold text-sm transition-all transform active:scale-98"
           >
             <div className="flex items-center gap-2">
-              <span className="bg-emerald-800 text-white px-2.5 py-1 rounded-lg text-xs">
+              <span className="bg-emerald-800 text-white px-2 py-0.5 rounded-lg text-xs">
                 {totalItemsCount} أصناف
               </span>
-              <span>عرض سلة الطلبات</span>
+              <span>عرض السلة وتأكيد الطلب</span>
             </div>
             <span>{totalAmount} ج.م ➔</span>
           </button>
@@ -296,41 +332,41 @@ export default function CustomerMenu() {
       {/* نافذة السلة وتأكيد الطلب */}
       {isCartOpen && !orderSent && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto p-5 space-y-5">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto p-5 space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
-              <h2 className="text-lg font-bold text-slate-800">تفاصيل الطلب</h2>
+              <h2 className="text-base font-bold text-slate-800">تفاصيل السلة</h2>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-xl font-bold"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
               >
                 ✕
               </button>
             </div>
 
-            {/* ملخص المأكولات */}
-            <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+            {/* ملخص الأصناف */}
+            <div className="space-y-2.5 max-h-40 overflow-y-auto pr-1">
               {cart.map(({ product, quantity }: CartItem) => (
                 <div
                   key={product.id}
-                  className="flex justify-between items-center text-sm border-b border-slate-50 pb-2"
+                  className="flex justify-between items-center text-xs border-b border-slate-50 pb-2"
                 >
                   <div>
                     <p className="font-semibold text-slate-800">{product.name}</p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-slate-400 mt-0.5">
                       {product.price} ج.م × {quantity}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => removeFromCart(product.id)}
-                      className="w-7 h-7 bg-slate-100 rounded-lg text-slate-600 font-bold"
+                      className="w-6 h-6 bg-slate-100 rounded-lg text-slate-600 font-bold"
                     >
                       -
                     </button>
                     <span className="font-bold text-slate-800">{quantity}</span>
                     <button
                       onClick={() => addToCart(product)}
-                      className="w-7 h-7 bg-emerald-100 rounded-lg text-emerald-700 font-bold"
+                      className="w-6 h-6 bg-emerald-100 rounded-lg text-emerald-700 font-bold"
                     >
                       +
                     </button>
@@ -339,13 +375,13 @@ export default function CustomerMenu() {
               ))}
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t font-bold text-base text-slate-800">
-              <span>الإجمالي:</span>
-              <span className="text-emerald-600">{totalAmount} ج.م</span>
+            <div className="flex justify-between items-center pt-2 border-t font-bold text-sm text-slate-800">
+              <span>الإجمالي الكلي:</span>
+              <span className="text-emerald-600 text-base">{totalAmount} ج.م</span>
             </div>
 
-            {/* نموذج بيانات العميل */}
-            <form onSubmit={handlePlaceOrder} className="space-y-3 pt-2">
+            {/* نموذج البيانات */}
+            <form onSubmit={handlePlaceOrder} className="space-y-2.5 pt-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   اسم العميل *
@@ -355,8 +391,8 @@ export default function CustomerMenu() {
                   required
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="أدخل اسمك الكريم"
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  placeholder="الاسم الكريم"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -371,7 +407,7 @@ export default function CustomerMenu() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="01xxxxxxxxx"
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
@@ -381,7 +417,7 @@ export default function CustomerMenu() {
                   <select
                     value={orderType}
                     onChange={(e) => setOrderType(e.target.value as 'delivery' | 'takeaway')}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-500"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:outline-none focus:border-emerald-500"
                   >
                     <option value="delivery">توصيل دليفري 🛵</option>
                     <option value="takeaway">استلام من المطعم 🛍️</option>
@@ -399,8 +435,8 @@ export default function CustomerMenu() {
                     required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="الشارع - رقم العمارة - علامة مميزة"
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                    placeholder="الشارع - العمارة - العلامة المميزة"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               )}
@@ -413,16 +449,16 @@ export default function CustomerMenu() {
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="مثال: بدون بصل، زيادة صوص..."
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                  placeholder="مثال: بدون بصل، زيادة طحينة..."
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md text-sm mt-2 transition-all"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow-md text-xs mt-1 transition-all"
               >
-                تأكيد وإرسال الطلب للمطعم
+                تأكيد وإرسال الطلب
               </button>
             </form>
           </div>
