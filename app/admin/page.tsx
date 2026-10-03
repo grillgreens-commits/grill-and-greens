@@ -68,17 +68,32 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (logs) setPurchaseLogs(logs);
   };
 
-  // الملاحظة 1: جلب المنيو بالكامل وبشكل موحد
+  // جلب المنيو مع التحقق من جدولي menu_items و products
   const fetchProducts = async () => {
-    let { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
-    if (error || !data || data.length === 0) {
-      const fallback = await supabase.from('menu_items').select('*').order('id', { ascending: true });
-      if (fallback.data) data = fallback.data;
+    let { data: menuData, error: menuErr } = await supabase.from('menu_items').select('*');
+    
+    if (!menuData || menuData.length === 0) {
+      let { data: prodData } = await supabase.from('products').select('*');
+      if (prodData) menuData = prodData;
     }
-    if (data) setProducts(data);
+
+    if (menuData) {
+      const formatted = menuData.map((item: any) => ({
+        id: item.id,
+        name: item.name || item.title || 'صنف بدون اسم',
+        description: item.description || '',
+        price: item.price || 0,
+        cost: item.cost || 0,
+        category: item.category || 'الوجبات',
+        image_url: item.image_url || item.image || '',
+        is_available: item.is_available !== undefined ? item.is_available : true,
+        stock_quantity: item.stock_quantity || 0
+      }));
+      setProducts(formatted);
+    }
   };
 
-  // دالة الطباعة الشاملة (الملاحظة 3 و 4)
+  // دالة الطباعة الشاملة
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -147,7 +162,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     printWindow.document.close();
   };
 
-  // 1. تحديث حالة الطلب
   const updateOrderStatus = async (id: number | string, status: string, orderData?: any) => {
     const { error } = await supabase.from('orders').update({ status }).eq('id', id);
     if (!error) {
@@ -162,14 +176,12 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 2. إلغاء فاتورة مشتريات (Soft Delete)
   const cancelPurchaseTransaction = async (id: number) => {
     if (!confirm('هل أنت تأكد من إلغاء هذه الحركة؟ لتختفي من التقارير مع حفظ السجل.')) return;
     const { error } = await supabase.from('purchase_transactions').update({ status: 'cancelled' }).eq('id', id);
     if (!error) fetchPurchases();
   };
 
-  // 3. مراسلة العميل عبر الواتساب
   const sendWhatsAppNotification = (phone: string, orderId: any, status: string) => {
     const shortId = String(orderId).split('-')[0].toUpperCase();
     const cleanPhone = phone.replace(/\D/g, '');
@@ -182,75 +194,103 @@ export default function CompleteEnterpriseAdminDashboard() {
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // 4. إضافة حركة مشتريات جديدة وتحديث كارت الصنف (الملاحظة 2)
+  // إضافـة حركة مشتريات مع معالجة الأخطاء
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPurchaseItem || !purchaseQty || !purchasePrice) return;
+    if (!newPurchaseItem || !purchaseQty || !purchasePrice) {
+      alert('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
 
     const qty = parseFloat(purchaseQty);
     const price = parseFloat(purchasePrice);
     const total = qty * price;
     const itemName = newPurchaseItem.trim();
 
-    // أ) تسجيل حركة المشتريات
     const { error } = await supabase.from('purchase_transactions').insert([{
       item_name: itemName,
       quantity: qty,
       unit_price: price,
       total_price: total,
-      supplier_name: supplier,
+      supplier_name: supplier || null,
       status: 'active'
     }]);
 
-    if (!error) {
-      // ب) تحديث كارت الصنف / التكلفة والمخزون في جدول المنتجات تلقائياً
+    if (error) {
+      alert('حدث خطأ أثناء حفظ الفاتورة: ' + error.message);
+      return;
+    }
+
+    // تحديث السعر والمخزون اختياري دون إيقاف الحفظ
+    try {
       const matchedProduct = products.find(p => p.name?.toLowerCase() === itemName.toLowerCase());
       if (matchedProduct) {
         const newStock = (matchedProduct.stock_quantity || 0) + qty;
-        await supabase.from('products').update({
+        await supabase.from('menu_items').update({
           cost: price,
           stock_quantity: newStock
         }).eq('id', matchedProduct.id);
       }
-
-      setNewPurchaseItem('');
-      setPurchaseQty('');
-      setPurchasePrice('');
-      setSupplier('');
-      fetchPurchases();
-      fetchProducts();
+    } catch (e) {
+      console.log('ملاحظة: الصنف غير مسجل في المنيو لتحديث التكلفة والمخزون تلقائياً');
     }
+
+    setNewPurchaseItem('');
+    setPurchaseQty('');
+    setPurchasePrice('');
+    setSupplier('');
+    alert('تم حفظ حركة المشتريات بنجاح ✅');
+    fetchPurchases();
+    fetchProducts();
   };
 
-  // 5. إضافة صنف جديد للمنيو
+  // إضافة صنف جديد للمنيو
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productName || !productPrice) return;
+    if (!productName || !productPrice) {
+      alert('يرجى كتابة اسم الصنف والسعر');
+      return;
+    }
 
-    await supabase.from('products').insert([{
+    const payload = {
       name: productName,
+      title: productName,
       description: productDesc,
       price: parseFloat(productPrice),
       cost: productCost ? parseFloat(productCost) : 0,
       category: productCategory,
       image_url: productImage,
+      image: productImage,
       is_available: true
-    }]);
+    };
 
-    setProductName('');
-    setProductDesc('');
-    setProductPrice('');
-    setProductCost('');
-    setProductImage('');
-    fetchProducts();
+    let { error } = await supabase.from('menu_items').insert([payload]);
+    if (error) {
+      const fallback = await supabase.from('products').insert([payload]);
+      error = fallback.error;
+    }
+
+    if (error) {
+      alert('حدث خطأ أثناء حفظ الصنف: ' + error.message);
+    } else {
+      alert('تمت إضافة الصنف للمنيو بنجاح 🎉');
+      setProductName('');
+      setProductDesc('');
+      setProductPrice('');
+      setProductCost('');
+      setProductImage('');
+      fetchProducts();
+    }
   };
 
   const toggleProductAvailability = async (id: number, currentStatus: boolean) => {
-    await supabase.from('products').update({ is_available: !currentStatus }).eq('id', id);
+    let { error } = await supabase.from('menu_items').update({ is_available: !currentStatus }).eq('id', id);
+    if (error) {
+      await supabase.from('products').update({ is_available: !currentStatus }).eq('id', id);
+    }
     fetchProducts();
   };
 
-  // تصفية الطلبات والمبيعات والمشتريات النشطة
   const pendingOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
   
   const activeSales = orders.filter(o => o.status === 'completed').filter(o => {
@@ -287,7 +327,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           { id: 'sales', label: `💰 المبيعات (${activeSales.length})` },
           { id: 'customers', label: `👥 قاعدة العملاء (${customers.length})` },
           { id: 'purchases', label: `🛒 المشتريات` },
-          { id: 'menu', label: `🍔 إدارة المنيو (${products.length})` }, // الملاحظة 1: إظهار عدد أصناف المنيو الصحيح
+          { id: 'menu', label: `🍔 إدارة المنيو (${products.length})` },
           { id: 'reports', label: `📊 التقارير الشاملة` },
           { id: 'settings', label: `⚙️ الإعدادات` }
         ].map(tab => (
@@ -304,7 +344,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       </nav>
 
       <main className="p-4 max-w-7xl mx-auto">
-        {/* 1. قسم الطلبات الحية */}
+        {/* 1. الطلبات الحية */}
         {activeTab === 'live_orders' && (
           <div>
             <h2 className="text-lg font-bold mb-4 text-emerald-900">قسم الفواتير والطلبات الحالية (قيد الانتظار والتجهيز)</h2>
@@ -348,7 +388,6 @@ export default function CompleteEnterpriseAdminDashboard() {
                         <span>{order.total || order.total_amount} ج.م</span>
                       </div>
 
-                      {/* الملاحظة 4: إضافة زر طباعة الفاتورة في كارت الطلب الحالي */}
                       <div className="mb-2">
                         <button
                           onClick={() => handlePrintOrder(order)}
@@ -373,12 +412,10 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 2. قسم المبيعات مع معاينة وطباعة الفواتير المكتملة */}
+        {/* 2. قسم المبيعات */}
         {activeTab === 'sales' && (
           <div className="bg-white p-4 rounded-xl shadow-sm border space-y-4">
             <h2 className="text-lg font-bold text-emerald-900">قسم المبيعات والفواتير المكتملة</h2>
-            
-            {/* الفلترة بالتاريخ */}
             <div className="flex flex-wrap gap-3 items-center bg-emerald-50 p-3 rounded-lg text-sm">
               <label className="font-bold">من تاريخ:</label>
               <input type="date" value={salesDateFrom} onChange={e => setSalesDateFrom(e.target.value)} className="border p-1.5 rounded bg-white" />
@@ -410,11 +447,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <td className="p-3 font-bold text-green-700">{sale.total || sale.total_amount} ج.م</td>
                       <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
                       <td className="p-3 flex gap-2 items-center">
-                        {/* الملاحظة 3: زر معاينة وإعادة طباعة الفاتورة */}
-                        <button
-                          onClick={() => handlePrintOrder(sale)}
-                          className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1"
-                        >
+                        <button onClick={() => handlePrintOrder(sale)} className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1">
                           <span>👁️</span> معاينة وطباعة
                         </button>
                         <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء 🚫</button>
@@ -427,18 +460,12 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 3. قسم العملاء وكارت العميل */}
+        {/* 3. قسم العملاء */}
         {activeTab === 'customers' && (
           <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
               <h2 className="text-lg font-bold text-emerald-900">قاعدة العملاء والسجل الكامل</h2>
-              <input
-                type="text"
-                placeholder="🔍 بحث باسم العميل أو رقم الهاتف..."
-                value={customerSearch}
-                onChange={e => setCustomerSearch(e.target.value)}
-                className="border p-2 rounded-lg text-sm w-full md:w-72"
-              />
+              <input type="text" placeholder="🔍 بحث باسم العميل أو رقم الهاتف..." value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} className="border p-2 rounded-lg text-sm w-full md:w-72" />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-right text-sm">
@@ -467,7 +494,6 @@ export default function CompleteEnterpriseAdminDashboard() {
               </table>
             </div>
 
-            {/* Modal كارت العميل */}
             {selectedCustomerModal && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl relative max-h-[85vh] overflow-y-auto">
@@ -513,7 +539,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 4. قسم المشتريات مع كارت الصنف والربط التلقائي (الملاحظة 2) */}
+        {/* 4. قسم المشتريات */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
@@ -581,7 +607,6 @@ export default function CompleteEnterpriseAdminDashboard() {
               </div>
             </div>
 
-            {/* Modal كارت الصنف */}
             {selectedItemCard && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl relative max-h-[80vh] overflow-y-auto">
@@ -624,7 +649,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 5. قسم إدارة المنيو (الملاحظة 1) */}
+        {/* 5. قسم إدارة المنيو */}
         {activeTab === 'menu' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
@@ -646,33 +671,37 @@ export default function CompleteEnterpriseAdminDashboard() {
 
             <div className="bg-white p-4 rounded-xl shadow-sm border">
               <h2 className="text-lg font-bold mb-4 text-emerald-900">أصناف المنيو الحالية ({products.length})</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {products.map(product => (
-                  <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
-                    <div>
-                      {(product.image_url || product.image) && (
-                        <img src={product.image_url || product.image} alt={product.name || product.title} className="w-full h-32 object-cover rounded mb-2" />
-                      )}
-                      <h3 className="font-bold text-md">{product.name || product.title}</h3>
-                      <p className="text-xs text-gray-500">{product.category || 'عام'}</p>
-                      <p className="text-sm font-bold text-green-700 mt-1">سعر البيع: {product.price} ج.م</p>
-                      {product.cost > 0 && <p className="text-xs text-red-600">التكلفة الأخيرة: {product.cost} ج.م</p>}
-                    </div>
+              {products.length === 0 ? (
+                <div className="text-center p-6 text-gray-500">لا توجد أصناف مسجلة حتى الآن. يمكنك إضافة أصناف جديدة من النموذج أعلاه.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {products.map(product => (
+                    <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
+                      <div>
+                        {product.image_url && (
+                          <img src={product.image_url} alt={product.name} className="w-full h-32 object-cover rounded mb-2" />
+                        )}
+                        <h3 className="font-bold text-md">{product.name}</h3>
+                        <p className="text-xs text-gray-500">{product.category}</p>
+                        <p className="text-sm font-bold text-green-700 mt-1">سعر البيع: {product.price} ج.م</p>
+                        {product.cost > 0 && <p className="text-xs text-red-600">التكلفة الأخيرة: {product.cost} ج.م</p>}
+                      </div>
 
-                    <button
-                      onClick={() => toggleProductAvailability(product.id, product.is_available)}
-                      className={`mt-3 py-1 rounded text-xs font-bold text-white ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
-                    >
-                      {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <button
+                        onClick={() => toggleProductAvailability(product.id, product.is_available)}
+                        className={`mt-3 py-1 rounded text-xs font-bold text-white ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                      >
+                        {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* 6. قسم التقارير الشاملة */}
+        {/* 6. قسم التقارير */}
         {activeTab === 'reports' && (
           <div className="bg-white p-4 rounded-xl shadow-sm border space-y-4">
             <h2 className="text-lg font-bold text-emerald-900">تصدير واستعراض التقارير المالية</h2>
