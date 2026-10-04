@@ -9,7 +9,47 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // 🔒 اكتب كلمة المرور التي تريدها هنا
 const ADMIN_PASSWORD = '260564'; 
+// 1. إضافة كود تهيئة OneSignal استقبال الإشعارات للأدمن
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal: any) {
+      await OneSignal.init({
+        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+        safari_web_id: "https://onesignal.com",
+        notifyButton: { enable: true },
+      });
+    });
+  }
+}, []);
 
+// 2. دالة وزر التجربة اليدوي من لوحة الأدمن
+const handleTestNotification = async () => {
+  try {
+    const res = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
+      },
+      body: JSON.stringify({
+        app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+        included_segments: ['Subscribers'],
+        headings: { ar: '🔔 تجربة إشعار Grill & Greens' },
+        contents: { ar: 'هذا إشعار تجريبي للتأكد من اشتغال النظام بنجاح!' },
+        url: 'https://grill-and-greens.vercel.app/admin',
+      }),
+    });
+    if (res.ok) {
+      alert('تم إرسال الإشعار التجريبي بنجاح!');
+    } else {
+      alert('حدث خطأ أثناء إرسال الإشعار، تأكد من المفاتيح في .env');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('فشل الاتصال بـ OneSignal');
+  }
+};
 export default function CompleteEnterpriseAdminDashboard() {
   // حالة تسجيل الدخول للوحة التحكم
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -476,6 +516,13 @@ export default function CompleteEnterpriseAdminDashboard() {
             onClick={handleLogout}
             className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold transition"
           >
+            <button
+  onClick={handleTestNotification}
+  className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-4 py-2 rounded-xl text-xs shadow"
+>
+  🔔 تجربة إرسال إشعار
+</button>
+        
             خروج 🚪
           </button>
         </div>
