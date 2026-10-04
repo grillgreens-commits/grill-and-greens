@@ -8,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // 🔒 اكتب كلمة المرور التي تريدها هنا
-const ADMIN_PASSWORD = '123'; 
+const ADMIN_PASSWORD = '260564'; 
 
 export default function CompleteEnterpriseAdminDashboard() {
   // حالة تسجيل الدخول للوحة التحكم
