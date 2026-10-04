@@ -1,23 +1,36 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, Clock, MapPin, Phone, User, MessageSquare, Utensils, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// إعداد الاتصال بـ Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-interface MenuItem {
+export interface MenuItem {
+  id: string | number;
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  image_url?: string;
+  is_available?: boolean;
+}
+
+export interface Category {
   id: string;
   name: string;
-  category: string;
-  price: number;
-  description: string;
-  available: boolean;
-  image?: string;
 }
+
+export const CATEGORIES: Category[] = [
+  { id: 'all', name: 'الكل 🍽️' },
+  { id: 'الوجبات', name: 'الوجبات 🍱' },
+  { id: 'المشويات', name: 'المشاوي عالفحم 🥩' },
+  { id: 'المحاشي', name: 'المحاشي 🥬' },
+  { id: 'الطواجن', name: 'الصواني والطواجن 🍲' },
+  { id: 'الطيور', name: 'الطيور 🍗' },
+  { id: 'أصناف إضافية', name: 'أصناف إضافية 🥗' },
+];
 
 interface CartItem {
   product: MenuItem;
@@ -25,103 +38,102 @@ interface CartItem {
 }
 
 export default function CustomerMenu() {
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('الكل');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loadingMenu, setLoadingMenu] = useState<boolean>(true);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // بيانات الطلب
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
-  const [address, setAddress] = useState('');
-  const [notes, setNotes] = useState('');
-  
-  // حالة الشراء
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderSent, setOrderSent] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [orderSent, setOrderSent] = useState<boolean>(false);
+  const [orderId, setOrderId] = useState<string | number | null>(null);
+  const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
 
-  // جلب قائمة الأصناف المتاحة من Supabase
+  // بيانات الطلب
+  const [customerName, setCustomerName] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
+  const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
+  const [notes, setNotes] = useState<string>('');
+
+  const DELIVERY_FEE = 30;
+
+  const SOCIAL_LINKS = {
+    facebook: 'https://facebook.com/grillgreens',
+    instagram: 'https://www.instagram.com/grillgreens',
+    tiktok: 'https://www.tiktok.com/@grillgreens',
+    youtube: 'https://youtube.com/@grillgreens',
+    whatsapp: 'https://wa.me/201101616480',
+  };
+
   useEffect(() => {
     fetchMenuItems();
   }, []);
 
+  // جلب المنيو الحية من قاعدة البيانات
   const fetchMenuItems = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select('*')
-        .eq('available', true);
+    setLoadingMenu(true);
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('*')
+      .eq('is_available', true);
 
-      if (error) {
-        console.error('Error fetching menu items:', error);
-      } else if (data) {
-        setItems(data);
-      }
-    } catch (err) {
-      console.error('Failed to load menu:', err);
+    if (data && !error) {
+      setMenuItems(data);
+    } else {
+      console.error('خطأ في جلب بيانات المنيو:', error);
     }
+    setLoadingMenu(false);
   };
 
-  const categories = ['الكل', ...Array.from(new Set(items.map(i => i.category)))];
-
-  const filteredItems = items.filter(item => {
-    const matchesCategory = selectedCategory === 'الكل' || item.category === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
-
-  const addToCart = (product: MenuItem) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+  const addToCart = (item: MenuItem) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.product.id === item.id);
       if (existing) {
-        return prev.map(item =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        return prev.map((i) =>
+          i.product.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product: item, quantity: 1 }];
     });
   };
 
-  const updateQuantity = (id: string, delta: number) => {
-    setCart(prev =>
-      prev.map(item => {
-        if (item.product.id === id) {
-          const newQty = item.quantity + delta;
-          return newQty > 0 ? { ...item, quantity: newQty } : item;
-        }
-        return item;
-      })
+  const removeFromCart = (id: string | number) => {
+    setCart((prev) =>
+      prev
+        .map((i) => (i.product.id === id ? { ...i, quantity: i.quantity - 1 } : i))
+        .filter((i) => i.quantity > 0)
     );
   };
 
-  const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== id));
-  };
+  const itemsSubtotal = cart.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
 
-  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const deliveryFee = orderType === 'delivery' ? 15 : 0;
-  const grandTotal = subtotal + deliveryFee;
+  const deliveryFee = orderType === 'delivery' ? DELIVERY_FEE : 0;
+  const grandTotal = itemsSubtotal + deliveryFee;
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const filteredItems =
+    selectedCategory === 'all'
+      ? menuItems
+      : menuItems.filter((item: MenuItem) => item.category === selectedCategory);
 
   // إرسال الطلب وحفظه في Supabase
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !phone || (orderType === 'delivery' && !address)) {
-      alert('يرجى إكمال جميع البيانات المطلوبة');
+      alert('يرجى ملء البيانات الأساسية للطلب');
       return;
     }
 
-    setIsSubmitting(true);
+    setSubmittingOrder(true);
 
-    const formattedItems = cart.map(item => ({
+    const formattedItems = cart.map((item) => ({
       id: item.product.id,
       name: item.product.name,
-      title: item.product.name,
       price: item.product.price,
+      quantity: item.quantity,
       qty: item.quantity,
-      quantity: item.quantity
     }));
 
     const orderPayload = {
@@ -133,303 +145,370 @@ export default function CustomerMenu() {
       total_amount: grandTotal,
       notes: notes,
       status: 'pending',
-      created_at: new Date().toISOString()
     };
 
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .insert([orderPayload])
-        .select();
+    // 1. إضافة أو تحديث بيانات العميل في جدول customers
+    await supabase.from('customers').upsert(
+      { name: customerName, phone: phone, address: address },
+      { onConflict: 'phone' }
+    );
 
-      if (error) {
-        console.error('Error inserting order:', error);
-        alert('حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مرة أخرى.');
-      } else if (data && data.length > 0) {
-        const newOrder = data[0];
-        const displayId = String(newOrder.id).slice(0, 8).toUpperCase();
-        setOrderId(displayId);
-        setOrderSent(true);
-        setCart([]);
-      }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      alert('حدث خطأ في الاتصال بالسيرفر');
-    } finally {
-      setIsSubmitting(false);
+    // 2. إدراج الطلب في جدول orders
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([orderPayload])
+      .select();
+
+    setSubmittingOrder(false);
+
+    if (error) {
+      alert('حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مرة أخرى: ' + error.message);
+    } else if (data && data[0]) {
+      const insertedId = data[0].id;
+      setOrderId(insertedId);
+      setOrderSent(true);
     }
   };
 
-  if (orderSent) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 dir-rtl" dir="rtl">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center space-y-4 border border-green-100">
-          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-12 h-12" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800">تم إرسال طلبك بنجاح!</h2>
-          <p className="text-gray-600">رقم الطلب الخاص بك هو:</p>
-          <div className="bg-gray-100 py-3 rounded-lg font-mono text-xl font-bold text-emerald-600 tracking-wider">
-            #{orderId}
-          </div>
-          <p className="text-sm text-gray-500">جاري مراجعة طلبك وإعداده الآن. شكرًا لثقتك بنا!</p>
-          <button
-            onClick={() => {
-              setOrderSent(false);
-              setOrderId(null);
-            }}
-            className="w-full mt-6 bg-emerald-600 text-white font-semibold py-3 rounded-xl hover:bg-emerald-700 transition"
-          >
-            طلب جديد
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-100 pb-12 dir-rtl" dir="rtl">
-      {/* Header */}
-      <header className="bg-emerald-700 text-white sticky top-0 z-40 shadow-md">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3 space-x-reverse">
-            <div className="p-2 bg-emerald-600 rounded-lg">
-              <Utensils className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">قائمة الطعام</h1>
-              <p className="text-xs text-emerald-100">اطلب وجبتك المفضلة أونلاين</p>
+    <div className="min-h-screen bg-amber-50/40 text-slate-800 pb-28 flex flex-col justify-between">
+      <div>
+        {/* هيدر الصفحة الرئيسي للعميل */}
+        <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
+          <div className="max-w-3xl mx-auto text-center space-y-1">
+            <h1 className="text-2xl font-black text-amber-400 tracking-wide">Grill & Greens</h1>
+            <p className="text-xs text-slate-300">أكل بيتي بجودة عالية - جميع اللحوم بلدي وطازة</p>
+            
+            <div className="flex justify-center items-center gap-3 pt-2 text-xs">
+              <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">📘 فيسبوك</a>
+              <span>•</span>
+              <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">📸 انستجرام</a>
+              <span>•</span>
+              <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">🎵 تيك توك</a>
+              <span>•</span>
+              <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors">▶️ يوتيوب</a>
             </div>
           </div>
-          <div className="relative">
-            <ShoppingCart className="w-7 h-7" />
-            {cart.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                {cart.reduce((sum, item) => sum + item.quantity, 0)}
-              </span>
-            )}
+        </header>
+
+        {/* شريط مواعيد العمل والتواصل */}
+        <div className="bg-red-800 text-white py-2 px-4 shadow-inner">
+          <div className="max-w-3xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs gap-1.5 text-center sm:text-right">
+            <div>
+              <span className="font-bold text-amber-300">مواعيدنا: </span>
+              من 11 صباحاً - 8 مساءً (ماعدا الجمعة) | تجهيز الأوردر من 1 - 2 ساعة
+            </div>
+            <div className="flex gap-3 items-center font-bold">
+              <a
+                href={SOCIAL_LINKS.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[11px] flex items-center gap-1 shadow-sm"
+              >
+                💬 واتساب 01101616480
+              </a>
+              <span className="text-amber-200 text-[11px]">كاش - محفظة - انستاباي</span>
+            </div>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Menu Items Section */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Search and Filters */}
-          <div className="bg-white p-4 rounded-xl shadow-sm space-y-4">
-            <div className="relative">
-              <Search className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="ابحث عن وجبة..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pr-10 pl-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-                    selectedCategory === cat
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Cards List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredItems.map(item => (
-              <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-bold text-gray-800 text-lg">{item.name}</h3>
-                  <p className="text-gray-500 text-sm mt-1">{item.description}</p>
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="font-bold text-emerald-600 text-lg">{item.price} ج.م</span>
-                  <button
-                    onClick={() => addToCart(item)}
-                    className="flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-sm font-semibold transition"
-                  >
-                    <Plus className="w-4 h-4" /> إضافة
-                  </button>
-                </div>
-              </div>
+        {/* شريط التصنيفات */}
+        <div className="bg-white border-b border-slate-200 sticky top-[95px] z-20 shadow-sm">
+          <div className="max-w-3xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+            {CATEGORIES.map((cat: Category) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                  selectedCategory === cat.id
+                    ? 'bg-red-700 text-white shadow-sm scale-105'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {cat.name}
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Cart & Checkout Section */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm space-y-6 border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 border-b pb-3">
-              <ShoppingCart className="w-5 h-5 text-emerald-600" /> سلة الطلبات
-            </h2>
+        {/* قائمة الأصناف */}
+        <main className="max-w-3xl mx-auto p-4">
+          {loadingMenu ? (
+            <div className="text-center py-12 font-bold text-slate-500">جاري تحميل المنيو... ⏳</div>
+          ) : orderSent ? (
+            <div className="bg-white p-6 rounded-2xl border border-emerald-100 text-center my-8 shadow-sm space-y-4">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto">
+                ⏳
+              </div>
+              <h2 className="text-xl font-bold text-slate-800">تم إرسال طلبك بنجاح!</h2>
+              <p className="text-slate-600 text-sm">
+                رقم الطلب: <span className="font-bold text-red-600 text-base">#{String(orderId).split('-')[0].toUpperCase()}</span>
+              </p>
 
-            {cart.length === 0 ? (
-              <p className="text-gray-400 text-center py-8 text-sm">السلة فارغة حالياً</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                  {cart.map(item => (
-                    <div key={item.product.id} className="flex items-center justify-between bg-gray-50 p-2.5 rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm text-gray-800">{item.product.name}</div>
-                        <div className="text-xs text-gray-500">{item.product.price} ج.م</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateQuantity(item.product.id, -1)}
-                          className="p-1 text-gray-500 hover:bg-gray-200 rounded"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.product.id, 1)}
-                          className="p-1 text-gray-500 hover:bg-gray-200 rounded"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => removeFromCart(item.product.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded mr-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-right text-xs space-y-2 max-w-sm mx-auto">
+                <p className="font-bold border-b pb-1 text-slate-700">تفاصيل الفاتورة والوصل:</p>
+                <div className="flex justify-between text-slate-600">
+                  <span>إجمالي الأصناف:</span>
+                  <span>{itemsSubtotal} ج.م</span>
                 </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>نوع الطلب:</span>
+                  <span>{orderType === 'delivery' ? 'توصيل دليفري' : 'استلام من المطعم'}</span>
+                </div>
+                {orderType === 'delivery' && (
+                  <div className="flex justify-between text-red-700 font-semibold">
+                    <span>خدمة توصيل (دليفري):</span>
+                    <span>+{DELIVERY_FEE} ج.م</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-slate-900 border-t pt-1.5 text-sm">
+                  <span>المبلغ الإجمالي المطلوب:</span>
+                  <span className="text-red-700">{grandTotal} ج.م</span>
+                </div>
+              </div>
 
-                <form onSubmit={handlePlaceOrder} className="space-y-4 pt-4 border-t">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">الاسم بالكامل</label>
-                    <div className="relative">
-                      <User className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        required
-                        value={customerName}
-                        onChange={e => setCustomerName(e.target.value)}
-                        placeholder="أدخل اسمك"
-                        className="w-full pr-9 pl-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              <div className="inline-block bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-xs font-medium border border-amber-200">
+                حالة الطلب: <span className="font-bold">قيد الانتظار لمراجعة المطعم</span>
+              </div>
+              <p className="text-xs text-slate-400">سيتم التواصل معكم وتجهيز الوجبة فور تأكيد الطلب.</p>
+              <button
+                onClick={() => {
+                  setOrderSent(false);
+                  setIsCartOpen(false);
+                  setCart([]);
+                }}
+                className="mt-4 bg-red-700 text-white px-6 py-2 rounded-xl text-xs font-semibold hover:bg-red-800"
+              >
+                طلب جديد
+              </button>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="text-center py-12 text-slate-500 font-bold">لا توجد أصناف متوفرة حالياً في هذا القسم.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredItems.map((item: MenuItem) => (
+                <div
+                  key={item.id}
+                  className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm flex gap-3 hover:border-red-200 transition-colors items-center justify-between"
+                >
+                  <div className="w-20 h-20 bg-amber-50 rounded-xl overflow-hidden shrink-0 border border-slate-100 flex items-center justify-center text-2xl relative">
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
                       />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">رقم الهاتف</label>
-                    <div className="relative">
-                      <Phone className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        placeholder="01xxxxxxxxx"
-                        className="w-full pr-9 pl-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">نوع الاستلام</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setOrderType('delivery')}
-                        className={`py-2 text-xs rounded-lg font-medium border ${
-                          orderType === 'delivery'
-                            ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
-                            : 'border-gray-200 text-gray-600'
-                        }`}
-                      >
-                        توصيل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOrderType('takeaway')}
-                        className={`py-2 text-xs rounded-lg font-medium border ${
-                          orderType === 'takeaway'
-                            ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
-                            : 'border-gray-200 text-gray-600'
-                        }`}
-                      >
-                        استلام من الفرع
-                      </button>
-                    </div>
-                  </div>
-
-                  {orderType === 'delivery' && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">العنوان التفصيلي</label>
-                      <div className="relative">
-                        <MapPin className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
-                          required
-                          value={address}
-                          onChange={e => setAddress(e.target.value)}
-                          placeholder="المنطقة، الشارع، رقم العمارة"
-                          className="w-full pr-9 pl-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">ملاحظات إضافية</label>
-                    <div className="relative">
-                      <MessageSquare className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={notes}
-                        onChange={e => setNotes(e.target.value)}
-                        placeholder="أي تفاصيل خاصة بالطلب"
-                        className="w-full pr-9 pl-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 pt-2 border-t text-sm">
-                    <div className="flex justify-between text-gray-600">
-                      <span>المجموع:</span>
-                      <span>{subtotal} ج.م</span>
-                    </div>
-                    {orderType === 'delivery' && (
-                      <div className="flex justify-between text-gray-600">
-                        <span>خدمة التوصيل:</span>
-                        <span>{deliveryFee} ج.م</span>
-                      </div>
+                    ) : (
+                      <span className="text-amber-300 font-bold text-xl">🍲</span>
                     )}
-                    <div className="flex justify-between font-bold text-base text-gray-800 pt-1 border-t">
-                      <span>الإجمالي:</span>
-                      <span className="text-emerald-600">{grandTotal} ج.م</span>
-                    </div>
+                  </div>
+
+                  <div className="space-y-1 flex-1">
+                    <h3 className="font-bold text-slate-800 text-sm leading-snug">{item.name}</h3>
+                    {item.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {item.description}
+                      </p>
+                    )}
+                    <p className="text-red-700 font-extrabold text-sm pt-0.5">
+                      {item.price} <span className="text-xs font-normal">ج.م</span>
+                    </p>
                   </div>
 
                   <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-md disabled:bg-gray-400"
+                    onClick={() => addToCart(item)}
+                    className="bg-red-50 hover:bg-red-700 text-red-700 hover:text-white border border-red-200 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 active:scale-95"
                   >
-                    {isSubmitting ? 'جاري إرسال الطلب...' : 'تأكيد الطلب'}
+                    + إضافة
                   </button>
-                </form>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* الفوتر */}
+      <footer className="bg-slate-900 text-slate-400 text-xs py-6 px-4 text-center mt-8 space-y-3">
+        <p className="font-bold text-amber-400 text-sm">Grill & Greens - سوهاج</p>
+        <div className="flex justify-center items-center gap-4 text-slate-300 font-medium">
+          <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer">فيسبوك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer">انستجرام</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer">تيك توك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer">يوتيوب</a>
+        </div>
+        <p className="text-[11px] text-slate-500">جميع الحقوق محفوظة © Grill & Greens</p>
+      </footer>
+
+      {/* الشريط العائم للسلة */}
+      {cart.length > 0 && !orderSent && (
+        <div className="fixed bottom-4 left-4 right-4 max-w-lg mx-auto z-40">
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="w-full bg-red-700 hover:bg-red-800 text-white p-3.5 rounded-2xl shadow-xl flex justify-between items-center font-bold text-sm transition-all transform active:scale-98"
+          >
+            <div className="flex items-center gap-2">
+              <span className="bg-red-900 text-white px-2 py-0.5 rounded-lg text-xs">
+                {totalItemsCount} أصناف
+              </span>
+              <span>عرض السلة وتأكيد الطلب</span>
+            </div>
+            <span>{grandTotal} ج.م ➔</span>
+          </button>
+        </div>
+      )}
+
+      {/* نافذة السلة وتأكيد الطلب */}
+      {isCartOpen && !orderSent && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto p-5 space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h2 className="text-base font-bold text-slate-800">تفاصيل السلة والوصل</h2>
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-40 overflow-y-auto pr-1">
+              {cart.map(({ product, quantity }: CartItem) => (
+                <div
+                  key={product.id}
+                  className="flex justify-between items-center text-xs border-b border-slate-50 pb-2"
+                >
+                  <div>
+                    <p className="font-semibold text-slate-800">{product.name}</p>
+                    <p className="text-slate-400 mt-0.5">
+                      {product.price} ج.م × {quantity}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => removeFromCart(product.id)}
+                      className="w-6 h-6 bg-slate-100 rounded-lg text-slate-600 font-bold"
+                    >
+                      -
+                    </button>
+                    <span className="font-bold text-slate-800">{quantity}</span>
+                    <button
+                      onClick={() => addToCart(product)}
+                      className="w-6 h-6 bg-red-100 rounded-lg text-red-800 font-bold"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs text-slate-600 border border-slate-100">
+              <div className="flex justify-between">
+                <span>المجموع الفرعي للأصناف:</span>
+                <span>{itemsSubtotal} ج.م</span>
               </div>
-            )}
+
+              {orderType === 'delivery' && (
+                <div className="flex justify-between text-red-700 font-medium">
+                  <span>خدمة توصيل (دليفري):</span>
+                  <span>+{DELIVERY_FEE} ج.م</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2 border-t font-bold text-sm text-slate-800">
+                <span>الإجمالي الكلي بالريسيت:</span>
+                <span className="text-red-700 text-base">{grandTotal} ج.م</span>
+              </div>
+            </div>
+
+            <form onSubmit={handlePlaceOrder} className="space-y-2.5 pt-1">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  اسم العميل *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="الاسم الكريم"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    رقم الهاتف *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="01xxxxxxxxx"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    نوع الاستلام
+                  </label>
+                  <select
+                    value={orderType}
+                    onChange={(e) => setOrderType(e.target.value as 'delivery' | 'takeaway')}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white focus:outline-none focus:border-red-500"
+                  >
+                    <option value="delivery">توصيل دليفري (+30 ج.م)</option>
+                    <option value="takeaway">استلام من المطعم (0 ج.م)</option>
+                  </select>
+                </div>
+              </div>
+
+              {orderType === 'delivery' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    العنوان التفصيلي *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="الشارع - العمارة - العلامة المميزة"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-500"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  ملاحظات للوجبة
+                </label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="مثال: بدون بصل، زيادة طحينة..."
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingOrder}
+                className="w-full bg-red-700 hover:bg-red-800 disabled:bg-slate-400 text-white font-bold py-2.5 rounded-xl shadow-md text-xs mt-1 transition-all"
+              >
+                {submittingOrder ? 'جاري إرسال الطلب...' : 'تأكيد وإرسال الطلب'}
+              </button>
+            </form>
           </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }
