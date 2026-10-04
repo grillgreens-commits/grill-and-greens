@@ -42,7 +42,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [productName, setProductName] = useState('');
   const [productDesc, setProductDesc] = useState('');
   const [productPrice, setProductPrice] = useState('');
-  const [productCategory, setProductCategory] = useState('المشاوي عالفحم');
+  const [productCategory, setProductCategory] = useState('المشويات');
   const [productImageUrl, setProductImageUrl] = useState('');
 
   // Settings
@@ -220,6 +220,18 @@ export default function CompleteEnterpriseAdminDashboard() {
     else if (status === 'completed') text += 'تم تسليم الطلب بنجاح. نتمنى لك وجبة شهية! 😋';
 
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleDeleteProduct = async (id: number, productName: string) => {
+    if (confirm(`هل أنت تأكد من حذف صنف "${productName}" نهائياً من المنيو؟`)) {
+      const { error } = await supabase.from('menu_items').delete().eq('id', id);
+      if (error) {
+        alert('حدث خطأ أثناء الحذف: ' + error.message);
+      } else {
+        alert('تم حذف الصنف بنجاح! 🗑️');
+        fetchProducts();
+      }
+    }
   };
 
   const handleAddPurchase = async (e: React.FormEvent) => {
@@ -537,20 +549,23 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <th className="p-3">اسم العميل</th>
                     <th className="p-3">رقم الهاتف</th>
                     <th className="p-3">العنوان الأساسي</th>
-                    <th className="p-3">تاريخ التسجيل</th>
+                    <th className="p-3">الإجراء</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredCustomers.map(cust => (
                     <tr key={cust.id} className="hover:bg-gray-50">
-                      <td className="p-3 font-bold">
-                        <button onClick={() => setSelectedCustomerModal(cust)} className="text-emerald-700 underline font-bold hover:text-emerald-900">
-                          {cust.name} 📄
+                      <td className="p-3 font-bold">{cust.name}</td>
+                      <td className="p-3">{cust.phone}</td>
+                      <td className="p-3">{cust.address || '-'}</td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => setSelectedCustomerModal(cust)}
+                          className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded text-xs font-bold hover:bg-emerald-200"
+                        >
+                          👁️ عرض الكارت
                         </button>
                       </td>
-                      <td className="p-3">{cust.phone}</td>
-                      <td className="p-3">{cust.address || 'غير محدد'}</td>
-                      <td className="p-3 text-xs text-gray-500">{new Date(cust.created_at).toLocaleDateString('ar-EG')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -729,17 +744,17 @@ export default function CompleteEnterpriseAdminDashboard() {
                 <input type="text" placeholder="اسم الوجبة/الصنف" value={productName} onChange={e => setProductName(e.target.value)} className="border p-2 rounded text-sm" required />
                 <input type="number" placeholder="سعر البيع (ج.م)" value={productPrice} onChange={e => setProductPrice(e.target.value)} className="border p-2 rounded text-sm" required />
                 <select
-  value={productCategory}
-  onChange={(e) => setProductCategory(e.target.value)}
-  className="p-2 border rounded-md"
->
-  <option value="الوجبات">الوجبات</option>
-  <option value="المشويات">المشويات</option>
-  <option value="المحاشي">المحاشي</option>
-  <option value="الطواجن">الطواجن</option>
-  <option value="الطيور">الطيور</option>
-  <option value="أصناف إضافية">أصناف إضافية</option>
-</select>
+                  value={productCategory}
+                  onChange={(e) => setProductCategory(e.target.value)}
+                  className="p-2 border rounded-md text-sm bg-white"
+                >
+                  <option value="الوجبات">الوجبات</option>
+                  <option value="المشويات">المشويات</option>
+                  <option value="المحاشي">المحاشي</option>
+                  <option value="الطواجن">الطواجن</option>
+                  <option value="الطيور">الطيور</option>
+                  <option value="أصناف إضافية">أصناف إضافية</option>
+                </select>
                 <input type="text" placeholder="رابط صورة الصنف (اختياري)" value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} className="border p-2 rounded text-sm" />
                 <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-4" />
                 <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm md:col-span-2 lg:col-span-4">حفظ وإضافة للمنيو 🍔</button>
@@ -776,6 +791,12 @@ export default function CompleteEnterpriseAdminDashboard() {
                           className={`w-full py-1 rounded text-xs font-bold text-white transition ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
                         >
                           {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id, product.name)}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white py-1 rounded text-xs font-bold transition"
+                        >
+                          🗑️ حذف الصنف نهائياً
                         </button>
                       </div>
                     </div>
