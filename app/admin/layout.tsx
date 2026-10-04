@@ -7,7 +7,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -17,9 +17,10 @@ export default function AdminLayout({
           appId: "1c50777d-a313-47aa-b784-1b6df6694007",
           allowLocalhostAsSecureOrigin: true,
         }).then(() => {
-          setIsInitialized(true);
-          // محاولة طلب الإذن تلقائياً
-          OneSignal.Notifications.requestPermission();
+          // إظهار الشريط فقط إذا لم يمنح المستخدم الإذن بعد
+          if (Notification.permission !== 'granted') {
+            setShowBanner(true);
+          }
         }).catch((err) => {
           console.error('OneSignal Init Error:', err);
         });
@@ -31,13 +32,15 @@ export default function AdminLayout({
     if (typeof window !== 'undefined') {
       const OneSignal = (await import('react-onesignal')).default;
       await OneSignal.Notifications.requestPermission();
+      if (Notification.permission === 'granted') {
+        setShowBanner(false);
+      }
     }
   };
 
   return (
     <div className="admin-layout-wrapper">
-      {/* شريط تنبيه للأدمن لتفعيل الإشعارات بضغطة زر */}
-      {isInitialized && (
+      {showBanner && (
         <div style={{ background: '#3182ce', color: '#fff', padding: '10px', textAlign: 'center', fontSize: '14px' }}>
           🔔 لتلقي إشعارات الطلبات الجديدة فجأة والموقع مغلق: 
           <button 
