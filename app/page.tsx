@@ -25,9 +25,9 @@ export interface Category {
 export const CATEGORIES: Category[] = [
   { id: 'all', name: 'الكل 🍽️' },
   { id: 'الوجبات', name: 'الوجبات 🍱' },
-  { id: 'المشويات', name: 'المشويات 🥩' },
+  { id: 'المشويات', name: 'المشويات 🥩' }, // تعديل الاسم ليطابق الـ id والداتابيز
   { id: 'المحاشي', name: 'المحاشي 🥬' },
-  { id: 'الطواجن', name: 'الطواجن 🍲' },
+  { id: 'الطواجن', name: 'الطواجن 🍲' },   // تعديل الاسم ليطابق الـ id والداتابيز
   { id: 'الطيور', name: 'الطيور 🍗' },
   { id: 'أصناف إضافية', name: 'أصناف إضافية 🥗' },
 ];
@@ -36,28 +36,6 @@ interface CartItem {
   product: MenuItem;
   quantity: number;
 }
-
-// دالة إرسال الإشعار لـ OneSignal
-const sendPushNotification = async (totalAmount: number, name: string) => {
-  try {
-    await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
-      },
-      body: JSON.stringify({
-        app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-        included_segments: ['Subscribers'],
-        headings: { ar: '🔥 طلب جديد في Grill & Greens!' },
-        contents: { ar: `طلب جديد بقيمة ${totalAmount} ج.م من ${name}` },
-        url: 'https://grill-and-greens.vercel.app/admin',
-      }),
-    });
-  } catch (err) {
-    console.error('فشل إرسال الإشعار:', err);
-  }
-};
 
 export default function CustomerMenu() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -189,9 +167,6 @@ export default function CustomerMenu() {
       const insertedId = data[0].id;
       setOrderId(insertedId);
       setOrderSent(true);
-
-      // 🔔 إرسال الإشعار فور حفظ الطلب بنجاح 🔔
-      await sendPushNotification(grandTotal, customerName);
     }
   };
 

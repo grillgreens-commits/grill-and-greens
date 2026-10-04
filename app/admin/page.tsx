@@ -9,47 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // 🔒 اكتب كلمة المرور التي تريدها هنا
 const ADMIN_PASSWORD = '260564'; 
-// 1. إضافة كود تهيئة OneSignal استقبال الإشعارات للأدمن
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal: any) {
-      await OneSignal.init({
-        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-        safari_web_id: "https://onesignal.com",
-        notifyButton: { enable: true },
-      });
-    });
-  }
-}, []);
 
-// 2. دالة وزر التجربة اليدوي من لوحة الأدمن
-const handleTestNotification = async () => {
-  try {
-    const res = await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
-      },
-      body: JSON.stringify({
-        app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-        included_segments: ['Subscribers'],
-        headings: { ar: '🔔 تجربة إشعار Grill & Greens' },
-        contents: { ar: 'هذا إشعار تجريبي للتأكد من اشتغال النظام بنجاح!' },
-        url: 'https://grill-and-greens.vercel.app/admin',
-      }),
-    });
-    if (res.ok) {
-      alert('تم إرسال الإشعار التجريبي بنجاح!');
-    } else {
-      alert('حدث خطأ أثناء إرسال الإشعار، تأكد من المفاتيح في .env');
-    }
-  } catch (err) {
-    console.error(err);
-    alert('فشل الاتصال بـ OneSignal');
-  }
-};
 export default function CompleteEnterpriseAdminDashboard() {
   // حالة تسجيل الدخول للوحة التحكم
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -516,13 +476,6 @@ export default function CompleteEnterpriseAdminDashboard() {
             onClick={handleLogout}
             className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold transition"
           >
-            <button
-  onClick={handleTestNotification}
-  className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-4 py-2 rounded-xl text-xs shadow"
->
-  🔔 تجربة إرسال إشعار
-</button>
-        
             خروج 🚪
           </button>
         </div>
@@ -552,7 +505,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       </nav>
 
       <main className="p-4 max-w-7xl mx-auto">
-        {/* 1. الطلبات  */}
+        {/* 1. الطلبات الحية */}
         {activeTab === 'live_orders' && (
           <div>
             <h2 className="text-lg font-bold mb-4 text-emerald-900">قسم الفواتير والطلبات الحالية (قيد الانتظار والتجهيز)</h2>
@@ -982,347 +935,32 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 6. قسم التقارير الشاملة والتحليلات */}
-        {activeTab === 'reports' && (() => {
-          // 1. تصفية البيانات بناءً على التواريخ المختارة
-          const filteredSales = activeSales.filter(o => {
-            if (!salesDateFrom && !salesDateTo) return true;
-            const orderDate = new Date(o.created_at).getTime();
-            const from = salesDateFrom ? new Date(salesDateFrom).getTime() : 0;
-            const to = salesDateTo ? new Date(salesDateTo).setHours(23, 59, 59) : Infinity;
-            return orderDate >= from && orderDate <= to;
-          });
-
-          const filteredPurchases = activePurchases.filter(p => {
-            if (!salesDateFrom && !salesDateTo) return true;
-            const pDate = new Date(p.created_at || p.purchase_date).getTime();
-            const from = salesDateFrom ? new Date(salesDateFrom).getTime() : 0;
-            const to = salesDateTo ? new Date(salesDateTo).setHours(23, 59, 59) : Infinity;
-            return pDate >= from && pDate <= to;
-          });
-
-          // 2. حساب إحصائيات الأصناف الأكثر طلباً
-          const itemStats: { [key: string]: { name: string; qty: number; total: number } } = {};
-          filteredSales.forEach(order => {
-            const items = parseOrderItems(order.items);
-            items.forEach((it: any) => {
-              const name = it.name || it.title || 'صنف غير مسمى';
-              const qty = Number(it.qty || it.quantity || 1);
-              const price = Number(it.price || 0);
-              if (!itemStats[name]) {
-                itemStats[name] = { name, qty: 0, total: 0 };
-              }
-              itemStats[name].qty += qty;
-              itemStats[name].total += qty * price;
-            });
-          });
-
-          const topProducts = Object.values(itemStats)
-            .sort((a, b) => b.qty - a.qty)
-            .slice(0, 5);
-
-          // 3. حساب إحصائيات الأكثر شراءً من العملاء
-          const customerStats: { [key: string]: { name: string; phone: string; count: number; totalSpent: number } } = {};
-          filteredSales.forEach(order => {
-            const phone = order.phone || 'بدون رقم';
-            const name = order.customer_name || 'عميل غير معروف';
-            const total = Number(order.total || order.total_amount || 0);
-
-            if (!customerStats[phone]) {
-              customerStats[phone] = { name, phone, count: 0, totalSpent: 0 };
-            }
-            customerStats[phone].count += 1;
-            customerStats[phone].totalSpent += total;
-          });
-
-          const topCustomers = Object.values(customerStats)
-            .sort((a, b) => b.totalSpent - a.totalSpent)
-            .slice(0, 5);
-
-          // 4. الحسابات المالية الإجمالية للفترة
-          const totalRevenue = filteredSales.reduce((sum, item) => sum + (Number(item.total || item.total_amount) || 0), 0);
-          const totalExpenses = filteredPurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-          const netProfit = totalRevenue - totalExpenses;
-
-          // 5. دالة طباعة التقرير المنسق
-          const handlePrintDetailedReport = () => {
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) return;
-
-            const dateRangeText = (salesDateFrom || salesDateTo) 
-              ? `الفترة من: ${salesDateFrom || 'البداية'} إلى: ${salesDateTo || 'الآن'}`
-              : 'تقرير شامل لكل الفترات المسجلة';
-
-            printWindow.document.write(`
-              <html dir="rtl" lang="ar">
-                <head>
-                  <title>تقرير ماليات وإحصائيات - Grill & Greens</title>
-                  <style>
-                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; text-align: right; padding: 20px; color: #111827; }
-                    .header { text-align: center; border-bottom: 2px solid #065f46; padding-bottom: 12px; margin-bottom: 20px; }
-                    .title { font-size: 22px; font-weight: bold; color: #065f46; margin: 0; }
-                    .subtitle { font-size: 13px; color: #4b5563; margin-top: 4px; }
-                    .cards-grid { display: flex; gap: 10px; margin-bottom: 20px; }
-                    .card { flex: 1; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; text-align: center; }
-                    .card-title { font-size: 12px; color: #6b7280; font-weight: bold; }
-                    .card-value { font-size: 18px; font-weight: bold; margin-top: 5px; }
-                    .green { color: #047857; background-color: #ecfdf5; }
-                    .red { color: #b91c1c; background-color: #fef2f2; }
-                    .blue { color: #1d4ed8; background-color: #eff6ff; }
-                    table { w-full; width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-                    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: right; }
-                    th { background-color: #f3f4f6; color: #374151; font-weight: bold; }
-                    .section-title { font-size: 15px; font-weight: bold; color: #065f46; margin-top: 20px; margin-bottom: 8px; border-bottom: 1px solid #065f46; padding-bottom: 4px; }
-                    .footer { text-align: center; margin-top: 30px; font-size: 11px; color: #9ca3af; }
-                  </style>
-                </head>
-                <body>
-                  <div class="header">
-                    <p class="title">🔥 Grill & Greens - تقرير الأداء المالي والإحصائيات</p>
-                    <p class="subtitle">${dateRangeText}</p>
-                    <p class="subtitle">تاريخ الاستخراج: ${new Date().toLocaleString('ar-EG')}</p>
-                  </div>
-
-                  <div class="cards-grid">
-                    <div class="card green">
-                      <div class="card-title">إجمالي المبيعات الإرادية</div>
-                      <div class="card-value">${totalRevenue} ج.م</div>
-                    </div>
-                    <div class="card red">
-                      <div class="card-title">إجمالي المصروفات والمشتريات</div>
-                      <div class="card-value">${totalExpenses} ج.م</div>
-                    </div>
-                    <div class="card blue">
-                      <div class="card-title">صافي الأرباح التقديرية</div>
-                      <div class="card-value">${netProfit} ج.م</div>
-                    </div>
-                  </div>
-
-                  <div class="section-title">🏆 الأصناف الأكثر طلباً ومبيعاً</div>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>اسم الصنف</th>
-                        <th>إجمالي الكمية المباعة</th>
-                        <th>إجمالي العائد (ج.م)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${topProducts.map((p, idx) => `
-                        <tr>
-                          <td>${idx + 1}</td>
-                          <td><strong>${p.name}</strong></td>
-                          <td>${p.qty} قطعة/وجبة</td>
-                          <td>${p.total} ج.م</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-
-                  <div class="section-title">👥 الأكثر شراءً من العملاء</div>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>اسم العميل</th>
-                        <th>رقم الهاتف</th>
-                        <th>عدد الطلبات</th>
-                        <th>إجمالي الإنفاق (ج.م)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${topCustomers.map((c, idx) => `
-                        <tr>
-                          <td>${idx + 1}</td>
-                          <td><strong>${c.name}</strong></td>
-                          <td>${c.phone}</td>
-                          <td>${c.count} طلبات</td>
-                          <td>${c.totalSpent} ج.م</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-
-                  <div class="footer">
-                    <p>تم استخراج التقرير تلقائياً من لوحة تحكم Grill & Greens الإدارية</p>
-                  </div>
-                  <script>
-                    window.onload = function() { window.print(); window.close(); };
-                  </script>
-                </body>
-              </html>
-            `);
-            printWindow.document.close();
-          };
-
-          return (
-            <div className="space-y-6">
-              {/* شريط الفلترة بالتواريخ */}
-              <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-lg font-bold text-emerald-900 flex items-center gap-2">
-                    📊 التقرير المالي والإحصائي المتقدم
-                  </h2>
-                  <button
-                    onClick={handlePrintDetailedReport}
-                    className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition flex items-center gap-1"
-                  >
-                    🖨️ طباعة التقرير الشامل
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-3 items-center bg-emerald-50/60 p-3 rounded-xl text-sm border border-emerald-100">
-                  <span className="font-bold text-emerald-900">تحديد مدة التقارير:</span>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600 font-bold">من:</label>
-                    <input
-                      type="date"
-                      value={salesDateFrom}
-                      onChange={e => setSalesDateFrom(e.target.value)}
-                      className="border p-1.5 rounded-lg bg-white text-xs font-bold"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600 font-bold">إلى:</label>
-                    <input
-                      type="date"
-                      value={salesDateTo}
-                      onChange={e => setSalesDateTo(e.target.value)}
-                      className="border p-1.5 rounded-lg bg-white text-xs font-bold"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1 mr-auto">
-                    <button
-                      onClick={() => {
-                        const today = new Date().toISOString().split('T')[0];
-                        setSalesDateFrom(today);
-                        setSalesDateTo(today);
-                      }}
-                      className="text-xs bg-white border border-emerald-300 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-bold text-emerald-800 transition"
-                    >
-                      اليوم
-                    </button>
-                    <button
-                      onClick={() => {
-                        const now = new Date();
-                        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-                        const today = now.toISOString().split('T')[0];
-                        setSalesDateFrom(firstDay);
-                        setSalesDateTo(today);
-                      }}
-                      className="text-xs bg-white border border-emerald-300 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-bold text-emerald-800 transition"
-                    >
-                      هذا الشهر
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSalesDateFrom('');
-                        setSalesDateTo('');
-                      }}
-                      className="text-xs bg-gray-200 hover:bg-gray-300 px-2.5 py-1 rounded-md font-bold text-gray-700 transition"
-                    >
-                      عرض الكل
-                    </button>
-                  </div>
-                </div>
+        {/* 6. قسم التقارير */}
+        {activeTab === 'reports' && (
+          <div className="bg-white p-4 rounded-xl shadow-sm border space-y-4">
+            <h2 className="text-lg font-bold text-emerald-900">تصدير واستعراض التقارير المالية</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
+                <p className="text-sm text-emerald-800 font-bold">إجمالي إيرادات المبيعات النشطة</p>
+                <p className="text-2xl font-extrabold text-emerald-900 mt-1">
+                  {activeSales.reduce((sum, item) => sum + (Number(item.total || item.total_amount) || 0), 0)} ج.م
+                </p>
               </div>
-
-              {/* 1. بطاقات الأرقام والمؤشرات المالية */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-emerald-800 font-bold">إجمالي المبيعات والإيرادات</p>
-                  <p className="text-3xl font-extrabold text-emerald-900 mt-2">{totalRevenue} <span className="text-sm font-normal">ج.م</span></p>
-                  <p className="text-xs text-emerald-700 mt-1">عدد الفواتير المكتملة: {filteredSales.length}</p>
-                </div>
-
-                <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-red-800 font-bold">إجمالي المصروفات والمشتريات</p>
-                  <p className="text-3xl font-extrabold text-red-900 mt-2">{totalExpenses} <span className="text-sm font-normal">ج.م</span></p>
-                  <p className="text-xs text-red-700 mt-1">عدد عمليات الشراء: {filteredPurchases.length}</p>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-blue-800 font-bold">صافي الأرباح التقديرية</p>
-                  <p className="text-3xl font-extrabold text-blue-900 mt-2">{netProfit} <span className="text-sm font-normal">ج.م</span></p>
-                  <p className="text-xs text-blue-700 mt-1">المبيعات minus المصروفات للفترة</p>
-                </div>
+              <div className="bg-red-50 border border-red-200 p-4 rounded-xl">
+                <p className="text-sm text-red-800 font-bold">إجمالي المصروفات والمشتريات النشطة</p>
+                <p className="text-2xl font-extrabold text-red-900 mt-1">
+                  {activePurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0)} ج.م
+                </p>
               </div>
-
-              {/* 2. جداول الأكثر طلباً والأكثر شراءً */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* الأصناف الأكثر طلباً */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border">
-                  <h3 className="font-bold text-md text-emerald-900 mb-3 flex items-center gap-1">
-                    <span>🔥</span> الأصناف الأكثر طلباً ومبيعاً
-                  </h3>
-                  {topProducts.length === 0 ? (
-                    <p className="text-xs text-gray-400 p-4 text-center">لا توجد مبيعات في هذه الفترة</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-right text-xs">
-                        <thead className="bg-emerald-50 font-bold text-emerald-900 border-b">
-                          <tr>
-                            <th className="p-2.5">#</th>
-                            <th className="p-2.5">اسم الصنف</th>
-                            <th className="p-2.5">الكمية المباعة</th>
-                            <th className="p-2.5">إجمالي الإيراد</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {topProducts.map((p, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="p-2.5 font-bold text-emerald-800">{i + 1}</td>
-                              <td className="p-2.5 font-bold text-gray-900">{p.name}</td>
-                              <td className="p-2.5"><span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">{p.qty}</span></td>
-                              <td className="p-2.5 font-bold text-green-700">{p.total} ج.م</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {/* العملاء الأكثر شراءً */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border">
-                  <h3 className="font-bold text-md text-emerald-900 mb-3 flex items-center gap-1">
-                    <span>👑</span> الأكثر شراءً من العملاء
-                  </h3>
-                  {topCustomers.length === 0 ? (
-                    <p className="text-xs text-gray-400 p-4 text-center">لا توجد طلبات في هذه الفترة</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-right text-xs">
-                        <thead className="bg-blue-50 font-bold text-blue-900 border-b">
-                          <tr>
-                            <th className="p-2.5">#</th>
-                            <th className="p-2.5">العميل</th>
-                            <th className="p-2.5">رقم الهاتف</th>
-                            <th className="p-2.5">الطلبات</th>
-                            <th className="p-2.5">إجمالي الإنفاق</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {topCustomers.map((c, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="p-2.5 font-bold text-blue-800">{i + 1}</td>
-                              <td className="p-2.5 font-bold text-gray-900">{c.name}</td>
-                              <td className="p-2.5 text-gray-600">{c.phone}</td>
-                              <td className="p-2.5 font-bold">{c.count} طلبات</td>
-                              <td className="p-2.5 font-bold text-green-700">{c.totalSpent} ج.م</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                <p className="text-sm text-blue-800 font-bold">صافي الأرباح التقديرية</p>
+                <p className="text-2xl font-extrabold text-blue-900 mt-1">
+                  {activeSales.reduce((sum, item) => sum + (Number(item.total || item.total_amount) || 0), 0) - activePurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0)} ج.م
+                </p>
               </div>
             </div>
-          );
-        })()}
+          </div>
+        )}
 
         {/* 7. قسم الإعدادات */}
         {activeTab === 'settings' && (
