@@ -25,9 +25,9 @@ export interface Category {
 export const CATEGORIES: Category[] = [
   { id: 'all', name: 'الكل 🍽️' },
   { id: 'الوجبات', name: 'الوجبات 🍱' },
-  { id: 'المشويات', name: 'المشويات 🥩' }, // تعديل الاسم ليطابق الـ id والداتابيز
+  { id: 'المشويات', name: 'المشويات 🥩' },
   { id: 'المحاشي', name: 'المحاشي 🥬' },
-  { id: 'الطواجن', name: 'الطواجن 🍲' },   // تعديل الاسم ليطابق الـ id والداتابيز
+  { id: 'الطواجن', name: 'الطواجن 🍲' },
   { id: 'الطيور', name: 'الطيور 🍗' },
   { id: 'أصناف إضافية', name: 'أصناف إضافية 🥗' },
 ];
@@ -36,6 +36,28 @@ interface CartItem {
   product: MenuItem;
   quantity: number;
 }
+
+// دالة إرسال الإشعار لـ OneSignal
+const sendPushNotification = async (totalAmount: number, name: string) => {
+  try {
+    await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
+      },
+      body: JSON.stringify({
+        app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+        included_segments: ['Subscribers'],
+        headings: { ar: '🔥 طلب جديد في Grill & Greens!' },
+        contents: { ar: `طلب جديد بقيمة ${totalAmount} ج.م من ${name}` },
+        url: 'https://grill-and-greens.vercel.app/admin',
+      }),
+    });
+  } catch (err) {
+    console.error('فشل إرسال الإشعار:', err);
+  }
+};
 
 export default function CustomerMenu() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -167,6 +189,9 @@ export default function CustomerMenu() {
       const insertedId = data[0].id;
       setOrderId(insertedId);
       setOrderSent(true);
+
+      // 🔔 إرسال الإشعار فور حفظ الطلب بنجاح 🔔
+      await sendPushNotification(grandTotal, customerName);
     }
   };
 
@@ -328,27 +353,20 @@ export default function CustomerMenu() {
         </main>
       </div>
 
-     {/* الفوتر */}
-<footer className="bg-slate-900 text-slate-400 text-xs py-6 px-4 text-center mt-8 space-y-3">
-  <p className="font-bold text-amber-400 text-sm">Grill & Greens - سوهاج</p>
-  <div className="flex justify-center items-center gap-4 text-slate-300 font-medium">
-    <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer">فيسبوك</a>
-    <span>•</span>
-    <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer">انستجرام</a>
-    <span>•</span>
-    <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer">تيك توك</a>
-    <span>•</span>
-    <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer">يوتيوب</a>
-  </div>
-  <p className="text-[11px] text-slate-500">جميع الحقوق محفوظة © Grill & Greens</p>
-
-  {/* 👈 ضع زر دخول اللوحة هنا بالضبط قبل إغلاق وسم الفوتر 👇 */}
-  <div className="pt-2 border-t border-slate-800">
-    <a href="/admin" className="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
-      🔒 دخول لوحة الإدارة
-    </a>
-  </div>
-</footer>
+      {/* الفوتر */}
+      <footer className="bg-slate-900 text-slate-400 text-xs py-6 px-4 text-center mt-8 space-y-3">
+        <p className="font-bold text-amber-400 text-sm">Grill & Greens - سوهاج</p>
+        <div className="flex justify-center items-center gap-4 text-slate-300 font-medium">
+          <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer">فيسبوك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer">انستجرام</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer">تيك توك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer">يوتيوب</a>
+        </div>
+        <p className="text-[11px] text-slate-500">جميع الحقوق محفوظة © Grill & Greens</p>
+      </footer>
 
       {/* الشريط العائم للسلة */}
       {cart.length > 0 && !orderSent && (
