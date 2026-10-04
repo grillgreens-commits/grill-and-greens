@@ -37,6 +37,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [productName, setProductName] = useState('');
   const [productDesc, setProductDesc] = useState('');
   const [productPrice, setProductPrice] = useState('');
+  const [productCategory, setProductCategory] = useState('المشاوي عالفحم');
 
   // Settings
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
@@ -66,9 +67,14 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (logs) setPurchaseLogs(logs);
   };
 
-  // جلب المنيو المحدث مع جدول menu_items
+  // جلب المنيو مع مراعاة كافة الاحتمالات لحقل التوفر
   const fetchProducts = async () => {
-    const { data: menuData } = await supabase.from('menu_items').select('*').order('id', { ascending: true });
+    const { data: menuData, error } = await supabase.from('menu_items').select('*').order('id', { ascending: true });
+
+    if (error) {
+      console.error('خطأ في جلب المنيو:', error.message);
+      return;
+    }
 
     if (menuData) {
       const formatted = menuData.map((item: any) => ({
@@ -77,7 +83,7 @@ export default function CompleteEnterpriseAdminDashboard() {
         description: item.description || '',
         price: item.price || 0,
         category: item.category || 'الوجبات',
-        is_available: item.is_available !== undefined ? item.is_available : true
+        is_available: item.is_available !== undefined ? item.is_available : (item.available !== undefined ? item.available : true)
       }));
       setProducts(formatted);
     }
@@ -107,7 +113,7 @@ export default function CompleteEnterpriseAdminDashboard() {
             .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
             .title { font-size: 18px; font-weight: bold; margin: 0; }
             .info { font-size: 13px; color: #333; margin: 4px 0; }
-            .item-row { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; }
+            .item-row { display: flex; justify-between; font-size: 13px; margin: 6px 0; }
             .total-row { border-top: 2px solid #000; margin-top: 10px; padding-top: 8px; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
             .footer { text-align: center; margin-top: 15px; font-size: 11px; color: #666; }
           </style>
@@ -222,7 +228,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     fetchProducts();
   };
 
-  // إضافة صنف جديد للمنيو (متوافق مع أعمدة Supabase)
+  // إضافة صنف جديد للمنيو (متوافق تماماً)
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productName || !productPrice) {
@@ -252,11 +258,13 @@ export default function CompleteEnterpriseAdminDashboard() {
   };
 
   const toggleProductAvailability = async (id: number, currentStatus: boolean) => {
-    await supabase.from('menu_items').update({ is_available: !currentStatus }).eq('id', id);
-    fetchProducts();
+    const { error } = await supabase.from('menu_items').update({ is_available: !currentStatus }).eq('id', id);
+    if (error) {
+      alert('حدث خطأ أثناء تحديث حالة التوفر: ' + error.message);
+    } else {
+      fetchProducts();
+    }
   };
-
-  const [productCategory, setProductCategory] = useState('الوجبات');
 
   const pendingOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
   
@@ -652,15 +660,15 @@ export default function CompleteEnterpriseAdminDashboard() {
               <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <input type="text" placeholder="اسم الوجبة/الصنف" value={productName} onChange={e => setProductName(e.target.value)} className="border p-2 rounded text-sm" required />
                 <input type="number" placeholder="سعر البيع (ج.م)" value={productPrice} onChange={e => setProductPrice(e.target.value)} className="border p-2 rounded text-sm" required />
-                <select value={productCategory} onChange={e => setProductCategory(e.target.value)} className="border p-2 rounded text-sm">
+                <select value={productCategory} onChange={e => setProductCategory(e.target.value)} className="border p-2 rounded text-sm font-bold bg-white">
                   <option value="الوجبات">الوجبات</option>
-                  <option value="المشويات">المشويات</option>
+                  <option value="المشاوي عالفحم">المشاوي عالفحم</option>
                   <option value="المحاشي">المحاشي</option>
-                  <option value="الطواجن">الطواجن</option>
+                  <option value="الصواني والطواجن">الصواني والطواجن</option>
                   <option value="الطيور">الطيور</option>
                   <option value="أصناف إضافية">أصناف إضافية</option>
                 </select>
-                <input type="text" placeholder="الوصف (مثال: تشمل رز + سلطة)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-3" />
+                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-3" />
                 <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ وإضافة للمنيو 🍔</button>
               </form>
             </div>
@@ -675,7 +683,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
                       <div>
                         <h3 className="font-bold text-md">{product.name}</h3>
-                        <p className="text-xs text-gray-500 font-bold">{product.category}</p>
+                        <p className="text-xs text-emerald-800 font-bold">{product.category}</p>
                         {product.description && <p className="text-xs text-gray-600 mt-1">{product.description}</p>}
                         <p className="text-sm font-bold text-green-700 mt-2">السعر: {product.price} ج.م</p>
                       </div>
