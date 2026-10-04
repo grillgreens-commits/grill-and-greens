@@ -22,6 +22,11 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [selectedCustomerModal, setSelectedCustomerModal] = useState<any | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
 
+  // Edit Product Modal State
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+
   // Sales Filters
   const [salesDateFrom, setSalesDateFrom] = useState('');
   const [salesDateTo, setSalesDateTo] = useState('');
@@ -38,12 +43,33 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [productDesc, setProductDesc] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productCategory, setProductCategory] = useState('المشاوي عالفحم');
+  const [productImageUrl, setProductImageUrl] = useState('');
 
   // Settings
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
   useEffect(() => {
     fetchAllData();
+
+    // الاشتراك في التحديث الفوري (Realtime) للطلبات والمنيو
+    const ordersChannel = supabase
+      .channel('realtime_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    const menuChannel = supabase
+      .channel('realtime_menu')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => {
+        fetchProducts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(menuChannel);
+    };
   }, []);
 
   const fetchAllData = async () => {
@@ -67,7 +93,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (logs) setPurchaseLogs(logs);
   };
 
-  // جلب المنيو مع مراعاة كافة الاحتمالات لحقل التوفر
   const fetchProducts = async () => {
     const { data: menuData, error } = await supabase.from('menu_items').select('*').order('id', { ascending: true });
 
@@ -83,13 +108,13 @@ export default function CompleteEnterpriseAdminDashboard() {
         description: item.description || '',
         price: item.price || 0,
         category: item.category || 'الوجبات',
+        image_url: item.image_url || item.image || '',
         is_available: item.is_available !== undefined ? item.is_available : (item.available !== undefined ? item.available : true)
       }));
       setProducts(formatted);
     }
   };
 
-  // دالة مساعدة لاستخراج عناصر الطلب بأمان
   const parseOrderItems = (itemsRaw: any): any[] => {
     if (Array.isArray(itemsRaw)) return itemsRaw;
     if (typeof itemsRaw === 'string') {
@@ -103,7 +128,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     return [];
   };
 
-  // دالة الطباعة الشاملة
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -121,7 +145,7 @@ export default function CompleteEnterpriseAdminDashboard() {
             .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
             .title { font-size: 18px; font-weight: bold; margin: 0; }
             .info { font-size: 13px; color: #333; margin: 4px 0; }
-            .item-row { display: flex; justify-between; font-size: 13px; margin: 6px 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; }
             .total-row { border-top: 2px solid #000; margin-top: 10px; padding-top: 8px; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
             .footer { text-align: center; margin-top: 15px; font-size: 11px; color: #666; }
           </style>
@@ -198,7 +222,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // إضافـة حركة مشتريات
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalItemName = selectedPurchaseItem === 'other' ? customPurchaseItem.trim() : selectedPurchaseItem.trim();
@@ -236,7 +259,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     fetchProducts();
   };
 
-  // إضافة صنف جديد للمنيو (متوافق تماماً)
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productName || !productPrice) {
@@ -249,6 +271,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       description: productDesc,
       price: parseFloat(productPrice),
       category: productCategory,
+      image_url: productImageUrl,
       is_available: true
     };
 
@@ -261,6 +284,36 @@ export default function CompleteEnterpriseAdminDashboard() {
       setProductName('');
       setProductDesc('');
       setProductPrice('');
+      setProductImageUrl('');
+      fetchProducts();
+    }
+  };
+
+  // فتح نافذة تعديل الصنف
+  const openEditModal = (product: any) => {
+    setEditingProduct(product);
+    setEditPrice(String(product.price));
+    setEditImageUrl(product.image_url || '');
+  };
+
+  // حفظ التعديلات
+  const handleSaveProductEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    const { error } = await supabase
+      .from('menu_items')
+      .update({
+        price: parseFloat(editPrice),
+        image_url: editImageUrl
+      })
+      .eq('id', editingProduct.id);
+
+    if (error) {
+      alert('حدث خطأ أثناء حفظ التحديث: ' + error.message);
+    } else {
+      alert('تم تحديث البيانات بنجاح ✅');
+      setEditingProduct(null);
       fetchProducts();
     }
   };
@@ -368,7 +421,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                             order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
                             order.status === 'preparing' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
                           }`}>
-                            {order.status === 'pending' ? '⏳ قيد الانتظار' : order.status === 'preparing' ? '👨‍‍🍳 جاري التجهيز' : '🛵 في الطريق'}
+                            {order.status === 'pending' ? '⏳ قيد الانتظار' : order.status === 'preparing' ? '👨‍🍳 جاري التجهيز' : '🛵 في الطريق'}
                           </span>
                         </div>
                         <p className="font-bold text-gray-900">{order.customer_name}</p>
@@ -683,8 +736,9 @@ export default function CompleteEnterpriseAdminDashboard() {
                   <option value="الطيور">الطيور</option>
                   <option value="أصناف إضافية">أصناف إضافية</option>
                 </select>
-                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-3" />
-                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ وإضافة للمنيو 🍔</button>
+                <input type="text" placeholder="رابط صورة الصنف (اختياري)" value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} className="border p-2 rounded text-sm" />
+                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-4" />
+                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm md:col-span-2 lg:col-span-4">حفظ وإضافة للمنيو 🍔</button>
               </form>
             </div>
 
@@ -697,23 +751,69 @@ export default function CompleteEnterpriseAdminDashboard() {
                   {products.map(product => (
                     <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
                       <div>
+                        {product.image_url && (
+                          <img src={product.image_url} alt={product.name} className="w-full h-36 object-cover rounded mb-2" />
+                        )}
                         <h3 className="font-bold text-md">{product.name}</h3>
                         <p className="text-xs text-emerald-800 font-bold">{product.category}</p>
                         {product.description && <p className="text-xs text-gray-600 mt-1">{product.description}</p>}
                         <p className="text-sm font-bold text-green-700 mt-2">السعر: {product.price} ج.م</p>
                       </div>
 
-                      <button
-                        onClick={() => toggleProductAvailability(product.id, product.is_available)}
-                        className={`mt-3 py-1 rounded text-xs font-bold text-white transition ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
-                      >
-                        {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
-                      </button>
+                      <div className="flex flex-col gap-2 mt-3">
+                        <button
+                          onClick={() => openEditModal(product)}
+                          className="w-full bg-amber-600 hover:bg-amber-700 text-white py-1 rounded text-xs font-bold transition"
+                        >
+                          ✏️ تعديل السعر / الصورة
+                        </button>
+                        <button
+                          onClick={() => toggleProductAvailability(product.id, product.is_available)}
+                          className={`w-full py-1 rounded text-xs font-bold text-white transition ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                        >
+                          {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+
+            {/* نافذة تعديل السعر والصورة */}
+            {editingProduct && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl relative">
+                  <button onClick={() => setEditingProduct(null)} className="absolute top-4 left-4 text-gray-500 font-bold text-lg">✖</button>
+                  <h3 className="text-lg font-bold text-emerald-900 mb-4">✏️ تعديل صنف: {editingProduct.name}</h3>
+                  <form onSubmit={handleSaveProductEdit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-1">السعر الجديد (ج.م):</label>
+                      <input
+                        type="number"
+                        value={editPrice}
+                        onChange={e => setEditPrice(e.target.value)}
+                        className="border p-2 rounded text-sm w-full"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1">رابط صورة الصنف (URL):</label>
+                      <input
+                        type="text"
+                        placeholder="https://..."
+                        value={editImageUrl}
+                        onChange={e => setEditImageUrl(e.target.value)}
+                        className="border p-2 rounded text-sm w-full"
+                      />
+                    </div>
+                    <button type="submit" className="w-full bg-emerald-800 text-white font-bold p-2 rounded hover:bg-emerald-900">
+                      حفظ التغييرات 💾
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
