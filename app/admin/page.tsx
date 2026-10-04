@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, CheckCircle, Clock, XCircle, RefreshCw, 
@@ -50,21 +52,11 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // إدارة الأصناف
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-  const [newItem, setNewItem] = useState<Partial<MenuItem>>({
-    name: '',
-    category: 'وجبات رئيسية',
-    price: 0,
-    description: '',
-    available: true
-  });
-
   useEffect(() => {
     fetchOrders();
     fetchMenuItems();
 
-    // التحديث اللحظي للطلبات المباشرة Realtime Subscription
+    // التحديث اللحظي للطلبات
     const subscription = supabase
       .channel('orders-channel')
       .on(

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, Clock, MapPin, Phone, User, MessageSquare, Utensils, Search } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
@@ -196,7 +198,7 @@ export default function CustomerMenu() {
             </div>
             <div>
               <h1 className="text-xl font-bold">قائمة الطعام</h1>
-              <p className="text-xs text-emerald-100">اطلب وجبتك المفضل أونلاين</p>
+              <p className="text-xs text-emerald-100">اطلب وجبتك المفضلة أونلاين</p>
             </div>
           </div>
           <div className="relative">
