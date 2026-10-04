@@ -8,21 +8,22 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   useEffect(() => {
-    // استدعاء مكتبة OneSignal ديناميكياً لتجنب مشاكل Build
-    import('react-onesignal').then((OneSignal) => {
-      OneSignal.default.init({
-        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || '',
-        allowLocalhostAsSecureOrigin: true,
-      }).then(() => {
-        // إظهار نافذة إذن الإشعارات
-        OneSignal.default.Slidedown.promptPush()
-      })
-    })
-  }, [])
+    // التأكد من التشغيل داخل المتصفح فقط
+    if (typeof window !== 'undefined') {
+      import('react-onesignal').then((module) => {
+        const OneSignal = module.default;
+        OneSignal.init({
+          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || '',
+          allowLocalhostAsSecureOrigin: true,
+        }).then(() => {
+          // طلب إذن الإشعارات
+          OneSignal.Slidedown.promptPush();
+        }).catch((err) => {
+          console.error('OneSignal Init Error:', err);
+        });
+      });
+    }
+  }, []);
 
-  return (
-    <div className="admin-layout-wrapper">
-      {children}
-    </div>
-  )
+  return <div className="admin-layout-wrapper">{children}</div>;
 }
