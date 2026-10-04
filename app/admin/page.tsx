@@ -7,16 +7,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// خريطة لترجمة معايير الأقسام إلى أسماء عربية واضحة في الأدمن
-const CATEGORY_MAP: Record<string, string> = {
-  grill: 'المشاوي عالفحم 🥩',
-  mahshi: 'المحاشي 🥬',
-  casserole: 'الصواني والطواجن 🍲',
-  poultry: 'الطيور 🍗',
-  meals: 'الوجبات 🍱',
-  sides: 'أصناف إضافية 🥗',
-};
-
 export default function CompleteEnterpriseAdminDashboard() {
   const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings'>('live_orders');
   
@@ -43,11 +33,11 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [purchasePrice, setPurchasePrice] = useState('');
   const [supplier, setSupplier] = useState('');
 
-  // New Product / Menu Form - التعديل: القيمة الافتراضية أصبحت 'grill'
+  // New Product / Menu Form
   const [productName, setProductName] = useState('');
   const [productDesc, setProductDesc] = useState('');
   const [productPrice, setProductPrice] = useState('');
-  const [productCategory, setProductCategory] = useState('grill');
+  const [productCategory, setProductCategory] = useState('المشاوي عالفحم');
 
   // Settings
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
@@ -77,7 +67,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (logs) setPurchaseLogs(logs);
   };
 
-  // جلب المنيو مع تحويل المعرفات المطبقة إلى أسماء توضيحية
+  // جلب المنيو مع مراعاة كافة الاحتمالات لحقل التوفر
   const fetchProducts = async () => {
     const { data: menuData, error } = await supabase.from('menu_items').select('*').order('id', { ascending: true });
 
@@ -92,7 +82,7 @@ export default function CompleteEnterpriseAdminDashboard() {
         name: item.name || 'صنف بدون اسم',
         description: item.description || '',
         price: item.price || 0,
-        category: item.category || 'meals',
+        category: item.category || 'الوجبات',
         is_available: item.is_available !== undefined ? item.is_available : (item.available !== undefined ? item.available : true)
       }));
       setProducts(formatted);
@@ -238,7 +228,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     fetchProducts();
   };
 
-  // إضافة صنف جديد للمنيو (متوافق تماماً بعد التعديل)
+  // إضافة صنف جديد للمنيو (متوافق تماماً)
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productName || !productPrice) {
@@ -250,7 +240,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       name: productName,
       description: productDesc,
       price: parseFloat(productPrice),
-      category: productCategory, // سيعبر عن الكود المباشر مثل 'grill', 'meals' إلخ.
+      category: productCategory,
       is_available: true
     };
 
@@ -670,17 +660,14 @@ export default function CompleteEnterpriseAdminDashboard() {
               <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <input type="text" placeholder="اسم الوجبة/الصنف" value={productName} onChange={e => setProductName(e.target.value)} className="border p-2 rounded text-sm" required />
                 <input type="number" placeholder="سعر البيع (ج.م)" value={productPrice} onChange={e => setProductPrice(e.target.value)} className="border p-2 rounded text-sm" required />
-                
-                {/* التعديل الجوهري: ربط قيم الـ options بالكود المحدد في صفحة العميل */}
                 <select value={productCategory} onChange={e => setProductCategory(e.target.value)} className="border p-2 rounded text-sm font-bold bg-white">
-                  <option value="grill">المشاوي عالفحم 🥩</option>
-                  <option value="mahshi">المحاشي 🥬</option>
-                  <option value="casserole">الصواني والطواجن 🍲</option>
-                  <option value="poultry">الطيور 🍗</option>
-                  <option value="meals">الوجبات 🍱</option>
-                  <option value="sides">أصناف إضافية 🥗</option>
+                  <option value="الوجبات">الوجبات</option>
+                  <option value="المشاوي عالفحم">المشاوي عالفحم</option>
+                  <option value="المحاشي">المحاشي</option>
+                  <option value="الصواني والطواجن">الصواني والطواجن</option>
+                  <option value="الطيور">الطيور</option>
+                  <option value="أصناف إضافية">أصناف إضافية</option>
                 </select>
-
                 <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-3" />
                 <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ وإضافة للمنيو 🍔</button>
               </form>
@@ -696,9 +683,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
                       <div>
                         <h3 className="font-bold text-md">{product.name}</h3>
-                        <p className="text-xs text-emerald-800 font-bold">
-                          {CATEGORY_MAP[product.category] || product.category}
-                        </p>
+                        <p className="text-xs text-emerald-800 font-bold">{product.category}</p>
                         {product.description && <p className="text-xs text-gray-600 mt-1">{product.description}</p>}
                         <p className="text-sm font-bold text-green-700 mt-2">السعر: {product.price} ج.م</p>
                       </div>
