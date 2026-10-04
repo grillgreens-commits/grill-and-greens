@@ -7,7 +7,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// 🔒 اكتب كلمة المرور التي تريدها هنا
+const ADMIN_PASSWORD = '123'; 
+
 export default function CompleteEnterpriseAdminDashboard() {
+  // حالة تسجيل الدخول للوحة التحكم
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+
   const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings'>('live_orders');
   
   // Data States
@@ -48,7 +56,17 @@ export default function CompleteEnterpriseAdminDashboard() {
   // Settings
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
+  // التحقق من حالة تسجيل الدخول السابقة في المتصفح
   useEffect(() => {
+    const savedAuth = sessionStorage.getItem('admin_authenticated');
+    if (savedAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
     fetchAllData();
 
     // الاشتراك في التحديث الفوري (Realtime) للطلبات والمنيو
@@ -70,7 +88,25 @@ export default function CompleteEnterpriseAdminDashboard() {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(menuChannel);
     };
-  }, []);
+  }, [isAuthenticated]);
+
+  // دالة تسجيل الدخول
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('admin_authenticated', 'true');
+      setAuthError('');
+    } else {
+      setAuthError('كلمة المرور غير صحيحة ❌');
+    }
+  };
+
+  // دالة تسجيل الخروج
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('admin_authenticated');
+  };
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -301,14 +337,12 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // فتح نافذة تعديل الصنف
   const openEditModal = (product: any) => {
     setEditingProduct(product);
     setEditPrice(String(product.price));
     setEditImageUrl(product.image_url || '');
   };
 
-  // حفظ التعديلات
   const handleSaveProductEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
@@ -339,6 +373,51 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
+  // ------------------------------------------------------------------
+  // 🔒 شاشة القفل وتسجيل الدخول
+  // ------------------------------------------------------------------
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 dir-rtl" dir="rtl">
+        <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-gray-100">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+            🔒
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">لوحة التحكم - Grill & Greens</h2>
+          <p className="text-sm text-gray-500 mb-6">يرجى إدخال كلمة المرور للوصول إلى بيانات الإدارة والطلبات</p>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                placeholder="أدخل كلمة المرور..."
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full border-2 border-gray-200 focus:border-emerald-600 focus:outline-none p-3 rounded-xl text-center text-lg font-bold tracking-widest"
+                autoFocus
+              />
+              {authError && <p className="text-xs text-red-600 font-bold mt-2">{authError}</p>}
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3 rounded-xl shadow-lg transition"
+            >
+              دخول اللوحة 🔑
+            </button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t text-xs text-gray-400">
+            <a href="/" className="hover:underline text-emerald-700 font-bold">← العودة لصفحة العميل / المنيو</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // 🟢 لوحة التحكم الرئيسية (بعد الدخول الناجح)
+  // ------------------------------------------------------------------
   const pendingOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
   
   const activeSales = orders.filter(o => o.status === 'completed').filter(o => {
@@ -379,12 +458,26 @@ export default function CompleteEnterpriseAdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans dir-rtl" dir="rtl">
       {/* Header */}
-      <header className="bg-emerald-900 text-white shadow-md p-4 flex flex-wrap justify-between items-center">
+      <header className="bg-emerald-900 text-white shadow-md p-4 flex flex-wrap justify-between items-center gap-2">
         <h1 className="text-xl font-bold flex items-center gap-2">
           🔥 Grill & Greens | لوحة التحكم الإدارية
         </h1>
-        <div className="text-sm bg-emerald-800 px-3 py-1 rounded-full">
-          إجمالي المبيعات النشطة: {activeSales.reduce((acc, curr) => acc + (Number(curr.total || curr.total_amount) || 0), 0)} ج.م
+        <div className="flex items-center gap-3">
+          <div className="text-sm bg-emerald-800 px-3 py-1 rounded-full hidden sm:block">
+            إجمالي المبيعات النشطة: {activeSales.reduce((acc, curr) => acc + (Number(curr.total || curr.total_amount) || 0), 0)} ج.م
+          </div>
+          <a
+            href="/"
+            className="text-xs bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded-lg font-bold transition"
+          >
+            🏪 صفحة العميل
+          </a>
+          <button
+            onClick={handleLogout}
+            className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold transition"
+          >
+            خروج 🚪
+          </button>
         </div>
       </header>
 
@@ -467,7 +560,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                             onClick={() => handlePrintOrder(order)}
                             className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
                           >
-                            <span>🖨️</span> طباعة الفاتورة
+                            <span>🖨️️</span> طباعة الفاتورة
                           </button>
                         </div>
 
@@ -833,7 +926,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       />
                     </div>
                     <button type="submit" className="w-full bg-emerald-800 text-white font-bold p-2 rounded hover:bg-emerald-900">
-                      حفظ التغييرات 💾
+                      حفظ والتحديث 💾
                     </button>
                   </form>
                 </div>
