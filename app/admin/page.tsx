@@ -22,6 +22,11 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [selectedCustomerModal, setSelectedCustomerModal] = useState<any | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
 
+  // Edit Product Modal State
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+
   // Sales Filters
   const [salesDateFrom, setSalesDateFrom] = useState('');
   const [salesDateTo, setSalesDateTo] = useState('');
@@ -38,12 +43,33 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [productDesc, setProductDesc] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productCategory, setProductCategory] = useState('المشاوي عالفحم');
+  const [productImageUrl, setProductImageUrl] = useState('');
 
   // Settings
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
   useEffect(() => {
     fetchAllData();
+
+    // الاشتراك في التحديث الفوري (Realtime) للطلبات والمنيو
+    const ordersChannel = supabase
+      .channel('realtime_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    const menuChannel = supabase
+      .channel('realtime_menu')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => {
+        fetchProducts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(menuChannel);
+    };
   }, []);
 
   const fetchAllData = async () => {
@@ -67,7 +93,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (logs) setPurchaseLogs(logs);
   };
 
-  // جلب المنيو مع مراعاة كافة الاحتمالات لحقل التوفر
   const fetchProducts = async () => {
     const { data: menuData, error } = await supabase.from('menu_items').select('*').order('id', { ascending: true });
 
@@ -83,24 +108,31 @@ export default function CompleteEnterpriseAdminDashboard() {
         description: item.description || '',
         price: item.price || 0,
         category: item.category || 'الوجبات',
+        image_url: item.image_url || item.image || '',
         is_available: item.is_available !== undefined ? item.is_available : (item.available !== undefined ? item.available : true)
       }));
       setProducts(formatted);
     }
   };
 
-  // دالة الطباعة الشاملة
+  const parseOrderItems = (itemsRaw: any): any[] => {
+    if (Array.isArray(itemsRaw)) return itemsRaw;
+    if (typeof itemsRaw === 'string') {
+      try {
+        const parsed = JSON.parse(itemsRaw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    let itemsArr: any[] = [];
-    if (Array.isArray(order.items)) {
-      itemsArr = order.items;
-    } else if (typeof order.items === 'string') {
-      try { itemsArr = JSON.parse(order.items); } catch (e) { itemsArr = []; }
-    }
-
+    const itemsArr = parseOrderItems(order.items);
     const shortId = String(order.id).split('-')[0].toUpperCase();
 
     printWindow.document.write(`
@@ -113,7 +145,7 @@ export default function CompleteEnterpriseAdminDashboard() {
             .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
             .title { font-size: 18px; font-weight: bold; margin: 0; }
             .info { font-size: 13px; color: #333; margin: 4px 0; }
-            .item-row { display: flex; justify-between; font-size: 13px; margin: 6px 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; }
             .total-row { border-top: 2px solid #000; margin-top: 10px; padding-top: 8px; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
             .footer { text-align: center; margin-top: 15px; font-size: 11px; color: #666; }
           </style>
@@ -190,7 +222,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // إضافـة حركة مشتريات
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalItemName = selectedPurchaseItem === 'other' ? customPurchaseItem.trim() : selectedPurchaseItem.trim();
@@ -228,7 +259,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     fetchProducts();
   };
 
-  // إضافة صنف جديد للمنيو (متوافق تماماً)
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!productName || !productPrice) {
@@ -241,6 +271,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       description: productDesc,
       price: parseFloat(productPrice),
       category: productCategory,
+      image_url: productImageUrl,
       is_available: true
     };
 
@@ -253,6 +284,36 @@ export default function CompleteEnterpriseAdminDashboard() {
       setProductName('');
       setProductDesc('');
       setProductPrice('');
+      setProductImageUrl('');
+      fetchProducts();
+    }
+  };
+
+  // فتح نافذة تعديل الصنف
+  const openEditModal = (product: any) => {
+    setEditingProduct(product);
+    setEditPrice(String(product.price));
+    setEditImageUrl(product.image_url || '');
+  };
+
+  // حفظ التعديلات
+  const handleSaveProductEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    const { error } = await supabase
+      .from('menu_items')
+      .update({
+        price: parseFloat(editPrice),
+        image_url: editImageUrl
+      })
+      .eq('id', editingProduct.id);
+
+    if (error) {
+      alert('حدث خطأ أثناء حفظ التحديث: ' + error.message);
+    } else {
+      alert('تم تحديث البيانات بنجاح ✅');
+      setEditingProduct(null);
       fetchProducts();
     }
   };
@@ -347,61 +408,68 @@ export default function CompleteEnterpriseAdminDashboard() {
               <div className="bg-white p-8 text-center rounded-lg border text-gray-500">لا توجد طلبات جارية حالياً.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pendingOrders.map(order => (
-                  <div key={order.id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-center border-b pb-2 mb-2">
-                        <span className="font-extrabold text-emerald-800">
-                          طلب #{String(order.id).split('-')[0].toUpperCase()}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                          order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                          order.status === 'preparing' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {order.status === 'pending' ? '⏳ قيد الانتظار' : order.status === 'preparing' ? '👨‍🍳 جاري التجهيز' : '🛵 في الطريق'}
-                        </span>
-                      </div>
-                      <p className="font-bold text-gray-900">{order.customer_name}</p>
-                      <p className="text-sm text-gray-600">📱 {order.phone}</p>
-                      <p className="text-sm text-gray-600">📍 {order.address}</p>
-                      {order.notes && <p className="text-xs text-amber-700 mt-1 bg-amber-50 p-1.5 rounded">📝 {order.notes}</p>}
+                {pendingOrders.map(order => {
+                  const itemsList = parseOrderItems(order.items);
+                  return (
+                    <div key={order.id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center border-b pb-2 mb-2">
+                          <span className="font-extrabold text-emerald-800">
+                            طلب #{String(order.id).split('-')[0].toUpperCase()}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                            order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                            order.status === 'preparing' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {order.status === 'pending' ? '⏳ قيد الانتظار' : order.status === 'preparing' ? '👨‍🍳 جاري التجهيز' : '🛵 في الطريق'}
+                          </span>
+                        </div>
+                        <p className="font-bold text-gray-900">{order.customer_name}</p>
+                        <p className="text-sm text-gray-600">📱 {order.phone}</p>
+                        <p className="text-sm text-gray-600">📍 {order.address}</p>
+                        {order.notes && <p className="text-xs text-amber-700 mt-1 bg-amber-50 p-1.5 rounded">📝 {order.notes}</p>}
 
-                      <div className="mt-3 bg-gray-50 p-2 rounded text-sm">
-                        <p className="font-bold border-b pb-1 mb-1">الأصناف:</p>
-                        {Array.isArray(order.items) && order.items.map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs py-0.5">
-                            <span>{item.name || item.title} × {item.qty || item.quantity || 1}</span>
-                            <span>{(item.price || 0) * (item.qty || item.quantity || 1)} ج.م</span>
-                          </div>
-                        ))}
+                        <div className="mt-3 bg-gray-50 p-2 rounded text-sm">
+                          <p className="font-bold border-b pb-1 mb-1">الأصناف:</p>
+                          {itemsList.length === 0 ? (
+                            <p className="text-xs text-gray-400">لا توجد تفاصيل أصناف</p>
+                          ) : (
+                            itemsList.map((item: any, idx: number) => (
+                              <div key={idx} className="flex justify-between text-xs py-0.5">
+                                <span>{item.name || item.title} × {item.qty || item.quantity || 1}</span>
+                                <span>{(item.price || 0) * (item.qty || item.quantity || 1)} ج.م</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 border-t pt-3">
+                        <div className="flex justify-between font-bold text-emerald-900 mb-3">
+                          <span>الإجمالي:</span>
+                          <span>{order.total || order.total_amount || 0} ج.م</span>
+                        </div>
+
+                        <div className="mb-2">
+                          <button
+                            onClick={() => handlePrintOrder(order)}
+                            className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
+                          >
+                            <span>🖨️</span> طباعة الفاتورة
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 text-white py-1.5 rounded font-bold hover:bg-blue-700">تجهيز 👨‍🍳</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="bg-purple-600 text-white py-1.5 rounded font-bold hover:bg-purple-700">توصيل 🛵</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'completed', order)} className="bg-green-600 text-white py-1.5 rounded font-bold hover:bg-green-700 col-span-2">تسليم وحفظ المبيعات ✅</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="bg-red-100 text-red-700 py-1.5 rounded font-bold hover:bg-red-200">إلغاء الفاتورة ❌</button>
+                          <button onClick={() => sendWhatsAppNotification(order.phone, order.id, order.status)} className="bg-emerald-100 text-emerald-800 py-1.5 rounded font-bold hover:bg-emerald-200 flex items-center justify-center gap-1">📱 واتساب</button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="mt-4 border-t pt-3">
-                      <div className="flex justify-between font-bold text-emerald-900 mb-3">
-                        <span>الإجمالي:</span>
-                        <span>{order.total || order.total_amount} ج.م</span>
-                      </div>
-
-                      <div className="mb-2">
-                        <button
-                          onClick={() => handlePrintOrder(order)}
-                          className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
-                        >
-                          <span>🖨️</span> طباعة الفاتورة
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 text-white py-1.5 rounded font-bold hover:bg-blue-700">تجهيز 👨‍🍳</button>
-                        <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="bg-purple-600 text-white py-1.5 rounded font-bold hover:bg-purple-700">توصيل 🛵</button>
-                        <button onClick={() => updateOrderStatus(order.id, 'completed', order)} className="bg-green-600 text-white py-1.5 rounded font-bold hover:bg-green-700 col-span-2">تسليم وحفظ المبيعات ✅</button>
-                        <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="bg-red-100 text-red-700 py-1.5 rounded font-bold hover:bg-red-200">إلغاء الفاتورة ❌</button>
-                        <button onClick={() => sendWhatsAppNotification(order.phone, order.id, order.status)} className="bg-emerald-100 text-emerald-800 py-1.5 rounded font-bold hover:bg-emerald-200 flex items-center justify-center gap-1">📱 واتساب</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -439,7 +507,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <td className="p-3 text-xs text-gray-500">{new Date(sale.created_at).toLocaleString('ar-EG')}</td>
                       <td className="p-3">{sale.customer_name}</td>
                       <td className="p-3">{sale.phone}</td>
-                      <td className="p-3 font-bold text-green-700">{sale.total || sale.total_amount} ج.م</td>
+                      <td className="p-3 font-bold text-green-700">{sale.total || sale.total_amount || 0} ج.م</td>
                       <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
                       <td className="p-3 flex gap-2 items-center">
                         <button onClick={() => handlePrintOrder(sale)} className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1">
@@ -517,7 +585,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                               <tr key={i}>
                                 <td className="p-2 font-bold">#{String(o.id).split('-')[0].toUpperCase()}</td>
                                 <td className="p-2">{new Date(o.created_at).toLocaleDateString('ar-EG')}</td>
-                                <td className="p-2 font-bold text-green-700">{o.total || o.total_amount} ج.م</td>
+                                <td className="p-2 font-bold text-green-700">{o.total || o.total_amount || 0} ج.م</td>
                                 <td className="p-2">
                                   <button onClick={() => handlePrintOrder(o)} className="text-emerald-700 font-bold underline">🖨️ طباعة</button>
                                 </td>
@@ -660,16 +728,21 @@ export default function CompleteEnterpriseAdminDashboard() {
               <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <input type="text" placeholder="اسم الوجبة/الصنف" value={productName} onChange={e => setProductName(e.target.value)} className="border p-2 rounded text-sm" required />
                 <input type="number" placeholder="سعر البيع (ج.م)" value={productPrice} onChange={e => setProductPrice(e.target.value)} className="border p-2 rounded text-sm" required />
-                <select value={productCategory} onChange={e => setProductCategory(e.target.value)} className="border p-2 rounded text-sm font-bold bg-white">
-                  <option value="الوجبات">الوجبات</option>
-                  <option value="المشاوي عالفحم">المشاوي عالفحم</option>
-                  <option value="المحاشي">المحاشي</option>
-                  <option value="الصواني والطواجن">الصواني والطواجن</option>
-                  <option value="الطيور">الطيور</option>
-                  <option value="أصناف إضافية">أصناف إضافية</option>
-                </select>
-                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-3" />
-                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ وإضافة للمنيو 🍔</button>
+                <select
+  value={productCategory}
+  onChange={(e) => setProductCategory(e.target.value)}
+  className="p-2 border rounded-md"
+>
+  <option value="الوجبات">الوجبات</option>
+  <option value="المشويات">المشويات</option>
+  <option value="المحاشي">المحاشي</option>
+  <option value="الطواجن">الطواجن</option>
+  <option value="الطيور">الطيور</option>
+  <option value="أصناف إضافية">أصناف إضافية</option>
+</select>
+                <input type="text" placeholder="رابط صورة الصنف (اختياري)" value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} className="border p-2 rounded text-sm" />
+                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-4" />
+                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm md:col-span-2 lg:col-span-4">حفظ وإضافة للمنيو 🍔</button>
               </form>
             </div>
 
@@ -682,23 +755,69 @@ export default function CompleteEnterpriseAdminDashboard() {
                   {products.map(product => (
                     <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
                       <div>
+                        {product.image_url && (
+                          <img src={product.image_url} alt={product.name} className="w-full h-36 object-cover rounded mb-2" />
+                        )}
                         <h3 className="font-bold text-md">{product.name}</h3>
                         <p className="text-xs text-emerald-800 font-bold">{product.category}</p>
                         {product.description && <p className="text-xs text-gray-600 mt-1">{product.description}</p>}
                         <p className="text-sm font-bold text-green-700 mt-2">السعر: {product.price} ج.م</p>
                       </div>
 
-                      <button
-                        onClick={() => toggleProductAvailability(product.id, product.is_available)}
-                        className={`mt-3 py-1 rounded text-xs font-bold text-white transition ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
-                      >
-                        {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
-                      </button>
+                      <div className="flex flex-col gap-2 mt-3">
+                        <button
+                          onClick={() => openEditModal(product)}
+                          className="w-full bg-amber-600 hover:bg-amber-700 text-white py-1 rounded text-xs font-bold transition"
+                        >
+                          ✏️ تعديل السعر / الصورة
+                        </button>
+                        <button
+                          onClick={() => toggleProductAvailability(product.id, product.is_available)}
+                          className={`w-full py-1 rounded text-xs font-bold text-white transition ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                        >
+                          {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+
+            {/* نافذة تعديل السعر والصورة */}
+            {editingProduct && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl relative">
+                  <button onClick={() => setEditingProduct(null)} className="absolute top-4 left-4 text-gray-500 font-bold text-lg">✖</button>
+                  <h3 className="text-lg font-bold text-emerald-900 mb-4">✏️ تعديل صنف: {editingProduct.name}</h3>
+                  <form onSubmit={handleSaveProductEdit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-1">السعر الجديد (ج.م):</label>
+                      <input
+                        type="number"
+                        value={editPrice}
+                        onChange={e => setEditPrice(e.target.value)}
+                        className="border p-2 rounded text-sm w-full"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-1">رابط صورة الصنف (URL):</label>
+                      <input
+                        type="text"
+                        placeholder="https://..."
+                        value={editImageUrl}
+                        onChange={e => setEditImageUrl(e.target.value)}
+                        className="border p-2 rounded text-sm w-full"
+                      />
+                    </div>
+                    <button type="submit" className="w-full bg-emerald-800 text-white font-bold p-2 rounded hover:bg-emerald-900">
+                      حفظ التغييرات 💾
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
