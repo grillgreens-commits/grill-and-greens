@@ -89,18 +89,26 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
+  // دالة مساعدة لاستخراج عناصر الطلب بأمان
+  const parseOrderItems = (itemsRaw: any): any[] => {
+    if (Array.isArray(itemsRaw)) return itemsRaw;
+    if (typeof itemsRaw === 'string') {
+      try {
+        const parsed = JSON.parse(itemsRaw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
   // دالة الطباعة الشاملة
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    let itemsArr: any[] = [];
-    if (Array.isArray(order.items)) {
-      itemsArr = order.items;
-    } else if (typeof order.items === 'string') {
-      try { itemsArr = JSON.parse(order.items); } catch (e) { itemsArr = []; }
-    }
-
+    const itemsArr = parseOrderItems(order.items);
     const shortId = String(order.id).split('-')[0].toUpperCase();
 
     printWindow.document.write(`
@@ -347,61 +355,68 @@ export default function CompleteEnterpriseAdminDashboard() {
               <div className="bg-white p-8 text-center rounded-lg border text-gray-500">لا توجد طلبات جارية حالياً.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pendingOrders.map(order => (
-                  <div key={order.id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-center border-b pb-2 mb-2">
-                        <span className="font-extrabold text-emerald-800">
-                          طلب #{String(order.id).split('-')[0].toUpperCase()}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                          order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                          order.status === 'preparing' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {order.status === 'pending' ? '⏳ قيد الانتظار' : order.status === 'preparing' ? '👨‍🍳 جاري التجهيز' : '🛵 في الطريق'}
-                        </span>
-                      </div>
-                      <p className="font-bold text-gray-900">{order.customer_name}</p>
-                      <p className="text-sm text-gray-600">📱 {order.phone}</p>
-                      <p className="text-sm text-gray-600">📍 {order.address}</p>
-                      {order.notes && <p className="text-xs text-amber-700 mt-1 bg-amber-50 p-1.5 rounded">📝 {order.notes}</p>}
+                {pendingOrders.map(order => {
+                  const itemsList = parseOrderItems(order.items);
+                  return (
+                    <div key={order.id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center border-b pb-2 mb-2">
+                          <span className="font-extrabold text-emerald-800">
+                            طلب #{String(order.id).split('-')[0].toUpperCase()}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                            order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                            order.status === 'preparing' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {order.status === 'pending' ? '⏳ قيد الانتظار' : order.status === 'preparing' ? '👨‍‍🍳 جاري التجهيز' : '🛵 في الطريق'}
+                          </span>
+                        </div>
+                        <p className="font-bold text-gray-900">{order.customer_name}</p>
+                        <p className="text-sm text-gray-600">📱 {order.phone}</p>
+                        <p className="text-sm text-gray-600">📍 {order.address}</p>
+                        {order.notes && <p className="text-xs text-amber-700 mt-1 bg-amber-50 p-1.5 rounded">📝 {order.notes}</p>}
 
-                      <div className="mt-3 bg-gray-50 p-2 rounded text-sm">
-                        <p className="font-bold border-b pb-1 mb-1">الأصناف:</p>
-                        {Array.isArray(order.items) && order.items.map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs py-0.5">
-                            <span>{item.name || item.title} × {item.qty || item.quantity || 1}</span>
-                            <span>{(item.price || 0) * (item.qty || item.quantity || 1)} ج.م</span>
-                          </div>
-                        ))}
+                        <div className="mt-3 bg-gray-50 p-2 rounded text-sm">
+                          <p className="font-bold border-b pb-1 mb-1">الأصناف:</p>
+                          {itemsList.length === 0 ? (
+                            <p className="text-xs text-gray-400">لا توجد تفاصيل أصناف</p>
+                          ) : (
+                            itemsList.map((item: any, idx: number) => (
+                              <div key={idx} className="flex justify-between text-xs py-0.5">
+                                <span>{item.name || item.title} × {item.qty || item.quantity || 1}</span>
+                                <span>{(item.price || 0) * (item.qty || item.quantity || 1)} ج.م</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 border-t pt-3">
+                        <div className="flex justify-between font-bold text-emerald-900 mb-3">
+                          <span>الإجمالي:</span>
+                          <span>{order.total || order.total_amount || 0} ج.م</span>
+                        </div>
+
+                        <div className="mb-2">
+                          <button
+                            onClick={() => handlePrintOrder(order)}
+                            className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
+                          >
+                            <span>🖨️</span> طباعة الفاتورة
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 text-white py-1.5 rounded font-bold hover:bg-blue-700">تجهيز 👨‍🍳</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="bg-purple-600 text-white py-1.5 rounded font-bold hover:bg-purple-700">توصيل 🛵</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'completed', order)} className="bg-green-600 text-white py-1.5 rounded font-bold hover:bg-green-700 col-span-2">تسليم وحفظ المبيعات ✅</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="bg-red-100 text-red-700 py-1.5 rounded font-bold hover:bg-red-200">إلغاء الفاتورة ❌</button>
+                          <button onClick={() => sendWhatsAppNotification(order.phone, order.id, order.status)} className="bg-emerald-100 text-emerald-800 py-1.5 rounded font-bold hover:bg-emerald-200 flex items-center justify-center gap-1">📱 واتساب</button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="mt-4 border-t pt-3">
-                      <div className="flex justify-between font-bold text-emerald-900 mb-3">
-                        <span>الإجمالي:</span>
-                        <span>{order.total || order.total_amount} ج.م</span>
-                      </div>
-
-                      <div className="mb-2">
-                        <button
-                          onClick={() => handlePrintOrder(order)}
-                          className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
-                        >
-                          <span>🖨️</span> طباعة الفاتورة
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 text-white py-1.5 rounded font-bold hover:bg-blue-700">تجهيز 👨‍🍳</button>
-                        <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="bg-purple-600 text-white py-1.5 rounded font-bold hover:bg-purple-700">توصيل 🛵</button>
-                        <button onClick={() => updateOrderStatus(order.id, 'completed', order)} className="bg-green-600 text-white py-1.5 rounded font-bold hover:bg-green-700 col-span-2">تسليم وحفظ المبيعات ✅</button>
-                        <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="bg-red-100 text-red-700 py-1.5 rounded font-bold hover:bg-red-200">إلغاء الفاتورة ❌</button>
-                        <button onClick={() => sendWhatsAppNotification(order.phone, order.id, order.status)} className="bg-emerald-100 text-emerald-800 py-1.5 rounded font-bold hover:bg-emerald-200 flex items-center justify-center gap-1">📱 واتساب</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -439,7 +454,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <td className="p-3 text-xs text-gray-500">{new Date(sale.created_at).toLocaleString('ar-EG')}</td>
                       <td className="p-3">{sale.customer_name}</td>
                       <td className="p-3">{sale.phone}</td>
-                      <td className="p-3 font-bold text-green-700">{sale.total || sale.total_amount} ج.م</td>
+                      <td className="p-3 font-bold text-green-700">{sale.total || sale.total_amount || 0} ج.م</td>
                       <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
                       <td className="p-3 flex gap-2 items-center">
                         <button onClick={() => handlePrintOrder(sale)} className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1">
@@ -517,7 +532,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                               <tr key={i}>
                                 <td className="p-2 font-bold">#{String(o.id).split('-')[0].toUpperCase()}</td>
                                 <td className="p-2">{new Date(o.created_at).toLocaleDateString('ar-EG')}</td>
-                                <td className="p-2 font-bold text-green-700">{o.total || o.total_amount} ج.م</td>
+                                <td className="p-2 font-bold text-green-700">{o.total || o.total_amount || 0} ج.م</td>
                                 <td className="p-2">
                                   <button onClick={() => handlePrintOrder(o)} className="text-emerald-700 font-bold underline">🖨️ طباعة</button>
                                 </td>
