@@ -40,8 +40,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [salesDateTo, setSalesDateTo] = useState('');
 
   // New Purchase Form States
-  const [selectedPurchaseItem, setSelectedPurchaseItem] = useState('');
-  const [customPurchaseItem, setCustomPurchaseItem] = useState('');
+  const [purchaseItemName, setPurchaseItemName] = useState('');
   const [purchaseQty, setPurchaseQty] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [supplier, setSupplier] = useState('');
@@ -272,10 +271,10 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalItemName = selectedPurchaseItem === 'other' ? customPurchaseItem.trim() : selectedPurchaseItem.trim();
+    const finalItemName = purchaseItemName.trim();
 
     if (!finalItemName || !purchaseQty || !purchasePrice) {
-      alert('يرجى ملء جميع الحقول المطلوبة واختيار اسم الصنف');
+      alert('يرجى كتابة اسم الصنف/الخامة وملء جميع الحقول المطلوبة');
       return;
     }
 
@@ -297,14 +296,12 @@ export default function CompleteEnterpriseAdminDashboard() {
       return;
     }
 
-    setSelectedPurchaseItem('');
-    setCustomPurchaseItem('');
+    setPurchaseItemName('');
     setPurchaseQty('');
     setPurchasePrice('');
     setSupplier('');
     alert('تم حفظ حركة المشتريات بنجاح ✅');
     fetchPurchases();
-    fetchProducts();
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -429,6 +426,9 @@ export default function CompleteEnterpriseAdminDashboard() {
   });
 
   const activePurchases = purchaseLogs.filter(p => p.status !== 'cancelled');
+
+  // استخراج أسماء الخامات الفريدة للاقتراح التلقائي
+  const rawMaterialSuggestions = Array.from(new Set(activePurchases.map(p => p.item_name).filter(Boolean)));
 
   const groupedPurchases = activePurchases.reduce((acc: any, item: any) => {
     const name = item.item_name || 'صنف غير مسمى';
@@ -560,7 +560,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                             onClick={() => handlePrintOrder(order)}
                             className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
                           >
-                            <span>🖨️️</span> طباعة الفاتورة
+                            <span>🖨</span> طباعة الفاتورة
                           </button>
                         </div>
 
@@ -710,40 +710,28 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 4. قسم المشتريات */}
+        {/* 4. قسم المشتريات (تعديل: كتابة حرة + اقتراح تلقائي) */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
               <h2 className="text-lg font-bold mb-4 text-emerald-900">تسجيل فاتورة / حركة مشتريات جديدة</h2>
               <form onSubmit={handleAddPurchase} className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <div>
-                  <select
-                    value={selectedPurchaseItem}
-                    onChange={e => setSelectedPurchaseItem(e.target.value)}
+                  <input
+                    list="rawMaterialsList"
+                    type="text"
+                    placeholder="اكتب اسم الخامة (مثل: لحمة بلدي، زيت...)"
+                    value={purchaseItemName}
+                    onChange={e => setPurchaseItemName(e.target.value)}
                     className="border p-2 rounded text-sm w-full bg-white font-bold"
                     required
-                  >
-                    <option value="">-- اختر الصنف --</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.name}>{p.name}</option>
-                    ))}
-                    <option value="لحمة">لحمة</option>
-                    <option value="فراخ">فراخ</option>
-                    <option value="زيت">زيت</option>
-                    <option value="other">➕ صنف جديد غير مسجل...</option>
-                  </select>
-                </div>
-
-                {selectedPurchaseItem === 'other' && (
-                  <input
-                    type="text"
-                    placeholder="ادخل اسم الصنف الجديد"
-                    value={customPurchaseItem}
-                    onChange={e => setCustomPurchaseItem(e.target.value)}
-                    className="border p-2 rounded text-sm bg-amber-50"
-                    required
                   />
-                )}
+                  <datalist id="rawMaterialsList">
+                    {rawMaterialSuggestions.map((itemName, idx) => (
+                      <option key={idx} value={itemName} />
+                    ))}
+                  </datalist>
+                </div>
 
                 <input type="number" placeholder="الكمية" value={purchaseQty} onChange={e => setPurchaseQty(e.target.value)} className="border p-2 rounded text-sm" required />
                 <input type="number" placeholder="سعر الوحدة (ج.م)" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} className="border p-2 rounded text-sm" required />
