@@ -163,44 +163,135 @@ export default function CompleteEnterpriseAdminDashboard() {
     return [];
   };
 
+  // 🖨️ دالة طباعة الفاتورة المعدلة بالكامل لضمان الوضوح وإضافة خدمة التوصيل
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
     const itemsArr = parseOrderItems(order.items);
     const shortId = String(order.id).split('-')[0].toUpperCase();
+    
+    // حساب خدمة التوصيل والإجمالي
+    const deliveryFee = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
+    const totalAmount = Number(order.total || order.total_amount || 0);
 
     printWindow.document.write(`
       <html dir="rtl" lang="ar">
         <head>
           <title>فاتورة طلب #${shortId}</title>
           <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; text-align: right; padding: 15px; max-width: 350px; margin: 0 auto; }
-            .bill-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
-            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-            .title { font-size: 18px; font-weight: bold; margin: 0; }
-            .info { font-size: 13px; color: #333; margin: 4px 0; }
-            .item-row { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; }
-            .total-row { border-top: 2px solid #000; margin-top: 10px; padding-top: 8px; font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
-            .footer { text-align: center; margin-top: 15px; font-size: 11px; color: #666; }
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&display=swap');
+            
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact;
+              color-adjust: exact;
+            }
+            body { 
+              font-family: 'Cairo', 'Tahoma', sans-serif; 
+              direction: rtl; 
+              text-align: right; 
+              padding: 8px; 
+              max-width: 320px; 
+              margin: 0 auto; 
+              color: #000000 !important;
+              background-color: #ffffff;
+            }
+            .bill-card { 
+              border: 2px solid #000; 
+              padding: 10px; 
+              border-radius: 6px; 
+            }
+            .header { 
+              text-align: center; 
+              border-bottom: 2px dashed #000000; 
+              padding-bottom: 8px; 
+              margin-bottom: 10px; 
+            }
+            .title { 
+              font-size: 20px; 
+              font-weight: 900; 
+              margin: 0; 
+              color: #000000;
+            }
+            .info-header { 
+              font-size: 13px; 
+              font-weight: 800; 
+              color: #000000; 
+              margin: 3px 0; 
+            }
+            .customer-box {
+              border: 1.5px solid #000000;
+              padding: 8px;
+              border-radius: 6px;
+              margin-bottom: 10px;
+              background-color: #ffffff;
+            }
+            .info-customer { 
+              font-size: 14px; 
+              font-weight: 800; 
+              color: #000000; 
+              margin: 4px 0; 
+              line-height: 1.4;
+            }
+            .info-customer strong {
+              font-weight: 900;
+            }
+            .item-row { 
+              display: flex; 
+              justify-content: space-between; 
+              font-size: 13px; 
+              font-weight: 800;
+              color: #000000;
+              margin: 6px 0; 
+              border-bottom: 1px dotted #ccc;
+              padding-bottom: 3px;
+            }
+            .delivery-row {
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              font-weight: 800;
+              color: #000000;
+              margin: 6px 0;
+              padding-top: 4px;
+            }
+            .total-row { 
+              border-top: 2px solid #000000; 
+              margin-top: 8px; 
+              padding-top: 8px; 
+              font-size: 17px; 
+              font-weight: 900; 
+              color: #000000;
+              display: flex; 
+              justify-content: space-between; 
+            }
+            .footer { 
+              text-align: center; 
+              margin-top: 12px; 
+              font-size: 12px; 
+              font-weight: 800;
+              color: #000000; 
+            }
           </style>
         </head>
         <body>
           <div class="bill-card">
             <div class="header">
               <p class="title">🔥 Grill & Greens</p>
-              <p class="info">طلب #${shortId}</p>
-              <p class="info">التاريخ: ${new Date(order.created_at || Date.now()).toLocaleString('ar-EG')}</p>
+              <p class="info-header">طلب #${shortId}</p>
+              <p class="info-header">التاريخ: ${new Date(order.created_at || Date.now()).toLocaleString('ar-EG')}</p>
             </div>
-            <div>
-              <p class="info"><strong>العميل:</strong> ${order.customer_name || 'عميل'}</p>
-              <p class="info"><strong>الهاتف:</strong> ${order.phone || '-'}</p>
-              <p class="info"><strong>العنوان:</strong> ${order.address || 'استلام من الفرع'}</p>
-              ${order.notes ? `<p class="info" style="color: #b45309;"><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
+            
+            <div class="customer-box">
+              <p class="info-customer"><strong>العميل:</strong> ${order.customer_name || 'عميل'}</p>
+              <p class="info-customer"><strong>الهاتف:</strong> ${order.phone || '-'}</p>
+              <p class="info-customer"><strong>العنوان:</strong> ${order.address || 'استلام من الفرع'}</p>
+              ${order.notes ? `<p class="info-customer" style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed #000;"><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
             </div>
-            <hr style="border: 0.5px solid #eee; margin: 10px 0;" />
+
             <div>
-              <strong style="font-size: 13px;">الأصناف:</strong>
+              <strong style="font-size: 14px; font-weight: 900; color: #000000; display: block; margin-bottom: 6px;">الأصناف:</strong>
               ${itemsArr.map((it: any) => `
                 <div class="item-row">
                   <span>${it.name || it.title} × ${it.qty || it.quantity || 1}</span>
@@ -208,10 +299,19 @@ export default function CompleteEnterpriseAdminDashboard() {
                 </div>
               `).join('')}
             </div>
+            
+            ${deliveryFee > 0 ? `
+              <div class="delivery-row">
+                <span>🛵 خدمة التوصيل:</span>
+                <span>${deliveryFee} ج.م</span>
+              </div>
+            ` : ''}
+
             <div class="total-row">
               <span>الإجمالي:</span>
-              <span>${order.total || order.total_amount || 0} ج.م</span>
+              <span>${totalAmount} ج.م</span>
             </div>
+            
             <div class="footer">
               <p>شكراً لطلبكم من Grill & Greens! 😋</p>
             </div>
@@ -515,6 +615,8 @@ export default function CompleteEnterpriseAdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pendingOrders.map(order => {
                   const itemsList = parseOrderItems(order.items);
+                  const deliveryFee = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
+                  
                   return (
                     <div key={order.id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-between">
                       <div>
@@ -546,6 +648,12 @@ export default function CompleteEnterpriseAdminDashboard() {
                               </div>
                             ))
                           )}
+                          {deliveryFee > 0 && (
+                            <div className="flex justify-between text-xs py-0.5 border-t border-dashed border-gray-300 mt-1 pt-1 font-bold text-emerald-800">
+                              <span>🛵 خدمة التوصيل:</span>
+                              <span>{deliveryFee} ج.م</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -565,7 +673,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 text-xs">
-                          <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 text-white py-1.5 rounded font-bold hover:bg-blue-700">تجهيز 👨‍🍳</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 text-white py-1.5 rounded font-bold hover:bg-blue-700">تجهيز 👨‍‍🍳</button>
                           <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="bg-purple-600 text-white py-1.5 rounded font-bold hover:bg-purple-700">توصيل 🛵</button>
                           <button onClick={() => updateOrderStatus(order.id, 'completed', order)} className="bg-green-600 text-white py-1.5 rounded font-bold hover:bg-green-700 col-span-2">تسليم وحفظ المبيعات ✅</button>
                           <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="bg-red-100 text-red-700 py-1.5 rounded font-bold hover:bg-red-200">إلغاء الفاتورة ❌</button>
@@ -710,7 +818,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 4. قسم المشتريات (تعديل: كتابة حرة + اقتراح تلقائي) */}
+        {/* 4. قسم المشتريات */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-xl shadow-sm border">
