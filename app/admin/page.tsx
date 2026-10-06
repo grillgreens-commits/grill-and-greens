@@ -163,7 +163,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     return [];
   };
 
-  // 🖨️ دالة طباعة الفاتورة المعدلة بالكامل لضمان الوضوح وإضافة خدمة التوصيل
+  // 🖨️ دالة طباعة الفاتورة للعميل
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -171,7 +171,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     const itemsArr = parseOrderItems(order.items);
     const shortId = String(order.id).split('-')[0].toUpperCase();
     
-    // حساب خدمة التوصيل والإجمالي
     const deliveryFee = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
     const totalAmount = Number(order.total || order.total_amount || 0);
 
@@ -181,98 +180,18 @@ export default function CompleteEnterpriseAdminDashboard() {
           <title>فاتورة طلب #${shortId}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&display=swap');
-            
-            * {
-              box-sizing: border-box;
-              -webkit-print-color-adjust: exact;
-              color-adjust: exact;
-            }
-            body { 
-              font-family: 'Cairo', 'Tahoma', sans-serif; 
-              direction: rtl; 
-              text-align: right; 
-              padding: 8px; 
-              max-width: 320px; 
-              margin: 0 auto; 
-              color: #000000 !important;
-              background-color: #ffffff;
-            }
-            .bill-card { 
-              border: 2px solid #000; 
-              padding: 10px; 
-              border-radius: 6px; 
-            }
-            .header { 
-              text-align: center; 
-              border-bottom: 2px dashed #000000; 
-              padding-bottom: 8px; 
-              margin-bottom: 10px; 
-            }
-            .title { 
-              font-size: 20px; 
-              font-weight: 900; 
-              margin: 0; 
-              color: #000000;
-            }
-            .info-header { 
-              font-size: 13px; 
-              font-weight: 800; 
-              color: #000000; 
-              margin: 3px 0; 
-            }
-            .customer-box {
-              border: 1.5px solid #000000;
-              padding: 8px;
-              border-radius: 6px;
-              margin-bottom: 10px;
-              background-color: #ffffff;
-            }
-            .info-customer { 
-              font-size: 14px; 
-              font-weight: 800; 
-              color: #000000; 
-              margin: 4px 0; 
-              line-height: 1.4;
-            }
-            .info-customer strong {
-              font-weight: 900;
-            }
-            .item-row { 
-              display: flex; 
-              justify-content: space-between; 
-              font-size: 13px; 
-              font-weight: 800;
-              color: #000000;
-              margin: 6px 0; 
-              border-bottom: 1px dotted #ccc;
-              padding-bottom: 3px;
-            }
-            .delivery-row {
-              display: flex;
-              justify-content: space-between;
-              font-size: 13px;
-              font-weight: 800;
-              color: #000000;
-              margin: 6px 0;
-              padding-top: 4px;
-            }
-            .total-row { 
-              border-top: 2px solid #000000; 
-              margin-top: 8px; 
-              padding-top: 8px; 
-              font-size: 17px; 
-              font-weight: 900; 
-              color: #000000;
-              display: flex; 
-              justify-content: space-between; 
-            }
-            .footer { 
-              text-align: center; 
-              margin-top: 12px; 
-              font-size: 12px; 
-              font-weight: 800;
-              color: #000000; 
-            }
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact; color-adjust: exact; }
+            body { font-family: 'Cairo', 'Tahoma', sans-serif; direction: rtl; text-align: right; padding: 8px; max-width: 320px; margin: 0 auto; color: #000000 !important; background-color: #ffffff; }
+            .bill-card { border: 2px solid #000; padding: 10px; border-radius: 6px; }
+            .header { text-align: center; border-bottom: 2px dashed #000000; padding-bottom: 8px; margin-bottom: 10px; }
+            .title { font-size: 20px; font-weight: 900; margin: 0; color: #000000; }
+            .info-header { font-size: 13px; font-weight: 800; color: #000000; margin: 3px 0; }
+            .customer-box { border: 1.5px solid #000000; padding: 8px; border-radius: 6px; margin-bottom: 10px; background-color: #ffffff; }
+            .info-customer { font-size: 14px; font-weight: 800; color: #000000; margin: 4px 0; line-height: 1.4; }
+            .item-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: #000000; margin: 6px 0; border-bottom: 1px dotted #ccc; padding-bottom: 3px; }
+            .delivery-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: #000000; margin: 6px 0; padding-top: 4px; }
+            .total-row { border-top: 2px solid #000000; margin-top: 8px; padding-top: 8px; font-size: 17px; font-weight: 900; color: #000000; display: flex; justify-content: space-between; }
+            .footer { text-align: center; margin-top: 12px; font-size: 12px; font-weight: 800; color: #000000; }
           </style>
         </head>
         <body>
@@ -340,7 +259,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   };
 
   const cancelPurchaseTransaction = async (id: number) => {
-    if (!confirm('هل أنت تأكد من إلغاء هذه الحركة؟ لتختفي من التقارير مع حفظ السجل.')) return;
+    if (!confirm('هل أنت تأكد من إلغاء هذه الحركة؟')) return;
     const { error } = await supabase.from('purchase_transactions').update({ status: 'cancelled' }).eq('id', id);
     if (!error) fetchPurchases();
   };
@@ -470,9 +389,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // ------------------------------------------------------------------
-  // 🔒 شاشة القفل وتسجيل الدخول
-  // ------------------------------------------------------------------
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 dir-rtl" dir="rtl">
@@ -512,9 +428,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     );
   }
 
-  // ------------------------------------------------------------------
-  // 🟢 لوحة التحكم الرئيسية (بعد الدخول الناجح)
-  // ------------------------------------------------------------------
   const pendingOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
   
   const activeSales = orders.filter(o => o.status === 'completed').filter(o => {
@@ -526,20 +439,12 @@ export default function CompleteEnterpriseAdminDashboard() {
   });
 
   const activePurchases = purchaseLogs.filter(p => p.status !== 'cancelled');
-
-  // استخراج أسماء الخامات الفريدة للاقتراح التلقائي
   const rawMaterialSuggestions = Array.from(new Set(activePurchases.map(p => p.item_name).filter(Boolean)));
 
   const groupedPurchases = activePurchases.reduce((acc: any, item: any) => {
     const name = item.item_name || 'صنف غير مسمى';
     if (!acc[name]) {
-      acc[name] = {
-        item_name: name,
-        purchaseCount: 0,
-        totalQuantity: 0,
-        totalCost: 0,
-        logs: []
-      };
+      acc[name] = { item_name: name, purchaseCount: 0, totalQuantity: 0, totalCost: 0, logs: [] };
     }
     acc[name].purchaseCount += 1;
     acc[name].totalQuantity += Number(item.quantity || 0);
@@ -563,19 +468,10 @@ export default function CompleteEnterpriseAdminDashboard() {
           🔥 Grill & Greens | لوحة التحكم الإدارية
         </h1>
         <div className="flex items-center gap-3">
-          <div className="text-sm bg-emerald-800 px-3 py-1 rounded-full hidden sm:block">
-            إجمالي المبيعات النشطة: {activeSales.reduce((acc, curr) => acc + (Number(curr.total || curr.total_amount) || 0), 0)} ج.م
-          </div>
-          <a
-            href="/"
-            className="text-xs bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded-lg font-bold transition"
-          >
+          <a href="/" className="text-xs bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded-lg font-bold transition">
             🏪 صفحة العميل
           </a>
-          <button
-            onClick={handleLogout}
-            className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold transition"
-          >
+          <button onClick={handleLogout} className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold transition">
             خروج 🚪
           </button>
         </div>
@@ -659,7 +555,7 @@ export default function CompleteEnterpriseAdminDashboard() {
 
                       <div className="mt-4 border-t pt-3">
                         <div className="flex justify-between font-bold text-emerald-900 mb-3">
-                          <span>الإجمالي:</span>
+                          <span>الإجمالي المحصل:</span>
                           <span>{order.total || order.total_amount || 0} ج.م</span>
                         </div>
 
@@ -788,7 +684,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <>
                         <div className="grid grid-cols-2 gap-3 mb-4 bg-emerald-50 p-3 rounded-lg text-center">
                           <div><p className="text-xs text-gray-600">إجمالي الطلبات المكتملة</p><p className="font-bold text-emerald-900">{custOrders.length} طلب</p></div>
-                          <div><p className="text-xs text-gray-600">إجمالي الإنفاق</p><p className="font-bold text-green-700">{totalSpent} ج.م</p></div>
+                          <div><p className="text-xs text-gray-600">إجمالي مدفوعات العميل</p><p className="font-bold text-green-700">{totalSpent} ج.م</p></div>
                         </div>
 
                         <h4 className="font-bold mb-2">سجل الفواتير والطلبات السابقة:</h4>
@@ -828,7 +724,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                   <input
                     list="rawMaterialsList"
                     type="text"
-                    placeholder="اكتب اسم الخامة (مثل: لحمة بلدي، زيت...)"
+                    placeholder="اكتب اسم الخامة (مثل: لحمة بلدي...)"
                     value={purchaseItemName}
                     onChange={e => setPurchaseItemName(e.target.value)}
                     className="border p-2 rounded text-sm w-full bg-white font-bold"
@@ -945,7 +841,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                   <option value="أصناف إضافية">أصناف إضافية</option>
                 </select>
                 <input type="text" placeholder="رابط صورة الصنف (اختياري)" value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} className="border p-2 rounded text-sm" />
-                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة + طحينة + عيش)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-4" />
+                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-4" />
                 <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm md:col-span-2 lg:col-span-4">حفظ وإضافة للمنيو 🍔</button>
               </form>
             </div>
@@ -994,7 +890,6 @@ export default function CompleteEnterpriseAdminDashboard() {
               )}
             </div>
 
-            {/* نافذة تعديل السعر والصورة */}
             {editingProduct && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl relative">
@@ -1031,9 +926,8 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 6. قسم التقارير الشاملة والتحليلات */}
+        {/* 6. قسم التقارير الشاملة والتحليلات (معدل بالكامل لخصم التوصيل من الإيراد الصافي) */}
         {activeTab === 'reports' && (() => {
-          // 1. تصفية البيانات بناءً على التواريخ المختارة
           const filteredSales = activeSales.filter(o => {
             if (!salesDateFrom && !salesDateTo) return true;
             const orderDate = new Date(o.created_at).getTime();
@@ -1050,7 +944,7 @@ export default function CompleteEnterpriseAdminDashboard() {
             return pDate >= from && pDate <= to;
           });
 
-          // 2. حساب إحصائيات الأصناف الأكثر طلباً
+          // الأصناف الأكثر طلباً
           const itemStats: { [key: string]: { name: string; qty: number; total: number } } = {};
           filteredSales.forEach(order => {
             const items = parseOrderItems(order.items);
@@ -1070,7 +964,7 @@ export default function CompleteEnterpriseAdminDashboard() {
             .sort((a, b) => b.qty - a.qty)
             .slice(0, 5);
 
-          // 3. حساب إحصائيات الأكثر شراءً من العملاء
+          // الأكثر شراءً من العملاء
           const customerStats: { [key: string]: { name: string; phone: string; count: number; totalSpent: number } } = {};
           filteredSales.forEach(order => {
             const phone = order.phone || 'بدون رقم';
@@ -1088,12 +982,18 @@ export default function CompleteEnterpriseAdminDashboard() {
             .sort((a, b) => b.totalSpent - a.totalSpent)
             .slice(0, 5);
 
-          // 4. الحسابات المالية الإجمالية للفترة
-          const totalRevenue = filteredSales.reduce((sum, item) => sum + (Number(item.total || item.total_amount) || 0), 0);
+          // 🧮 الحسابات المالية المحاسبية الصافية (خصم التوصيل من الإيراد الصافي):
+          const totalGrossRevenue = filteredSales.reduce((sum, item) => sum + (Number(item.total || item.total_amount) || 0), 0);
+          const totalDeliveryCollected = filteredSales.reduce((sum, item) => sum + (Number(item.delivery_fee || item.delivery_price || item.delivery) || 0), 0);
+          
+          // صافي إيرادات الطعام والوجبات فقط
+          const netFoodRevenue = totalGrossRevenue - totalDeliveryCollected;
+          
           const totalExpenses = filteredPurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-          const netProfit = totalRevenue - totalExpenses;
+          
+          // صافي الأرباح المحاسبية الصافية
+          const netProfit = netFoodRevenue - totalExpenses;
 
-          // 5. دالة طباعة التقرير المنسق
           const handlePrintDetailedReport = () => {
             const printWindow = window.open('', '_blank');
             if (!printWindow) return;
@@ -1113,12 +1013,13 @@ export default function CompleteEnterpriseAdminDashboard() {
                     .subtitle { font-size: 13px; color: #4b5563; margin-top: 4px; }
                     .cards-grid { display: flex; gap: 10px; margin-bottom: 20px; }
                     .card { flex: 1; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; text-align: center; }
-                    .card-title { font-size: 12px; color: #6b7280; font-weight: bold; }
-                    .card-value { font-size: 18px; font-weight: bold; margin-top: 5px; }
+                    .card-title { font-size: 11px; color: #6b7280; font-weight: bold; }
+                    .card-value { font-size: 17px; font-weight: bold; margin-top: 5px; }
                     .green { color: #047857; background-color: #ecfdf5; }
                     .red { color: #b91c1c; background-color: #fef2f2; }
                     .blue { color: #1d4ed8; background-color: #eff6ff; }
-                    table { w-full; width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+                    .amber { color: #b45309; background-color: #fffbeb; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
                     th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: right; }
                     th { background-color: #f3f4f6; color: #374151; font-weight: bold; }
                     .section-title { font-size: 15px; font-weight: bold; color: #065f46; margin-top: 20px; margin-bottom: 8px; border-bottom: 1px solid #065f46; padding-bottom: 4px; }
@@ -1134,15 +1035,19 @@ export default function CompleteEnterpriseAdminDashboard() {
 
                   <div class="cards-grid">
                     <div class="card green">
-                      <div class="card-title">إجمالي المبيعات الإرادية</div>
-                      <div class="card-value">${totalRevenue} ج.م</div>
+                      <div class="card-title">صافي مبيعات الوجبات</div>
+                      <div class="card-value">${netFoodRevenue} ج.م</div>
+                    </div>
+                    <div class="card amber">
+                      <div class="card-title">إجمالي تحصيل التوصيل</div>
+                      <div class="card-value">${totalDeliveryCollected} ج.م</div>
                     </div>
                     <div class="card red">
-                      <div class="card-title">إجمالي المصروفات والمشتريات</div>
+                      <div class="card-title">المصروفات والمشتريات</div>
                       <div class="card-value">${totalExpenses} ج.م</div>
                     </div>
                     <div class="card blue">
-                      <div class="card-title">صافي الأرباح التقديرية</div>
+                      <div class="card-title">صافي الأرباح الحقيقية</div>
                       <div class="card-value">${netProfit} ج.م</div>
                     </div>
                   </div>
@@ -1177,7 +1082,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                         <th>اسم العميل</th>
                         <th>رقم الهاتف</th>
                         <th>عدد الطلبات</th>
-                        <th>إجمالي الإنفاق (ج.م)</th>
+                        <th>إجمالي مدفوعات العميل (ج.م)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1207,7 +1112,6 @@ export default function CompleteEnterpriseAdminDashboard() {
 
           return (
             <div className="space-y-6">
-              {/* شريط الفلترة بالتواريخ */}
               <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-lg font-bold text-emerald-900 flex items-center gap-2">
@@ -1278,30 +1182,35 @@ export default function CompleteEnterpriseAdminDashboard() {
                 </div>
               </div>
 
-              {/* 1. بطاقات الأرقام والمؤشرات المالية */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-emerald-800 font-bold">إجمالي المبيعات والإيرادات</p>
-                  <p className="text-3xl font-extrabold text-emerald-900 mt-2">{totalRevenue} <span className="text-sm font-normal">ج.م</span></p>
-                  <p className="text-xs text-emerald-700 mt-1">عدد الفواتير المكتملة: {filteredSales.length}</p>
+              {/* بطاقات المؤشرات المالية الصافية بعد الخصم */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl shadow-sm">
+                  <p className="text-xs text-emerald-800 font-bold">صافي مبيعات الوجبات (بدون دليفري)</p>
+                  <p className="text-2xl font-extrabold text-emerald-900 mt-2">{netFoodRevenue} <span className="text-xs font-normal">ج.م</span></p>
+                  <p className="text-xs text-emerald-700 mt-1">إجمالي الفواتير الصافي للمطعم</p>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-red-800 font-bold">إجمالي المصروفات والمشتريات</p>
-                  <p className="text-3xl font-extrabold text-red-900 mt-2">{totalExpenses} <span className="text-sm font-normal">ج.م</span></p>
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl shadow-sm">
+                  <p className="text-xs text-amber-800 font-bold">إجمالي تحصيل التوصيل (الدليفري)</p>
+                  <p className="text-2xl font-extrabold text-amber-900 mt-2">{totalDeliveryCollected} <span className="text-xs font-normal">ج.م</span></p>
+                  <p className="text-xs text-amber-700 mt-1">مبالغ مستحقة للطيارين/المندوبين</p>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 p-4 rounded-2xl shadow-sm">
+                  <p className="text-xs text-red-800 font-bold">المصروفات والمشتريات</p>
+                  <p className="text-2xl font-extrabold text-red-900 mt-2">{totalExpenses} <span className="text-xs font-normal">ج.م</span></p>
                   <p className="text-xs text-red-700 mt-1">عدد عمليات الشراء: {filteredPurchases.length}</p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-blue-800 font-bold">صافي الأرباح التقديرية</p>
-                  <p className="text-3xl font-extrabold text-blue-900 mt-2">{netProfit} <span className="text-sm font-normal">ج.م</span></p>
-                  <p className="text-xs text-blue-700 mt-1">المبيعات minus المصروفات للفترة</p>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl shadow-sm">
+                  <p className="text-xs text-blue-800 font-bold">صافي الأرباح الحقيقية</p>
+                  <p className="text-2xl font-extrabold text-blue-900 mt-2">{netProfit} <span className="text-xs font-normal">ج.م</span></p>
+                  <p className="text-xs text-blue-700 mt-1">مبيعات الطعام الصافية - المصروفات</p>
                 </div>
               </div>
 
-              {/* 2. جداول الأكثر طلباً والأكثر شراءً */}
+              {/* جداول الأكثر طلباً والأكثر شراءً */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* الأصناف الأكثر طلباً */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border">
                   <h3 className="font-bold text-md text-emerald-900 mb-3 flex items-center gap-1">
                     <span>🔥</span> الأصناف الأكثر طلباً ومبيعاً
@@ -1334,7 +1243,6 @@ export default function CompleteEnterpriseAdminDashboard() {
                   )}
                 </div>
 
-                {/* العملاء الأكثر شراءً */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border">
                   <h3 className="font-bold text-md text-emerald-900 mb-3 flex items-center gap-1">
                     <span>👑</span> الأكثر شراءً من العملاء
@@ -1350,7 +1258,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                             <th className="p-2.5">العميل</th>
                             <th className="p-2.5">رقم الهاتف</th>
                             <th className="p-2.5">الطلبات</th>
-                            <th className="p-2.5">إجمالي الإنفاق</th>
+                            <th className="p-2.5">إجمالي المدفوع</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
