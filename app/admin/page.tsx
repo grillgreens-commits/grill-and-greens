@@ -150,6 +150,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
+  // دالة تفكيك الأصناف
   const parseOrderItems = (itemsRaw: any): any[] => {
     if (Array.isArray(itemsRaw)) return itemsRaw;
     if (typeof itemsRaw === 'string') {
@@ -163,6 +164,32 @@ export default function CompleteEnterpriseAdminDashboard() {
     return [];
   };
 
+  // 🧮 دالة مساعدة لحساب مجموع أصناف الوجبات فقط (المبيعات الفعليه للمطعم)
+  const calculateFoodTotalOnly = (order: any): number => {
+    const itemsList = parseOrderItems(order.items);
+    if (itemsList.length > 0) {
+      return itemsList.reduce((sum: number, it: any) => {
+        const price = Number(it.price || 0);
+        const qty = Number(it.qty || it.quantity || 1);
+        return sum + (price * qty);
+      }, 0);
+    }
+    // في حال عدم وجود تفاصيل أصناف، نخصم الدليفري المكتوب من الإجمالي
+    const total = Number(order.total || order.total_amount || 0);
+    const delivery = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
+    return Math.max(0, total - delivery);
+  };
+
+  // 🛵 دالة مساعدة لاستخراج قيمة التوصيل فقط
+  const calculateDeliveryOnly = (order: any): number => {
+    const explicitDelivery = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
+    if (explicitDelivery > 0) return explicitDelivery;
+
+    const total = Number(order.total || order.total_amount || 0);
+    const foodTotal = calculateFoodTotalOnly(order);
+    return Math.max(0, total - foodTotal);
+  };
+
   // 🖨️ دالة طباعة الفاتورة للعميل
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
@@ -171,8 +198,9 @@ export default function CompleteEnterpriseAdminDashboard() {
     const itemsArr = parseOrderItems(order.items);
     const shortId = String(order.id).split('-')[0].toUpperCase();
     
-    const deliveryFee = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
-    const totalAmount = Number(order.total || order.total_amount || 0);
+    const deliveryFee = calculateDeliveryOnly(order);
+    const foodTotal = calculateFoodTotalOnly(order);
+    const grandTotal = foodTotal + deliveryFee;
 
     printWindow.document.write(`
       <html dir="rtl" lang="ar">
@@ -221,14 +249,14 @@ export default function CompleteEnterpriseAdminDashboard() {
             
             ${deliveryFee > 0 ? `
               <div class="delivery-row">
-                <span>🛵 خدمة التوصيل:</span>
+                <span>🛵 خدمة التوصيل (شركة التوصيل):</span>
                 <span>${deliveryFee} ج.م</span>
               </div>
             ` : ''}
 
             <div class="total-row">
-              <span>الإجمالي:</span>
-              <span>${totalAmount} ج.م</span>
+              <span>الإجمالي الكلي:</span>
+              <span>${grandTotal} ج.م</span>
             </div>
             
             <div class="footer">
@@ -511,7 +539,8 @@ export default function CompleteEnterpriseAdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pendingOrders.map(order => {
                   const itemsList = parseOrderItems(order.items);
-                  const deliveryFee = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
+                  const foodTotal = calculateFoodTotalOnly(order);
+                  const deliveryFee = calculateDeliveryOnly(order);
                   
                   return (
                     <div key={order.id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-between">
@@ -545,8 +574,8 @@ export default function CompleteEnterpriseAdminDashboard() {
                             ))
                           )}
                           {deliveryFee > 0 && (
-                            <div className="flex justify-between text-xs py-0.5 border-t border-dashed border-gray-300 mt-1 pt-1 font-bold text-emerald-800">
-                              <span>🛵 خدمة التوصيل:</span>
+                            <div className="flex justify-between text-xs py-0.5 border-t border-dashed border-gray-300 mt-1 pt-1 font-bold text-amber-800">
+                              <span>🛵 رسوم التوصيل (شركة أخرى):</span>
                               <span>{deliveryFee} ج.م</span>
                             </div>
                           )}
@@ -554,9 +583,13 @@ export default function CompleteEnterpriseAdminDashboard() {
                       </div>
 
                       <div className="mt-4 border-t pt-3">
-                        <div className="flex justify-between font-bold text-emerald-900 mb-3">
-                          <span>الإجمالي المحصل:</span>
-                          <span>{order.total || order.total_amount || 0} ج.م</span>
+                        <div className="flex justify-between font-bold text-emerald-900 text-xs mb-1">
+                          <span>مبيعات الوجبات الصافية:</span>
+                          <span>{foodTotal} ج.م</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-gray-900 text-sm mb-3 border-t pt-1">
+                          <span>المبلغ المطلوب من العميل:</span>
+                          <span>{foodTotal + deliveryFee} ج.م</span>
                         </div>
 
                         <div className="mb-2">
@@ -587,7 +620,7 @@ export default function CompleteEnterpriseAdminDashboard() {
         {/* 2. قسم المبيعات */}
         {activeTab === 'sales' && (
           <div className="bg-white p-4 rounded-xl shadow-sm border space-y-4">
-            <h2 className="text-lg font-bold text-emerald-900">قسم المبيعات والفواتير المكتملة</h2>
+            <h2 className="text-lg font-bold text-emerald-900">قسم المبيعات والفواتير المكتملة (مبيعات الوجبات فقط)</h2>
             <div className="flex flex-wrap gap-3 items-center bg-emerald-50 p-3 rounded-lg text-sm">
               <label className="font-bold">من تاريخ:</label>
               <input type="date" value={salesDateFrom} onChange={e => setSalesDateFrom(e.target.value)} className="border p-1.5 rounded bg-white" />
@@ -604,28 +637,34 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <th className="p-3">التاريخ</th>
                     <th className="p-3">اسم العميل</th>
                     <th className="p-3">رقم الهاتف</th>
-                    <th className="p-3">إجمالي الفاتورة</th>
+                    <th className="p-3">مبيعات الوجبات (الصافي)</th>
+                    <th className="p-3">رسوم الدليفري</th>
                     <th className="p-3">الحالة</th>
                     <th className="p-3">الإجراءات والطباعة</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {activeSales.map(sale => (
-                    <tr key={sale.id} className="hover:bg-gray-50">
-                      <td className="p-3 font-bold">#{String(sale.id).split('-')[0].toUpperCase()}</td>
-                      <td className="p-3 text-xs text-gray-500">{new Date(sale.created_at).toLocaleString('ar-EG')}</td>
-                      <td className="p-3">{sale.customer_name}</td>
-                      <td className="p-3">{sale.phone}</td>
-                      <td className="p-3 font-bold text-green-700">{sale.total || sale.total_amount || 0} ج.م</td>
-                      <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
-                      <td className="p-3 flex gap-2 items-center">
-                        <button onClick={() => handlePrintOrder(sale)} className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1">
-                          <span>👁️</span> معاينة وطباعة
-                        </button>
-                        <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء 🚫</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {activeSales.map(sale => {
+                    const foodNet = calculateFoodTotalOnly(sale);
+                    const delivery = calculateDeliveryOnly(sale);
+                    return (
+                      <tr key={sale.id} className="hover:bg-gray-50">
+                        <td className="p-3 font-bold">#{String(sale.id).split('-')[0].toUpperCase()}</td>
+                        <td className="p-3 text-xs text-gray-500">{new Date(sale.created_at).toLocaleString('ar-EG')}</td>
+                        <td className="p-3">{sale.customer_name}</td>
+                        <td className="p-3">{sale.phone}</td>
+                        <td className="p-3 font-bold text-green-700">{foodNet} ج.م</td>
+                        <td className="p-3 font-bold text-amber-700">{delivery} ج.م</td>
+                        <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
+                        <td className="p-3 flex gap-2 items-center">
+                          <button onClick={() => handlePrintOrder(sale)} className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1">
+                            <span>👁️</span> معاينة وطباعة
+                          </button>
+                          <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء 🚫</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -678,26 +717,26 @@ export default function CompleteEnterpriseAdminDashboard() {
 
                   {(() => {
                     const custOrders = orders.filter(o => o.phone === selectedCustomerModal.phone && o.status === 'completed');
-                    const totalSpent = custOrders.reduce((sum, item) => sum + (Number(item.total || item.total_amount) || 0), 0);
+                    const totalSpent = custOrders.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
 
                     return (
                       <>
                         <div className="grid grid-cols-2 gap-3 mb-4 bg-emerald-50 p-3 rounded-lg text-center">
                           <div><p className="text-xs text-gray-600">إجمالي الطلبات المكتملة</p><p className="font-bold text-emerald-900">{custOrders.length} طلب</p></div>
-                          <div><p className="text-xs text-gray-600">إجمالي مدفوعات العميل</p><p className="font-bold text-green-700">{totalSpent} ج.م</p></div>
+                          <div><p className="text-xs text-gray-600">إجمالي مشتريات الوجبات من المطعم</p><p className="font-bold text-green-700">{totalSpent} ج.م</p></div>
                         </div>
 
                         <h4 className="font-bold mb-2">سجل الفواتير والطلبات السابقة:</h4>
                         <table className="w-full text-right text-xs">
                           <thead className="bg-gray-100 font-bold border-b">
-                            <tr><th className="p-2">رقم الفاتورة</th><th className="p-2">التاريخ</th><th className="p-2">المبلغ</th><th className="p-2">الطباعة</th></tr>
+                            <tr><th className="p-2">رقم الفاتورة</th><th className="p-2">التاريخ</th><th className="p-2">مبيعات الوجبات</th><th className="p-2">الطباعة</th></tr>
                           </thead>
                           <tbody className="divide-y">
                             {custOrders.map((o, i) => (
                               <tr key={i}>
                                 <td className="p-2 font-bold">#{String(o.id).split('-')[0].toUpperCase()}</td>
                                 <td className="p-2">{new Date(o.created_at).toLocaleDateString('ar-EG')}</td>
-                                <td className="p-2 font-bold text-green-700">{o.total || o.total_amount || 0} ج.م</td>
+                                <td className="p-2 font-bold text-green-700">{calculateFoodTotalOnly(o)} ج.م</td>
                                 <td className="p-2">
                                   <button onClick={() => handlePrintOrder(o)} className="text-emerald-700 font-bold underline">🖨️ طباعة</button>
                                 </td>
@@ -926,7 +965,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 6. قسم التقارير الشاملة والتحليلات (معدل بالكامل لخصم التوصيل من الإيراد الصافي) */}
+        {/* 6. قسم التقارير الشاملة والتحليلات */}
         {activeTab === 'reports' && (() => {
           const filteredSales = activeSales.filter(o => {
             if (!salesDateFrom && !salesDateTo) return true;
@@ -969,30 +1008,23 @@ export default function CompleteEnterpriseAdminDashboard() {
           filteredSales.forEach(order => {
             const phone = order.phone || 'بدون رقم';
             const name = order.customer_name || 'عميل غير معروف';
-            const total = Number(order.total || order.total_amount || 0);
+            const foodTotal = calculateFoodTotalOnly(order);
 
             if (!customerStats[phone]) {
               customerStats[phone] = { name, phone, count: 0, totalSpent: 0 };
             }
             customerStats[phone].count += 1;
-            customerStats[phone].totalSpent += total;
+            customerStats[phone].totalSpent += foodTotal;
           });
 
           const topCustomers = Object.values(customerStats)
             .sort((a, b) => b.totalSpent - a.totalSpent)
             .slice(0, 5);
 
-          // 🧮 الحسابات المالية المحاسبية الصافية (خصم التوصيل من الإيراد الصافي):
-          const totalGrossRevenue = filteredSales.reduce((sum, item) => sum + (Number(item.total || item.total_amount) || 0), 0);
-          const totalDeliveryCollected = filteredSales.reduce((sum, item) => sum + (Number(item.delivery_fee || item.delivery_price || item.delivery) || 0), 0);
-          
-          // صافي إيرادات الطعام والوجبات فقط
-          const netFoodRevenue = totalGrossRevenue - totalDeliveryCollected;
-          
+          // 🧮 الحسابات المالية الحقيقية (استبعاد الدليفري تماماً من المبيعات):
+          const netFoodSales = filteredSales.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
           const totalExpenses = filteredPurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-          
-          // صافي الأرباح المحاسبية الصافية
-          const netProfit = netFoodRevenue - totalExpenses;
+          const netProfit = netFoodSales - totalExpenses;
 
           const handlePrintDetailedReport = () => {
             const printWindow = window.open('', '_blank');
@@ -1018,7 +1050,6 @@ export default function CompleteEnterpriseAdminDashboard() {
                     .green { color: #047857; background-color: #ecfdf5; }
                     .red { color: #b91c1c; background-color: #fef2f2; }
                     .blue { color: #1d4ed8; background-color: #eff6ff; }
-                    .amber { color: #b45309; background-color: #fffbeb; }
                     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
                     th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: right; }
                     th { background-color: #f3f4f6; color: #374151; font-weight: bold; }
@@ -1035,19 +1066,15 @@ export default function CompleteEnterpriseAdminDashboard() {
 
                   <div class="cards-grid">
                     <div class="card green">
-                      <div class="card-title">صافي مبيعات الوجبات</div>
-                      <div class="card-value">${netFoodRevenue} ج.م</div>
-                    </div>
-                    <div class="card amber">
-                      <div class="card-title">إجمالي تحصيل التوصيل</div>
-                      <div class="card-value">${totalDeliveryCollected} ج.م</div>
+                      <div class="card-title">إجمالي المبيعات (الوجبات فقط)</div>
+                      <div class="card-value">${netFoodSales} ج.م</div>
                     </div>
                     <div class="card red">
                       <div class="card-title">المصروفات والمشتريات</div>
                       <div class="card-value">${totalExpenses} ج.م</div>
                     </div>
                     <div class="card blue">
-                      <div class="card-title">صافي الأرباح الحقيقية</div>
+                      <div class="card-title">صافي الأرباح المحسوبة</div>
                       <div class="card-value">${netProfit} ج.م</div>
                     </div>
                   </div>
@@ -1082,7 +1109,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                         <th>اسم العميل</th>
                         <th>رقم الهاتف</th>
                         <th>عدد الطلبات</th>
-                        <th>إجمالي مدفوعات العميل (ج.م)</th>
+                        <th>مشتريات الوجبات (ج.م)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1099,7 +1126,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                   </table>
 
                   <div class="footer">
-                    <p>تم استخراج التقرير تلقائياً من لوحة تحكم Grill & Greens الإدارية</p>
+                    <p>تم استخراج التقرير تلقائياً من لوحة تحكم Grill & Greens الإدارية (تم استبعاد رسوم شركات الدليفري الخارجية)</p>
                   </div>
                   <script>
                     window.onload = function() { window.print(); window.close(); };
@@ -1115,7 +1142,7 @@ export default function CompleteEnterpriseAdminDashboard() {
               <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-lg font-bold text-emerald-900 flex items-center gap-2">
-                    📊 التقرير المالي والإحصائي المتقدم
+                    📊 التقرير المالي والإحصائي للمطعم
                   </h2>
                   <button
                     onClick={handlePrintDetailedReport}
@@ -1182,30 +1209,24 @@ export default function CompleteEnterpriseAdminDashboard() {
                 </div>
               </div>
 
-              {/* بطاقات المؤشرات المالية الصافية بعد الخصم */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl shadow-sm">
-                  <p className="text-xs text-emerald-800 font-bold">صافي مبيعات الوجبات (بدون دليفري)</p>
-                  <p className="text-2xl font-extrabold text-emerald-900 mt-2">{netFoodRevenue} <span className="text-xs font-normal">ج.م</span></p>
-                  <p className="text-xs text-emerald-700 mt-1">إجمالي الفواتير الصافي للمطعم</p>
+              {/* بطاقات المؤشرات المالية بدون الدليفري */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl shadow-sm">
+                  <p className="text-xs text-emerald-800 font-bold">إجمالي المبيعات والإيرادات (الوجبات فقط)</p>
+                  <p className="text-3xl font-extrabold text-emerald-900 mt-2">{netFoodSales} <span className="text-xs font-normal">ج.م</span></p>
+                  <p className="text-xs text-emerald-700 mt-1">تم مستثنى منها أي رسوم توصيل شرك خارجية</p>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl shadow-sm">
-                  <p className="text-xs text-amber-800 font-bold">إجمالي تحصيل التوصيل (الدليفري)</p>
-                  <p className="text-2xl font-extrabold text-amber-900 mt-2">{totalDeliveryCollected} <span className="text-xs font-normal">ج.م</span></p>
-                  <p className="text-xs text-amber-700 mt-1">مبالغ مستحقة للطيارين/المندوبين</p>
-                </div>
-
-                <div className="bg-red-50 border border-red-200 p-4 rounded-2xl shadow-sm">
+                <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm">
                   <p className="text-xs text-red-800 font-bold">المصروفات والمشتريات</p>
-                  <p className="text-2xl font-extrabold text-red-900 mt-2">{totalExpenses} <span className="text-xs font-normal">ج.م</span></p>
+                  <p className="text-3xl font-extrabold text-red-900 mt-2">{totalExpenses} <span className="text-xs font-normal">ج.م</span></p>
                   <p className="text-xs text-red-700 mt-1">عدد عمليات الشراء: {filteredPurchases.length}</p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl shadow-sm">
-                  <p className="text-xs text-blue-800 font-bold">صافي الأرباح الحقيقية</p>
-                  <p className="text-2xl font-extrabold text-blue-900 mt-2">{netProfit} <span className="text-xs font-normal">ج.م</span></p>
-                  <p className="text-xs text-blue-700 mt-1">مبيعات الطعام الصافية - المصروفات</p>
+                <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl shadow-sm">
+                  <p className="text-xs text-blue-800 font-bold">صافي الأرباح الصافية</p>
+                  <p className="text-3xl font-extrabold text-blue-900 mt-2">{netProfit} <span className="text-xs font-normal">ج.م</span></p>
+                  <p className="text-xs text-blue-700 mt-1">مبيعات الطعام فقط - المصروفات</p>
                 </div>
               </div>
 
@@ -1258,7 +1279,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                             <th className="p-2.5">العميل</th>
                             <th className="p-2.5">رقم الهاتف</th>
                             <th className="p-2.5">الطلبات</th>
-                            <th className="p-2.5">إجمالي المدفوع</th>
+                            <th className="p-2.5">إجمالي مشتريات الوجبات</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
