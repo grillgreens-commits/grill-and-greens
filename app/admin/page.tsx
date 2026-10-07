@@ -1,5 +1,5 @@
 'use client';
-
+import { PersonalFinance } from '../components/PersonalFinance';
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,8 +16,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings'>('live_orders');
-  
+const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings' | 'finance'>('live_orders');  
   // Data States
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -514,6 +513,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           { id: 'purchases', label: `🛒 المشتريات` },
           { id: 'menu', label: `🍔 إدارة المنيو (${products.length})` },
           { id: 'reports', label: `📊 التقارير الشاملة` },
+          { id: 'finance', label: '💳 المحفظة والسيولة المالية' },
           { id: 'settings', label: `⚙️ الإعدادات` }
         ].map(tab => (
           <button
@@ -1322,6 +1322,8 @@ export default function CompleteEnterpriseAdminDashboard() {
             </div>
           </div>
         )}
+        {/* قسم المحفظة والسيولة المالية الشامل */}
+{activeTab === 'finance' && <PersonalFinance />}
       </main>
     </div>
   );
