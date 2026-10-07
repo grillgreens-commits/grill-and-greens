@@ -32,6 +32,12 @@ export function PersonalFinance() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_logs' }, () => {
         fetchCloudData();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_debts' }, () => {
+        fetchCloudData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_installments' }, () => {
+        fetchCloudData();
+      })
       .subscribe();
 
     return () => {
@@ -152,6 +158,26 @@ export function PersonalFinance() {
     }
   };
 
+  // 🛠️ إلغاء أوردر / مرتجع (خصم من المحفظة)
+  const handleCancelOrder = async (orderId: string, amount: number, accountId: string = 'cash') => {
+    const targetAcc = accounts.find((a) => a.id === accountId);
+    const { error } = await supabase.from('wallet_logs').insert([{
+      account_id: accountId,
+      account_name: targetAcc?.name || 'الكاش / درج المحل',
+      type: 'expense',
+      category: 'مرتجع مبيعات',
+      amount: amount,
+      source: `إلغاء/ارتجاع أوردر #${orderId}`,
+      notes: 'إلغاء فاتورة بعد التسليم',
+      date: new Date().toLocaleString('ar-EG')
+    }]);
+
+    if (!error) {
+      fetchCloudData();
+      alert(`تم خصم قيمة المرتجع (${amount} ج.م) من المحفظة بنجاح ✅`);
+    }
+  };
+
   // 🛠️ إضافة دين للسحابة
   const handleAddDebt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +194,42 @@ export function PersonalFinance() {
       setDebtAmount('');
       fetchCloudData();
     }
+  };
+
+  // 🛠️ سداد/تحصيل دين
+  const handleSettleDebt = async (debt: any) => {
+    const accId = prompt('اختر الحساب/الكارت المالي:\n cash = الكاش\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية\n savings = المدخرات', 'cash');
+    if (!accId) return;
+
+    const targetAcc = accounts.find((a) => a.id === accId);
+    if (!targetAcc) return alert('رمز الكارت غير صحيح');
+
+    const isOwedToMe = debt.type === 'owed_to_me'; // لي
+    const logType = isOwedToMe ? 'income' : 'expense';
+
+    const { error: logErr } = await supabase.from('wallet_logs').insert([{
+      account_id: accId,
+      account_name: targetAcc.name,
+      type: logType,
+      category: isOwedToMe ? 'تحصيل دين' : 'سداد دين',
+      amount: debt.amount,
+      source: isOwedToMe ? `تحصيل دين من ${debt.person}` : `سداد دين لـ ${debt.person}`,
+      notes: 'تسوية دين مسجل',
+      date: new Date().toLocaleString('ar-EG')
+    }]);
+
+    if (!logErr) {
+      await supabase.from('personal_debts').delete().eq('id', debt.id);
+      fetchCloudData();
+      alert(`تم تسوية الدين وتحديث المحفظة بنجاح ✅`);
+    }
+  };
+
+  // 🛠️ حذف دين
+  const handleDeleteDebt = async (id: number) => {
+    if (!confirm('هل أنت تأكد من حذف هذا الدين؟')) return;
+    const { error } = await supabase.from('personal_debts').delete().eq('id', id);
+    if (!error) fetchCloudData();
   };
 
   // 🛠️ إضافة قسط للسحابة
@@ -189,6 +251,38 @@ export function PersonalFinance() {
       setInstEndDate('');
       fetchCloudData();
     }
+  };
+
+  // 🛠️ سداد قسط شهري
+  const handlePayInstallment = async (inst: any) => {
+    const accId = prompt('اختر الكارت للسداد منه:\n cash = الكاش\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية\n savings = المدخرات', 'cash');
+    if (!accId) return;
+
+    const targetAcc = accounts.find((a) => a.id === accId);
+    if (!targetAcc) return alert('رمز الكارت غير صحيح');
+
+    const { error } = await supabase.from('wallet_logs').insert([{
+      account_id: accId,
+      account_name: targetAcc.name,
+      type: 'expense',
+      category: 'سداد قسط',
+      amount: inst.monthly,
+      source: `سداد قسط: ${inst.title}`,
+      notes: `خصماً من ${targetAcc.name}`,
+      date: new Date().toLocaleString('ar-EG')
+    }]);
+
+    if (!error) {
+      fetchCloudData();
+      alert(`تم خصم وسداد قسط (${inst.title}) بقيمة ${inst.monthly} ج.م بنجاح ✅`);
+    }
+  };
+
+  // 🛠️ حذف قسط
+  const handleDeleteInstallment = async (id: number) => {
+    if (!confirm('هل أنت تأكد من حذف هذا القسط؟')) return;
+    const { error } = await supabase.from('personal_installments').delete().eq('id', id);
+    if (!error) fetchCloudData();
   };
 
   const totalBalance = accounts.reduce((sum, item) => sum + item.balance, 0);
@@ -386,9 +480,15 @@ export function PersonalFinance() {
                   ) : (
                     <div className="space-y-2">
                       {debts.filter((d) => d.type === 'i_owe').map((d) => (
-                        <div key={d.id} className="bg-white p-3 rounded-xl border flex justify-between text-sm">
-                          <span>{d.person}</span>
-                          <span className="font-bold text-red-700">{d.amount} ج.م</span>
+                        <div key={d.id} className="bg-white p-3 rounded-xl border flex justify-between items-center text-sm">
+                          <div>
+                            <span className="font-bold block">{d.person}</span>
+                            <span className="font-black text-red-700">{d.amount} ج.م</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleSettleDebt(d)} className="bg-emerald-700 text-white text-xs px-2.5 py-1 rounded-lg font-bold">سداد 💳</button>
+                            <button onClick={() => handleDeleteDebt(d.id)} className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-lg font-bold">حذف 🗑️</button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -401,9 +501,15 @@ export function PersonalFinance() {
                   ) : (
                     <div className="space-y-2">
                       {debts.filter((d) => d.type === 'owed_to_me').map((d) => (
-                        <div key={d.id} className="bg-white p-3 rounded-xl border flex justify-between text-sm">
-                          <span>{d.person}</span>
-                          <span className="font-bold text-green-700">{d.amount} ج.م</span>
+                        <div key={d.id} className="bg-white p-3 rounded-xl border flex justify-between items-center text-sm">
+                          <div>
+                            <span className="font-bold block">{d.person}</span>
+                            <span className="font-black text-green-700">{d.amount} ج.م</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleSettleDebt(d)} className="bg-emerald-700 text-white text-xs px-2.5 py-1 rounded-lg font-bold">تحصيل 💳</button>
+                            <button onClick={() => handleDeleteDebt(d.id)} className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-lg font-bold">حذف 🗑️</button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -437,9 +543,19 @@ export function PersonalFinance() {
                       <div key={inst.id} className="border p-4 rounded-xl flex flex-wrap justify-between items-center gap-2 bg-amber-50/60 border-amber-200">
                         <div>
                           <p className="font-bold text-gray-900">{inst.title}</p>
-                          <p className="text-xs text-amber-900 font-bold mt-1">⏰ موعد السداد: يوم {inst.due_day} من كل شهر</p>
+                          <p className="text-xs text-amber-900 font-bold mt-1">
+                            ⏰ موعد السداد: يوم {inst.due_day} من كل شهر {inst.end_date ? `| ينتهي في: ${inst.end_date}` : ''}
+                          </p>
                         </div>
-                        <span className="text-lg font-black text-amber-900">{inst.monthly} ج.م / شهرياً</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-black text-amber-900 ml-2">{inst.monthly} ج.م / شهرياً</span>
+                          <button onClick={() => handlePayInstallment(inst)} className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                            سداد الآن 💳
+                          </button>
+                          <button onClick={() => handleDeleteInstallment(inst.id)} className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1.5 rounded-lg font-bold transition">
+                            حذف 🗑️
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
