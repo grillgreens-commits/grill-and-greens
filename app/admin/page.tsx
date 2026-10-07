@@ -29,6 +29,13 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [selectedCustomerModal, setSelectedCustomerModal] = useState<any | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
 
+  // 💳 حتالات النوافذ المنبثقة لاختيار طريقة الدفع عبر قائمة منسدلة
+  const [pendingDeliveryOrder, setPendingDeliveryOrder] = useState<any | null>(null);
+  const [deliveryPaymentAccount, setDeliveryPaymentAccount] = useState<string>('cash');
+
+  const [pendingPurchaseData, setPendingPurchaseData] = useState<any | null>(null);
+  const [purchasePaymentAccount, setPurchasePaymentAccount] = useState<string>('cash');
+
   // Edit Product Modal State
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [editPrice, setEditPrice] = useState('');
@@ -270,41 +277,16 @@ export default function CompleteEnterpriseAdminDashboard() {
     printWindow.document.close();
   };
 
-  // 🛠️ تحديث حالة الأوردر والربط بالمحفظة تلقائياً
+  // 🛠️ تحديث حالة الأوردر
   const updateOrderStatus = async (id: number | string, status: string, orderData?: any) => {
-    let paymentMethod = 'cash';
-
-    // 1. عند التسليم: السؤال عن طريقة الدفع والخصم/الإضافة للمحفظة
+    // عند التسليم: فتح النافذة المنبثقة لاختيار طريقة الدفع من القائمة المنسدلة
     if (status === 'completed' && orderData) {
-      const foodAmount = calculateFoodTotalOnly(orderData);
-      const chosenMethod = prompt(
-        `تم اختيار تسليم الأوردر #${String(id).split('-')[0].toUpperCase()}!\nاختر طريقة الدفع لإضافة مبلغ المبيعات الصافي (${foodAmount} ج.م) للمحفظة:\n cash = الكاش / درج المحل\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية`,
-        'cash'
-      );
-
-      if (!chosenMethod) return; // تم إلغاء التسليم
-      paymentMethod = chosenMethod;
-
-      const accountNames: Record<string, string> = {
-        cash: 'الكاش / درج المحل',
-        instapay: 'InstaPay',
-        e_wallet: 'المحفظة الإلكترونية',
-      };
-
-      // إضافة المبيعات لجدول المحفظة
-      await supabase.from('wallet_logs').insert([{
-        account_id: paymentMethod,
-        account_name: accountNames[paymentMethod] || 'الكاش / درج المحل',
-        type: 'income',
-        category: 'مبيعات مطعم',
-        amount: foodAmount,
-        source: `إيراد أوردر #${String(id).split('-')[0].toUpperCase()}`,
-        notes: `تسليم أوردر العميل: ${orderData.customer_name || ''}`,
-        date: new Date().toLocaleString('ar-EG')
-      }]);
+      setPendingDeliveryOrder(orderData);
+      setDeliveryPaymentAccount('cash');
+      return;
     }
 
-    // 2. عند الإلغاء: إذا كان الأوردر مسلماً ومكتصلاً سابقاً، يتم خصم قيمته كمرتجع من المحفظة
+    // عند الإلغاء: خصم من المحفظة إذا كان مسلماً سابقاً
     if (status === 'cancelled') {
       const targetOrder = orders.find(o => o.id === id);
       if (targetOrder && targetOrder.status === 'completed') {
@@ -315,7 +297,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           type: 'expense',
           category: 'مرتجع مبيعات',
           amount: foodAmount,
-          source: `إلغاء/ارتجاع أوردر #${String(id).split('-')[0].toUpperCase()}`,
+          source: `إيلغاء/ارتجاع أوردر #${String(id).split('-')[0].toUpperCase()}`,
           notes: 'خصم تلقائي بعد إلغاء الأوردر',
           date: new Date().toLocaleString('ar-EG')
         }]);
@@ -324,14 +306,47 @@ export default function CompleteEnterpriseAdminDashboard() {
 
     const { error } = await supabase.from('orders').update({ status }).eq('id', id);
     if (!error) {
-      if (status === 'completed' && orderData) {
-        await supabase.from('customers').upsert(
-          { name: orderData.customer_name, phone: orderData.phone, address: orderData.address },
-          { onConflict: 'phone' }
-        );
-      }
       fetchOrders();
       fetchCustomers();
+    }
+  };
+
+  // تأكيد تسليم الأوردر بعد اختيار طريقة الدفع من القائمة المنسدلة
+  const confirmDeliveryWithPayment = async () => {
+    if (!pendingDeliveryOrder) return;
+
+    const foodAmount = calculateFoodTotalOnly(pendingDeliveryOrder);
+    const accountNames: Record<string, string> = {
+      cash: 'الكاش / درج المحل',
+      instapay: 'InstaPay',
+      e_wallet: 'المحفظة الإلكترونية',
+      savings: 'المُدخرات الشخصية',
+    };
+
+    const { error: walletErr } = await supabase.from('wallet_logs').insert([{
+      account_id: deliveryPaymentAccount,
+      account_name: accountNames[deliveryPaymentAccount] || 'الكاش / درج المحل',
+      type: 'income',
+      category: 'مبيعات مطعم',
+      amount: foodAmount,
+      source: `إيراد أوردر #${String(pendingDeliveryOrder.id).split('-')[0].toUpperCase()}`,
+      notes: `تسليم أوردر العميل: ${pendingDeliveryOrder.customer_name || ''}`,
+      date: new Date().toLocaleString('ar-EG')
+    }]);
+
+    if (!walletErr) {
+      await supabase.from('orders').update({ status: 'completed' }).eq('id', pendingDeliveryOrder.id);
+      await supabase.from('customers').upsert(
+        { name: pendingDeliveryOrder.customer_name, phone: pendingDeliveryOrder.phone, address: pendingDeliveryOrder.address },
+        { onConflict: 'phone' }
+      );
+
+      setPendingDeliveryOrder(null);
+      fetchOrders();
+      fetchCustomers();
+      alert(`تم تسليم الأوردر وإضافة ${foodAmount} ج.م لمقبوضات (${accountNames[deliveryPaymentAccount]}) بنجاح ✅`);
+    } else {
+      alert('حدث خطأ في التسجيل: ' + walletErr.message);
     }
   };
 
@@ -365,8 +380,8 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 🛒 إضافة المشتريات والخصم من المحفظة
-  const handleAddPurchase = async (e: React.FormEvent) => {
+  // 🛒 تجهيز المشتريات لفتح القائمة المنسدلة
+  const handleAddPurchase = (e: React.FormEvent) => {
     e.preventDefault();
     const finalItemName = purchaseItemName.trim();
 
@@ -375,54 +390,63 @@ export default function CompleteEnterpriseAdminDashboard() {
       return;
     }
 
-    const chosenMethod = prompt(
-      `تسجيل شراء خامات بقيمة إجمالية (${parseFloat(purchaseQty) * parseFloat(purchasePrice)} ج.م):\nاختر الكارت/الحساب المخصوم منه:\n cash = الكاش / درج المحل\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية`,
-      'cash'
-    );
+    const qty = parseFloat(purchaseQty);
+    const price = parseFloat(purchasePrice);
+    const total = qty * price;
 
-    if (!chosenMethod) return;
+    setPendingPurchaseData({
+      itemName: finalItemName,
+      qty,
+      price,
+      total,
+      supplier: supplier || null
+    });
+    setPurchasePaymentAccount('cash');
+  };
+
+  // تأكيد حفظ المشتريات وخصمها من الكارت المختار
+  const confirmPurchaseWithPayment = async () => {
+    if (!pendingPurchaseData) return;
 
     const accountNames: Record<string, string> = {
       cash: 'الكاش / درج المحل',
       instapay: 'InstaPay',
       e_wallet: 'المحفظة الإلكترونية',
+      savings: 'المُدخرات الشخصية',
     };
 
-    const qty = parseFloat(purchaseQty);
-    const price = parseFloat(purchasePrice);
-    const total = qty * price;
-
-    const { error } = await supabase.from('purchase_transactions').insert([{
-      item_name: finalItemName,
-      quantity: qty,
-      unit_price: price,
-      total_price: total,
-      supplier_name: supplier || null,
+    const { error: purchaseErr } = await supabase.from('purchase_transactions').insert([{
+      item_name: pendingPurchaseData.itemName,
+      quantity: pendingPurchaseData.qty,
+      unit_price: pendingPurchaseData.price,
+      total_price: pendingPurchaseData.total,
+      supplier_name: pendingPurchaseData.supplier,
       status: 'active'
     }]);
 
-    if (error) {
-      alert('حدث خطأ أثناء حفظ الفاتورة: ' + error.message);
+    if (purchaseErr) {
+      alert('حدث خطأ أثناء حفظ الفاتورة: ' + purchaseErr.message);
       return;
     }
 
-    // خصم حركة المشتريات تلقائياً من المحفظة
+    // الخصم السحابي المباشر من المحفظة
     await supabase.from('wallet_logs').insert([{
-      account_id: chosenMethod,
-      account_name: accountNames[chosenMethod] || 'الكاش / درج المحل',
+      account_id: purchasePaymentAccount,
+      account_name: accountNames[purchasePaymentAccount] || 'الكاش / درج المحل',
       type: 'expense',
       category: 'مشتريات خامات مطعم',
-      amount: total,
-      source: `شراء خامات: ${finalItemName}`,
-      notes: `شراء كمية: ${qty} | المورد: ${supplier || 'غير محدد'}`,
+      amount: pendingPurchaseData.total,
+      source: `شراء خامات: ${pendingPurchaseData.itemName}`,
+      notes: `الكمية: ${pendingPurchaseData.qty} | المورد: ${pendingPurchaseData.supplier || 'غير محدد'}`,
       date: new Date().toLocaleString('ar-EG')
     }]);
 
+    setPendingPurchaseData(null);
     setPurchaseItemName('');
     setPurchaseQty('');
     setPurchasePrice('');
     setSupplier('');
-    alert('تم حفظ حركة المشتريات وخصم المبلغ من المحفظة بنجاح ✅');
+    alert('تم حفظ الفاتورة وخصم المبلغ من المحفظة بنجاح ✅');
     fetchPurchases();
   };
 
@@ -1399,6 +1423,94 @@ export default function CompleteEnterpriseAdminDashboard() {
         {/* قسم المحفظة والسيولة المالية الشامل */}
         {activeTab === 'finance' && <PersonalFinance />}
       </main>
+
+      {/* 🔽 1. النافذة المنبثقة لاختيار طريقة الدفع المنسدلة عند تسليم الأوردر */}
+      {pendingDeliveryOrder && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <h3 className="text-lg font-bold text-emerald-900 border-b pb-2">
+              💳 تسليم الأوردر #{String(pendingDeliveryOrder.id).split('-')[0].toUpperCase()}
+            </h3>
+            
+            <p className="text-sm text-gray-700 font-bold">
+              مبيعات الوجبات الصافية: <span className="text-green-700 font-black text-lg">{calculateFoodTotalOnly(pendingDeliveryOrder)} ج.م</span>
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold mb-1 text-gray-700">اختر طريقة الدفع للإضافة للمحفظة السحابية:</label>
+              <select
+                value={deliveryPaymentAccount}
+                onChange={(e) => setDeliveryPaymentAccount(e.target.value)}
+                className="w-full border-2 border-emerald-600 p-2.5 rounded-xl font-bold bg-white text-emerald-900 text-sm focus:outline-none"
+              >
+                <option value="cash">💵 الكاش / درج المحل</option>
+                <option value="instapay">📱 InstaPay</option>
+                <option value="e_wallet">💳 المحفظة الإلكترونية</option>
+                <option value="savings">🏦 المُدخرات الشخصية</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={confirmDeliveryWithPayment}
+                className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl transition text-sm"
+              >
+                تأكيد التسليم وحفظ المبيعات ✅
+              </button>
+              <button
+                onClick={() => setPendingDeliveryOrder(null)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2.5 rounded-xl transition text-sm"
+              >
+                إلغاء ✖
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔽 2. النافذة المنبثقة لاختيار طريقة الدفع المنسدلة عند تسجيل المشتريات */}
+      {pendingPurchaseData && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <h3 className="text-lg font-bold text-emerald-900 border-b pb-2">
+              🛒 خصم فاتورة مشتريات ({pendingPurchaseData.itemName})
+            </h3>
+            
+            <p className="text-sm text-gray-700 font-bold">
+              إجمالي التكلفة المطلوب خصمها: <span className="text-red-700 font-black text-lg">{pendingPurchaseData.total} ج.م</span>
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold mb-1 text-gray-700">اختر الحساب/الكارت المخصوم منه المبلغ:</label>
+              <select
+                value={purchasePaymentAccount}
+                onChange={(e) => setPurchasePaymentAccount(e.target.value)}
+                className="w-full border-2 border-emerald-600 p-2.5 rounded-xl font-bold bg-white text-emerald-900 text-sm focus:outline-none"
+              >
+                <option value="cash">💵 الكاش / درج المحل</option>
+                <option value="instapay">📱 InstaPay</option>
+                <option value="e_wallet">💳 المحفظة الإلكترونية</option>
+                <option value="savings">🏦 المُدخرات الشخصية</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={confirmPurchaseWithPayment}
+                className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl transition text-sm"
+              >
+                تأكيد الخصم وحفظ المشتريات 💾
+              </button>
+              <button
+                onClick={() => setPendingPurchaseData(null)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2.5 rounded-xl transition text-sm"
+              >
+                إلغاء ✖
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
