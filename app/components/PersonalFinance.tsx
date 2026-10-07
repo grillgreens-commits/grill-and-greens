@@ -22,22 +22,20 @@ export function PersonalFinance() {
   const [installments, setInstallments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // جلب البيانات فورياً من Supabase عند الفتح
+  const [pendingPayInstallment, setPendingPayInstallment] = useState<any | null>(null);
+  const [instPaymentAccount, setInstPaymentAccount] = useState<string>('cash');
+
+  const [pendingSettleDebt, setPendingSettleDebt] = useState<any | null>(null);
+  const [debtPaymentAccount, setDebtPaymentAccount] = useState<string>('cash');
+
   useEffect(() => {
     fetchCloudData();
 
-    // اشتراك للتحديث الفوري عبر كافة الأجهزة (Realtime)
     const walletChannel = supabase
       .channel('wallet_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_logs' }, () => {
-        fetchCloudData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_debts' }, () => {
-        fetchCloudData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_installments' }, () => {
-        fetchCloudData();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallet_logs' }, () => fetchCloudData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_debts' }, () => fetchCloudData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_installments' }, () => fetchCloudData())
       .subscribe();
 
     return () => {
@@ -48,12 +46,10 @@ export function PersonalFinance() {
   const fetchCloudData = async () => {
     setLoading(true);
     
-    // 1. جلب سجل الحركات
     const { data: logsData } = await supabase.from('wallet_logs').select('*').order('created_at', { ascending: false });
     if (logsData) {
       setLogs(logsData);
       
-      // إعادة حساب أرصدة الكروت بناءً على سجل الحركات
       const newBalances = { cash: 0, instapay: 0, e_wallet: 0, savings: 0 };
       logsData.forEach((log: any) => {
         const accId = log.account_id as keyof typeof newBalances;
@@ -69,18 +65,15 @@ export function PersonalFinance() {
       })));
     }
 
-    // 2. جلب الديون
     const { data: debtsData } = await supabase.from('personal_debts').select('*').order('created_at', { ascending: false });
     if (debtsData) setDebts(debtsData);
 
-    // 3. جلب الأقساط
     const { data: instData } = await supabase.from('personal_installments').select('*').order('created_at', { ascending: false });
     if (instData) setInstallments(instData);
 
     setLoading(false);
   };
 
-  // المدخلات
   const [personalAmount, setPersonalAmount] = useState('');
   const [selectedPersonalAcc, setSelectedPersonalAcc] = useState('cash');
   const [personalCategory, setPersonalCategory] = useState('مصاريف شخصية');
@@ -99,7 +92,6 @@ export function PersonalFinance() {
   const [instDueDay, setInstDueDay] = useState('');
   const [instEndDate, setInstEndDate] = useState('');
 
-  // 🛠️ إضافة مصروف شخصي وسحفظه في السحابة
   const handleAddPersonalExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     const amountNum = parseFloat(personalAmount);
@@ -118,17 +110,16 @@ export function PersonalFinance() {
       date: new Date().toLocaleString('ar-EG')
     }]);
 
-    if (error) {
-      alert('خطأ في الحفظ السحابي: ' + error.message);
-    } else {
+    if (!error) {
       setPersonalAmount('');
       setPersonalNotes('');
       fetchCloudData();
-      alert(`تم تسجيل المصروف الشخصي وحفظه سحابياً ✅`);
+      alert(`تم خصم وتسجيل المصروف الشخصي من (${targetAcc?.name}) بنجاح ✅`);
+    } else {
+      alert('خطأ في الحفظ السحابي: ' + error.message);
     }
   };
 
-  // 🛠️ تصحيح وتعديل رصيد سحابياً
   const handleAdjustBalance = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetAcc = accounts.find((a) => a.id === selectedAdjustAccount);
@@ -158,27 +149,6 @@ export function PersonalFinance() {
     }
   };
 
-  // 🛠️ إلغاء أوردر / مرتجع (خصم من المحفظة)
-  const handleCancelOrder = async (orderId: string, amount: number, accountId: string = 'cash') => {
-    const targetAcc = accounts.find((a) => a.id === accountId);
-    const { error } = await supabase.from('wallet_logs').insert([{
-      account_id: accountId,
-      account_name: targetAcc?.name || 'الكاش / درج المحل',
-      type: 'expense',
-      category: 'مرتجع مبيعات',
-      amount: amount,
-      source: `إلغاء/ارتجاع أوردر #${orderId}`,
-      notes: 'إلغاء فاتورة بعد التسليم',
-      date: new Date().toLocaleString('ar-EG')
-    }]);
-
-    if (!error) {
-      fetchCloudData();
-      alert(`تم خصم قيمة المرتجع (${amount} ج.م) من المحفظة بنجاح ✅`);
-    }
-  };
-
-  // 🛠️ إضافة دين للسحابة
   const handleAddDebt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!debtPerson || !debtAmount) return alert('يرجى ملء البيانات');
@@ -196,43 +166,38 @@ export function PersonalFinance() {
     }
   };
 
-  // 🛠️ سداد/تحصيل دين
-  const handleSettleDebt = async (debt: any) => {
-    const accId = prompt('اختر الحساب/الكارت المالي:\n cash = الكاش\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية\n savings = المدخرات', 'cash');
-    if (!accId) return;
+  const confirmSettleDebt = async () => {
+    if (!pendingSettleDebt) return;
 
-    const targetAcc = accounts.find((a) => a.id === accId);
-    if (!targetAcc) return alert('رمز الكارت غير صحيح');
-
-    const isOwedToMe = debt.type === 'owed_to_me'; // لي
+    const targetAcc = accounts.find((a) => a.id === debtPaymentAccount);
+    const isOwedToMe = pendingSettleDebt.type === 'owed_to_me';
     const logType = isOwedToMe ? 'income' : 'expense';
 
     const { error: logErr } = await supabase.from('wallet_logs').insert([{
-      account_id: accId,
-      account_name: targetAcc.name,
+      account_id: debtPaymentAccount,
+      account_name: targetAcc?.name || 'الكاش / درج المحل',
       type: logType,
       category: isOwedToMe ? 'تحصيل دين' : 'سداد دين',
-      amount: debt.amount,
-      source: isOwedToMe ? `تحصيل دين من ${debt.person}` : `سداد دين لـ ${debt.person}`,
+      amount: pendingSettleDebt.amount,
+      source: isOwedToMe ? `تحصيل دين من ${pendingSettleDebt.person}` : `سداد دين لـ ${pendingSettleDebt.person}`,
       notes: 'تسوية دين مسجل',
       date: new Date().toLocaleString('ar-EG')
     }]);
 
     if (!logErr) {
-      await supabase.from('personal_debts').delete().eq('id', debt.id);
+      await supabase.from('personal_debts').delete().eq('id', pendingSettleDebt.id);
+      setPendingSettleDebt(null);
       fetchCloudData();
       alert(`تم تسوية الدين وتحديث المحفظة بنجاح ✅`);
     }
   };
 
-  // 🛠️ حذف دين
   const handleDeleteDebt = async (id: number) => {
     if (!confirm('هل أنت تأكد من حذف هذا الدين؟')) return;
     const { error } = await supabase.from('personal_debts').delete().eq('id', id);
     if (!error) fetchCloudData();
   };
 
-  // 🛠️ إضافة قسط للسحابة
   const handleAddInstallment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!instTitle || !instMonthly || !instDueDay) return alert('يرجى ملء البيانات');
@@ -253,32 +218,29 @@ export function PersonalFinance() {
     }
   };
 
-  // 🛠️ سداد قسط شهري
-  const handlePayInstallment = async (inst: any) => {
-    const accId = prompt('اختر الكارت للسداد منه:\n cash = الكاش\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية\n savings = المدخرات', 'cash');
-    if (!accId) return;
+  const confirmPayInstallment = async () => {
+    if (!pendingPayInstallment) return;
 
-    const targetAcc = accounts.find((a) => a.id === accId);
-    if (!targetAcc) return alert('رمز الكارت غير صحيح');
+    const targetAcc = accounts.find((a) => a.id === instPaymentAccount);
 
     const { error } = await supabase.from('wallet_logs').insert([{
-      account_id: accId,
-      account_name: targetAcc.name,
+      account_id: instPaymentAccount,
+      account_name: targetAcc?.name || 'الكاش / درج المحل',
       type: 'expense',
       category: 'سداد قسط',
-      amount: inst.monthly,
-      source: `سداد قسط: ${inst.title}`,
-      notes: `خصماً من ${targetAcc.name}`,
+      amount: pendingPayInstallment.monthly,
+      source: `سداد قسط: ${pendingPayInstallment.title}`,
+      notes: `خصماً من ${targetAcc?.name}`,
       date: new Date().toLocaleString('ar-EG')
     }]);
 
     if (!error) {
+      setPendingPayInstallment(null);
       fetchCloudData();
-      alert(`تم خصم وسداد قسط (${inst.title}) بقيمة ${inst.monthly} ج.م بنجاح ✅`);
+      alert(`تم سداد قسط (${pendingPayInstallment.title}) وخصمه بنجاح ✅`);
     }
   };
 
-  // 🛠️ حذف قسط
   const handleDeleteInstallment = async (id: number) => {
     if (!confirm('هل أنت تأكد من حذف هذا القسط؟')) return;
     const { error } = await supabase.from('personal_installments').delete().eq('id', id);
@@ -289,7 +251,6 @@ export function PersonalFinance() {
 
   return (
     <div className="space-y-6">
-      {/* الهيدر */}
       <div className="flex flex-wrap justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
         <div>
           <h2 className="text-xl font-bold text-gray-900">💳 المحفظة والسيولة المالية (ربط سحابي مباشر ☁️)</h2>
@@ -301,7 +262,6 @@ export function PersonalFinance() {
         </div>
       </div>
 
-      {/* التبويبات */}
       <div className="flex gap-2 border-b pb-2 overflow-x-auto">
         <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-xl text-xs font-bold ${activeTab === 'overview' ? 'bg-emerald-800 text-white' : 'bg-white border text-gray-700'}`}>📊 نظرة عامة الأرصدة</button>
         <button onClick={() => setActiveTab('expenses')} className={`px-4 py-2 rounded-xl text-xs font-bold ${activeTab === 'expenses' ? 'bg-emerald-800 text-white' : 'bg-white border text-gray-700'}`}>👤 مصاريف شخصية</button>
@@ -315,7 +275,6 @@ export function PersonalFinance() {
         <div className="bg-white p-8 text-center rounded-2xl border text-gray-500 font-bold">جاري جلب البيانات السحابية... 🔄</div>
       ) : (
         <>
-          {/* 1. نظرة عامة */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -356,7 +315,6 @@ export function PersonalFinance() {
             </div>
           )}
 
-          {/* 2. المصاريف الشخصية */}
           {activeTab === 'expenses' && (
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4 max-w-2xl">
               <h3 className="font-bold text-gray-900 border-b pb-2">👤 تسجيل مصروف شخصي وتحديد كارت الخصم</h3>
@@ -366,8 +324,8 @@ export function PersonalFinance() {
                   <input type="number" value={personalAmount} onChange={(e) => setPersonalAmount(e.target.value)} placeholder="أدخل المبلغ" className="w-full border p-2.5 rounded-xl text-sm" required />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">الخصم من كارت/حساب:</label>
-                  <select value={selectedPersonalAcc} onChange={(e) => setSelectedPersonalAcc(e.target.value)} className="w-full border p-2.5 rounded-xl text-sm bg-white font-bold text-emerald-900">
+                  <label className="block text-xs font-bold mb-1">الخصم من كارت/حساب (اختر من القائمة):</label>
+                  <select value={selectedPersonalAcc} onChange={(e) => setSelectedPersonalAcc(e.target.value)} className="w-full border-2 border-emerald-600 p-2.5 rounded-xl text-sm bg-white font-bold text-emerald-900">
                     {accounts.map((acc) => (
                       <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} ({acc.balance} ج.م)</option>
                     ))}
@@ -391,7 +349,6 @@ export function PersonalFinance() {
             </div>
           )}
 
-          {/* 3. سجل حركة الفلوس */}
           {activeTab === 'logs' && (
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4">
               <h3 className="font-bold text-gray-900 border-b pb-3">📜 دفتر حركة الفلوس الشامل (سحابي)</h3>
@@ -430,14 +387,13 @@ export function PersonalFinance() {
             </div>
           )}
 
-          {/* 4. تصحيح رصيد */}
           {activeTab === 'adjust' && (
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4 max-w-2xl">
               <h3 className="font-bold text-gray-900 border-b pb-2">✏️ تصحيح رصيد كارت يدوياً</h3>
               <form onSubmit={handleAdjustBalance} className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold mb-1">اختر الحساب المراد تعديله:</label>
-                  <select value={selectedAdjustAccount} onChange={(e) => setSelectedAdjustAccount(e.target.value)} className="w-full border p-2.5 rounded-xl text-sm bg-white font-bold text-emerald-900">
+                  <select value={selectedAdjustAccount} onChange={(e) => setSelectedAdjustAccount(e.target.value)} className="w-full border-2 border-emerald-600 p-2.5 rounded-xl text-sm bg-white font-bold text-emerald-900">
                     {accounts.map((acc) => (
                       <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} ({acc.balance} ج.م)</option>
                     ))}
@@ -456,7 +412,6 @@ export function PersonalFinance() {
             </div>
           )}
 
-          {/* 5. الديون */}
           {activeTab === 'debts' && (
             <div className="space-y-6">
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
@@ -486,7 +441,7 @@ export function PersonalFinance() {
                             <span className="font-black text-red-700">{d.amount} ج.م</span>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => handleSettleDebt(d)} className="bg-emerald-700 text-white text-xs px-2.5 py-1 rounded-lg font-bold">سداد 💳</button>
+                            <button onClick={() => { setPendingSettleDebt(d); setDebtPaymentAccount('cash'); }} className="bg-emerald-700 text-white text-xs px-2.5 py-1 rounded-lg font-bold">سداد 💳</button>
                             <button onClick={() => handleDeleteDebt(d.id)} className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-lg font-bold">حذف 🗑️</button>
                           </div>
                         </div>
@@ -507,7 +462,7 @@ export function PersonalFinance() {
                             <span className="font-black text-green-700">{d.amount} ج.م</span>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => handleSettleDebt(d)} className="bg-emerald-700 text-white text-xs px-2.5 py-1 rounded-lg font-bold">تحصيل 💳</button>
+                            <button onClick={() => { setPendingSettleDebt(d); setDebtPaymentAccount('cash'); }} className="bg-emerald-700 text-white text-xs px-2.5 py-1 rounded-lg font-bold">تحصيل 💳</button>
                             <button onClick={() => handleDeleteDebt(d.id)} className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-lg font-bold">حذف 🗑️</button>
                           </div>
                         </div>
@@ -519,7 +474,6 @@ export function PersonalFinance() {
             </div>
           )}
 
-          {/* 6. الأقساط */}
           {activeTab === 'installments' && (
             <div className="space-y-6">
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
@@ -549,7 +503,7 @@ export function PersonalFinance() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-black text-amber-900 ml-2">{inst.monthly} ج.م / شهرياً</span>
-                          <button onClick={() => handlePayInstallment(inst)} className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                          <button onClick={() => { setPendingPayInstallment(inst); setInstPaymentAccount('cash'); }} className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
                             سداد الآن 💳
                           </button>
                           <button onClick={() => handleDeleteInstallment(inst.id)} className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1.5 rounded-lg font-bold transition">
@@ -564,6 +518,48 @@ export function PersonalFinance() {
             </div>
           )}
         </>
+      )}
+
+      {pendingPayInstallment && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <h3 className="text-lg font-bold text-emerald-900 border-b pb-2">💳 سداد قسط: {pendingPayInstallment.title}</h3>
+            <p className="text-sm font-bold">المبلغ الشهري المطلوب: <span className="text-emerald-700 font-black">{pendingPayInstallment.monthly} ج.م</span></p>
+            <div>
+              <label className="block text-xs font-bold mb-1">اختر الكارت/الحساب المخصوم منه:</label>
+              <select value={instPaymentAccount} onChange={(e) => setInstPaymentAccount(e.target.value)} className="w-full border-2 border-emerald-600 p-2.5 rounded-xl font-bold bg-white text-emerald-900 text-sm">
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} ({acc.balance} ج.م)</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={confirmPayInstallment} className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl text-sm">تأكيد الخصم والسداد ✅</button>
+              <button onClick={() => setPendingPayInstallment(null)} className="bg-gray-200 text-gray-800 font-bold px-4 py-2.5 rounded-xl text-sm">إلغاء ✖</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingSettleDebt && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <h3 className="text-lg font-bold text-emerald-900 border-b pb-2">🤝 تسوية دين: {pendingSettleDebt.person}</h3>
+            <p className="text-sm font-bold">مبلغ الدين: <span className="font-black text-emerald-700">{pendingSettleDebt.amount} ج.م</span></p>
+            <div>
+              <label className="block text-xs font-bold mb-1">اختر الحساب/الكارت المالي:</label>
+              <select value={debtPaymentAccount} onChange={(e) => setDebtPaymentAccount(e.target.value)} className="w-full border-2 border-emerald-600 p-2.5 rounded-xl font-bold bg-white text-emerald-900 text-sm">
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} ({acc.balance} ج.م)</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={confirmSettleDebt} className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl text-sm">تأكيد التسوية والربط ✅</button>
+              <button onClick={() => setPendingSettleDebt(null)} className="bg-gray-200 text-gray-800 font-bold px-4 py-2.5 rounded-xl text-sm">إلغاء ✖</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

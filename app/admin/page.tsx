@@ -7,61 +7,51 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 🔒 اكتب كلمة المرور التي تريدها هنا
 const ADMIN_PASSWORD = '260564'; 
 
 export default function CompleteEnterpriseAdminDashboard() {
-  // حالة تسجيل الدخول للوحة التحكم
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
 
   const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings' | 'finance'>('live_orders');  
-  // Data States
+  
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [purchaseLogs, setPurchaseLogs] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Modals & Search States
   const [selectedItemCard, setSelectedItemCard] = useState<string | null>(null);
   const [selectedCustomerModal, setSelectedCustomerModal] = useState<any | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
 
-  // 💳 حتالات النوافذ المنبثقة لاختيار طريقة الدفع عبر قائمة منسدلة
   const [pendingDeliveryOrder, setPendingDeliveryOrder] = useState<any | null>(null);
   const [deliveryPaymentAccount, setDeliveryPaymentAccount] = useState<string>('cash');
 
   const [pendingPurchaseData, setPendingPurchaseData] = useState<any | null>(null);
   const [purchasePaymentAccount, setPurchasePaymentAccount] = useState<string>('cash');
 
-  // Edit Product Modal State
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [editPrice, setEditPrice] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
 
-  // Sales Filters
   const [salesDateFrom, setSalesDateFrom] = useState('');
   const [salesDateTo, setSalesDateTo] = useState('');
 
-  // New Purchase Form States
   const [purchaseItemName, setPurchaseItemName] = useState('');
   const [purchaseQty, setPurchaseQty] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [supplier, setSupplier] = useState('');
 
-  // New Product / Menu Form
   const [productName, setProductName] = useState('');
   const [productDesc, setProductDesc] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productCategory, setProductCategory] = useState('المشويات');
   const [productImageUrl, setProductImageUrl] = useState('');
 
-  // Settings
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
-  // التحقق من حالة تسجيل الدخول السابقة في المتصفح
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('admin_authenticated');
     if (savedAuth === 'true') {
@@ -74,7 +64,6 @@ export default function CompleteEnterpriseAdminDashboard() {
 
     fetchAllData();
 
-    // الاشتراك في التحديث الفوري (Realtime) للطلبات والمنيو
     const ordersChannel = supabase
       .channel('realtime_orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
@@ -95,7 +84,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     };
   }, [isAuthenticated]);
 
-  // دالة تسجيل الدخول
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput === ADMIN_PASSWORD) {
@@ -107,7 +95,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // دالة تسجيل الخروج
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('admin_authenticated');
@@ -156,7 +143,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // دالة تفكيك الأصناف
   const parseOrderItems = (itemsRaw: any): any[] => {
     if (Array.isArray(itemsRaw)) return itemsRaw;
     if (typeof itemsRaw === 'string') {
@@ -170,7 +156,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     return [];
   };
 
-  // 🧮 دالة مساعدة لحساب مجموع أصناف الوجبات فقط (المبيعات الفعليه للمطعم)
   const calculateFoodTotalOnly = (order: any): number => {
     const itemsList = parseOrderItems(order.items);
     if (itemsList.length > 0) {
@@ -185,7 +170,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     return Math.max(0, total - delivery);
   };
 
-  // 🛵 دالة مساعدة لاستخراج قيمة التوصيل فقط
   const calculateDeliveryOnly = (order: any): number => {
     const explicitDelivery = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
     if (explicitDelivery > 0) return explicitDelivery;
@@ -195,7 +179,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     return Math.max(0, total - foodTotal);
   };
 
-  // 🖨️ دالة طباعة الفاتورة للعميل
   const handlePrintOrder = (order: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -277,28 +260,39 @@ export default function CompleteEnterpriseAdminDashboard() {
     printWindow.document.close();
   };
 
-  // 🛠️ تحديث حالة الأوردر
+  // 🛠️ تحديث حالة الأوردر بشكل متوافق مع المرتجعات المباشرة
   const updateOrderStatus = async (id: number | string, status: string, orderData?: any) => {
-    // عند التسليم: فتح النافذة المنبثقة لاختيار طريقة الدفع من القائمة المنسدلة
     if (status === 'completed' && orderData) {
       setPendingDeliveryOrder(orderData);
       setDeliveryPaymentAccount('cash');
       return;
     }
 
-    // عند الإلغاء: خصم من المحفظة إذا كان مسلماً سابقاً
+    // 🎯 عند الإلغاء: خصم المرتجع تلقائياً من نفس الكارت الذي استلم الفلوس عند التسليم
     if (status === 'cancelled') {
       const targetOrder = orders.find(o => o.id === id);
       if (targetOrder && targetOrder.status === 'completed') {
         const foodAmount = calculateFoodTotalOnly(targetOrder);
+        const shortId = String(id).split('-')[0].toUpperCase();
+
+        const { data: originalLog } = await supabase
+          .from('wallet_logs')
+          .select('account_id, account_name')
+          .eq('source', `إيراد أوردر #${shortId}`)
+          .order('created_at', { ascending: false })
+          .maybeSingle();
+
+        const refundAccountId = originalLog?.account_id || 'cash';
+        const refundAccountName = originalLog?.account_name || 'الكاش / درج المحل';
+
         await supabase.from('wallet_logs').insert([{
-          account_id: 'cash',
-          account_name: 'الكاش / درج المحل',
+          account_id: refundAccountId,
+          account_name: refundAccountName,
           type: 'expense',
           category: 'مرتجع مبيعات',
           amount: foodAmount,
-          source: `إيلغاء/ارتجاع أوردر #${String(id).split('-')[0].toUpperCase()}`,
-          notes: 'خصم تلقائي بعد إلغاء الأوردر',
+          source: `إلغاء/ارتجاع أوردر #${shortId}`,
+          notes: `خصم تلقائي بعد إلغاء الأوردر من (${refundAccountName})`,
           date: new Date().toLocaleString('ar-EG')
         }]);
       }
@@ -311,7 +305,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // تأكيد تسليم الأوردر بعد اختيار طريقة الدفع من القائمة المنسدلة
   const confirmDeliveryWithPayment = async () => {
     if (!pendingDeliveryOrder) return;
 
@@ -350,10 +343,40 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
+  // 🎯 إلغاء حركة مشتريات ورد الفلوس تلقائياً لنفس الكارت
   const cancelPurchaseTransaction = async (id: number) => {
-    if (!confirm('هل أنت تأكد من إلغاء هذه الحركة؟')) return;
-    const { error } = await supabase.from('purchase_transactions').update({ status: 'cancelled' }).eq('id', id);
-    if (!error) fetchPurchases();
+    if (!confirm('هل أنت تأكد من إلغاء هذه الحركة وإرجاع المبلغ للمحفظة؟')) return;
+
+    const targetPurchase = purchaseLogs.find(p => p.id === id);
+    if (!targetPurchase) return;
+
+    const { data: originalLog } = await supabase
+      .from('wallet_logs')
+      .select('account_id, account_name')
+      .eq('source', `شراء خامات: ${targetPurchase.item_name}`)
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+
+    const refundAccountId = originalLog?.account_id || 'cash';
+    const refundAccountName = originalLog?.account_name || 'الكاش / درج المحل';
+    const refundAmount = Number(targetPurchase.total_price || 0);
+
+    const { error: walletErr } = await supabase.from('wallet_logs').insert([{
+      account_id: refundAccountId,
+      account_name: refundAccountName,
+      type: 'income',
+      category: 'إلغاء مشتريات / مسترد',
+      amount: refundAmount,
+      source: `إلغاء شراء خامات: ${targetPurchase.item_name}`,
+      notes: `إرجاع تلقائي لمبلغ المشتريات إلى (${refundAccountName})`,
+      date: new Date().toLocaleString('ar-EG')
+    }]);
+
+    if (!walletErr) {
+      await supabase.from('purchase_transactions').update({ status: 'cancelled' }).eq('id', id);
+      fetchPurchases();
+      alert(`تم إلغاء الحركة وإعادة مبلغ ${refundAmount} ج.م إلى (${refundAccountName}) بنجاح ✅`);
+    }
   };
 
   const sendWhatsAppNotification = (phone: string, orderId: any, status: string) => {
@@ -380,7 +403,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 🛒 تجهيز المشتريات لفتح القائمة المنسدلة
   const handleAddPurchase = (e: React.FormEvent) => {
     e.preventDefault();
     const finalItemName = purchaseItemName.trim();
@@ -404,7 +426,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     setPurchasePaymentAccount('cash');
   };
 
-  // تأكيد حفظ المشتريات وخصمها من الكارت المختار
   const confirmPurchaseWithPayment = async () => {
     if (!pendingPurchaseData) return;
 
@@ -429,7 +450,6 @@ export default function CompleteEnterpriseAdminDashboard() {
       return;
     }
 
-    // الخصم السحابي المباشر من المحفظة
     await supabase.from('wallet_logs').insert([{
       account_id: purchasePaymentAccount,
       account_name: accountNames[purchasePaymentAccount] || 'الكاش / درج المحل',
