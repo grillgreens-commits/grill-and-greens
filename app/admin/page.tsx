@@ -16,7 +16,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
 
-const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings' | 'finance'>('live_orders');  
+  const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings' | 'finance'>('live_orders');  
   // Data States
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -173,7 +173,6 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
         return sum + (price * qty);
       }, 0);
     }
-    // في حال عدم وجود تفاصيل أصناف، نخصم الدليفري المكتوب من الإجمالي
     const total = Number(order.total || order.total_amount || 0);
     const delivery = Number(order.delivery_fee || order.delivery_price || order.delivery || 0);
     return Math.max(0, total - delivery);
@@ -271,7 +270,58 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
     printWindow.document.close();
   };
 
+  // 🛠️ تحديث حالة الأوردر والربط بالمحفظة تلقائياً
   const updateOrderStatus = async (id: number | string, status: string, orderData?: any) => {
+    let paymentMethod = 'cash';
+
+    // 1. عند التسليم: السؤال عن طريقة الدفع والخصم/الإضافة للمحفظة
+    if (status === 'completed' && orderData) {
+      const foodAmount = calculateFoodTotalOnly(orderData);
+      const chosenMethod = prompt(
+        `تم اختيار تسليم الأوردر #${String(id).split('-')[0].toUpperCase()}!\nاختر طريقة الدفع لإضافة مبلغ المبيعات الصافي (${foodAmount} ج.م) للمحفظة:\n cash = الكاش / درج المحل\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية`,
+        'cash'
+      );
+
+      if (!chosenMethod) return; // تم إلغاء التسليم
+      paymentMethod = chosenMethod;
+
+      const accountNames: Record<string, string> = {
+        cash: 'الكاش / درج المحل',
+        instapay: 'InstaPay',
+        e_wallet: 'المحفظة الإلكترونية',
+      };
+
+      // إضافة المبيعات لجدول المحفظة
+      await supabase.from('wallet_logs').insert([{
+        account_id: paymentMethod,
+        account_name: accountNames[paymentMethod] || 'الكاش / درج المحل',
+        type: 'income',
+        category: 'مبيعات مطعم',
+        amount: foodAmount,
+        source: `إيراد أوردر #${String(id).split('-')[0].toUpperCase()}`,
+        notes: `تسليم أوردر العميل: ${orderData.customer_name || ''}`,
+        date: new Date().toLocaleString('ar-EG')
+      }]);
+    }
+
+    // 2. عند الإلغاء: إذا كان الأوردر مسلماً ومكتصلاً سابقاً، يتم خصم قيمته كمرتجع من المحفظة
+    if (status === 'cancelled') {
+      const targetOrder = orders.find(o => o.id === id);
+      if (targetOrder && targetOrder.status === 'completed') {
+        const foodAmount = calculateFoodTotalOnly(targetOrder);
+        await supabase.from('wallet_logs').insert([{
+          account_id: 'cash',
+          account_name: 'الكاش / درج المحل',
+          type: 'expense',
+          category: 'مرتجع مبيعات',
+          amount: foodAmount,
+          source: `إلغاء/ارتجاع أوردر #${String(id).split('-')[0].toUpperCase()}`,
+          notes: 'خصم تلقائي بعد إلغاء الأوردر',
+          date: new Date().toLocaleString('ar-EG')
+        }]);
+      }
+    }
+
     const { error } = await supabase.from('orders').update({ status }).eq('id', id);
     if (!error) {
       if (status === 'completed' && orderData) {
@@ -315,6 +365,7 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
     }
   };
 
+  // 🛒 إضافة المشتريات والخصم من المحفظة
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalItemName = purchaseItemName.trim();
@@ -323,6 +374,19 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
       alert('يرجى كتابة اسم الصنف/الخامة وملء جميع الحقول المطلوبة');
       return;
     }
+
+    const chosenMethod = prompt(
+      `تسجيل شراء خامات بقيمة إجمالية (${parseFloat(purchaseQty) * parseFloat(purchasePrice)} ج.م):\nاختر الكارت/الحساب المخصوم منه:\n cash = الكاش / درج المحل\n instapay = InstaPay\n e_wallet = المحفظة الإلكترونية`,
+      'cash'
+    );
+
+    if (!chosenMethod) return;
+
+    const accountNames: Record<string, string> = {
+      cash: 'الكاش / درج المحل',
+      instapay: 'InstaPay',
+      e_wallet: 'المحفظة الإلكترونية',
+    };
 
     const qty = parseFloat(purchaseQty);
     const price = parseFloat(purchasePrice);
@@ -342,11 +406,23 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
       return;
     }
 
+    // خصم حركة المشتريات تلقائياً من المحفظة
+    await supabase.from('wallet_logs').insert([{
+      account_id: chosenMethod,
+      account_name: accountNames[chosenMethod] || 'الكاش / درج المحل',
+      type: 'expense',
+      category: 'مشتريات خامات مطعم',
+      amount: total,
+      source: `شراء خامات: ${finalItemName}`,
+      notes: `شراء كمية: ${qty} | المورد: ${supplier || 'غير محدد'}`,
+      date: new Date().toLocaleString('ar-EG')
+    }]);
+
     setPurchaseItemName('');
     setPurchaseQty('');
     setPurchasePrice('');
     setSupplier('');
-    alert('تم حفظ حركة المشتريات بنجاح ✅');
+    alert('تم حفظ حركة المشتريات وخصم المبلغ من المحفظة بنجاح ✅');
     fetchPurchases();
   };
 
@@ -983,7 +1059,6 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
             return pDate >= from && pDate <= to;
           });
 
-          // الأصناف الأكثر طلباً
           const itemStats: { [key: string]: { name: string; qty: number; total: number } } = {};
           filteredSales.forEach(order => {
             const items = parseOrderItems(order.items);
@@ -1003,7 +1078,6 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
             .sort((a, b) => b.qty - a.qty)
             .slice(0, 5);
 
-          // الأكثر شراءً من العملاء
           const customerStats: { [key: string]: { name: string; phone: string; count: number; totalSpent: number } } = {};
           filteredSales.forEach(order => {
             const phone = order.phone || 'بدون رقم';
@@ -1021,7 +1095,6 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
             .sort((a, b) => b.totalSpent - a.totalSpent)
             .slice(0, 5);
 
-          // 🧮 الحسابات المالية الحقيقية (استبعاد الدليفري تماماً من المبيعات):
           const netFoodSales = filteredSales.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
           const totalExpenses = filteredPurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
           const netProfit = netFoodSales - totalExpenses;
@@ -1322,8 +1395,9 @@ const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers'
             </div>
           </div>
         )}
+
         {/* قسم المحفظة والسيولة المالية الشامل */}
-{activeTab === 'finance' && <PersonalFinance />}
+        {activeTab === 'finance' && <PersonalFinance />}
       </main>
     </div>
   );
