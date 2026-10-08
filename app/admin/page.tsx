@@ -197,7 +197,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     return Math.max(0, total - foodTotal);
   };
 
-  // طباعة حرارية احترافية للطابعات الحرارية Receipt Style 80mm
+  // طباعة حرارية احترافية منسقة بأسلوب الإيصال المطور مع الملاحظات وطريقة الدفع
   const handlePrintOrder = (order: any, journalNumber?: number) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -207,67 +207,123 @@ export default function CompleteEnterpriseAdminDashboard() {
     
     const deliveryFee = calculateDeliveryOnly(order);
     const foodTotal = calculateFoodTotalOnly(order);
-    const grandTotal = foodTotal + deliveryFee;
+    const discountAmount = Number(order.discount || 0);
+    const grandTotal = Math.max(0, foodTotal + deliveryFee - discountAmount);
+
+    const paymentMethodLabel = order.payment_method 
+      ? order.payment_method 
+      : (order.address?.includes('استلام') ? 'نقداً (كاش بالمحل)' : 'نقداً عند الاستلام (الدليفري)');
+
+    const dateLabel = new Date(order.created_at || Date.now()).toLocaleString('ar-EG');
 
     printWindow.document.write(`
       <html dir="rtl" lang="ar">
         <head>
-          <title>فاتورة طلب #${shortId}</title>
+          <title>إيصال طلب #${shortId}</title>
           <style>
-            @page { size: 80mm auto; margin: 0; }
-            * { box-sizing: border-box; -webkit-print-color-adjust: exact; color-adjust: exact; }
-            body { font-family: 'Segoe UI', 'Cairo', 'Tahoma', sans-serif; direction: rtl; text-align: right; padding: 10px; width: 78mm; margin: 0 auto; color: #000000 !important; background-color: #ffffff; font-size: 12px; }
-            .bill-card { border: 1px solid #000; padding: 8px; border-radius: 4px; }
-            .header { text-align: center; border-bottom: 2px dashed #000000; padding-bottom: 6px; margin-bottom: 8px; }
-            .title { font-size: 18px; font-weight: 900; margin: 0; color: #000000; }
-            .info-header { font-size: 11px; font-weight: 800; color: #000000; margin: 2px 0; }
-            .customer-box { border: 1px solid #000000; padding: 6px; border-radius: 4px; margin-bottom: 8px; font-size: 11px; }
-            .info-customer { margin: 3px 0; line-height: 1.3; }
-            .item-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin: 4px 0; border-bottom: 1px dotted #888; padding-bottom: 2px; }
-            .delivery-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin: 4px 0; padding-top: 2px; }
-            .total-row { border-top: 2px solid #000000; margin-top: 6px; padding-top: 6px; font-size: 15px; font-weight: 900; display: flex; justify-content: space-between; }
-            .footer { text-align: center; margin-top: 10px; font-size: 11px; border-top: 1px dashed #000; padding-top: 6px; }
+            body { font-family: Tahoma, Arial, sans-serif; margin: 0; padding: 0; background-color: #fff; color: #000; }
+            @page { size: 68mm auto; margin: 0; }
+            .rec { width: 68mm; padding: 6px; box-sizing: border-box; font-size: 12px; line-height: 1.35; margin: 0 auto; }
+            .rec h2 { text-align: center; margin: 4px 0; font-size: 14px; font-weight: bold; }
+            .rec table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+            .rec th, .rec td { border: 1px solid #000; padding: 4px 2px; }
+            .center { text-align: center; }
+            .right { text-align: right; }
+            .info-block { font-size: 12px; margin-bottom: 4px; line-height: 1.4; }
+            .notes-box { margin-top: 6px; padding: 6px; border: 1px dashed #000; font-size: 11px; }
           </style>
         </head>
         <body>
-          <div class="bill-card">
-            <div class="header">
-              <p class="title">🔥 Grill & Greens</p>
-              <p class="info-header">فاتورة طلب #${shortId}</p>
-              <p class="info-header">التاريخ: ${new Date(order.created_at || Date.now()).toLocaleString('ar-EG')}</p>
-            </div>
-            
-            <div class="customer-box">
-              <p class="info-customer"><strong>العميل:</strong> ${order.customer_name || 'عميل'}</p>
-              <p class="info-customer"><strong>الهاتف:</strong> ${order.phone || '-'}</p>
-              <p class="info-customer"><strong>العنوان:</strong> ${order.address || 'استلام من الفرع'}</p>
-              ${order.notes ? `<p class="info-customer" style="margin-top: 4px; padding-top: 2px; border-top: 1px dashed #000;"><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
+          <div class="rec">
+            <div style="text-align:center">
+              <img src="https://www2.0zz0.com/2025/12/05/23/289980791.png" style="width:160px;height:auto;display:block;margin:0 auto 2px" alt="Logo">
+              <h2 style="margin:2px 0 0;font-size:15px">Grill & Greens | Sohag</h2>
+              <div style="font-size:13px;margin-bottom:6px">أكل بيتي – سوهاج<br> 01101616480 📞</div>
             </div>
 
-            <div>
-              <strong style="font-size: 12px; display: block; margin-bottom: 4px;">الأصناف:</strong>
-              ${itemsArr.map((it: any) => `
-                <div class="item-row">
-                  <span>${it.name || it.title} × ${it.qty || it.quantity || 1}</span>
-                  <span>${(it.price || 0) * (it.qty || it.quantity || 1)} ج.م</span>
-                </div>
-              `).join('')}
+            <hr style="border: none; border-top: 1px dashed #000; margin: 4px 0;">
+
+            <div class="info-block">
+              رقم الطلب: <b>#${shortId}</b>
             </div>
-            
-            ${deliveryFee > 0 ? `
-              <div class="delivery-row">
-                <span>🛵 خدمة التوصيل:</span>
-                <span>${deliveryFee} ج.م</span>
+            <div class="info-block">
+              التاريخ: ${dateLabel}
+            </div>
+            <div class="info-block">
+              العميل: ${order.customer_name || order.name || 'عميل'} ${order.phone ? ' - ' + order.phone : ''}
+            </div>
+            <div class="info-block">
+              العنوان: ${order.address || order.addr || 'استلام من الفرع'}
+            </div>
+            <div class="info-block">
+              طريقة الدفع: <b>${paymentMethodLabel}</b>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40%">الصنف</th>
+                  <th style="width:15%">كمية</th>
+                  <th style="width:20%">سعر</th>
+                  <th style="width:25%">إجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsArr.map((i: any) => {
+                  const price = Number(i.price || 0);
+                  const qty = Number(i.qty || i.quantity || 1);
+                  return `
+                    <tr>
+                      <td class="right">${i.name || i.title}</td>
+                      <td class="center">${qty}</td>
+                      <td class="center">${price.toFixed(2)}</td>
+                      <td class="center">${(price * qty).toFixed(2)}</td>
+                    </tr>
+                  `;
+                }).join('')}
+
+                <tr>
+                  <td colspan="3" class="right">الإجمالي قبل الخصم</td>
+                  <td class="center">${foodTotal.toFixed(2)} ج</td>
+                </tr>
+                ${discountAmount > 0 ? `
+                  <tr>
+                    <td colspan="3" class="right">الخصم</td>
+                    <td class="center">-${discountAmount.toFixed(2)} ج</td>
+                  </tr>
+                ` : ''}
+                <tr>
+                  <td colspan="3" class="right">التوصيل</td>
+                  <td class="center">+${deliveryFee.toFixed(2)} ج</td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="right"><b>الإجمالي النهائي</b></td>
+                  <td class="center"><b>${grandTotal.toFixed(2)} ج</b></td>
+                </tr>
+              </tbody>
+            </table>
+
+            ${order.notes ? `
+              <div class="notes-box">
+                <b>ملاحظات الطلب:</b> ${order.notes}
               </div>
             ` : ''}
 
-            <div class="total-row">
-              <span>الإجمالي الكلي:</span>
-              <span>${grandTotal} ج.م</span>
-            </div>
-            
-            <div class="footer">
-              <p>شكراً لطلبكم من Grill & Greens! 😋</p>
+            <div style="text-align:center;margin-top:8px">
+              <p style="font-size:11px;margin:2px 0">تابعونا على فيسبوك واطلب مباشرة عبر واتساب 📱</p>
+
+              <div style="display:flex;justify-content:center;gap:10px;margin-top:6px">
+                <div class="center">
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent('https://www.facebook.com/GrillGreens')}" width="70" height="70">
+                  <br><span style="font-size:9px">Facebook</span>
+                </div>
+                <div class="center">
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent('https://wa.me/201101616480')}" width="70" height="70">
+                  <br><span style="font-size:9px">WhatsApp</span>
+                </div>
+              </div>
+
+              <p style="font-size:12px;margin-top:6px;font-weight:bold">شكرًا لاختياركم Grill & Greens 🌿</p>
             </div>
           </div>
           <script>
@@ -369,7 +425,11 @@ export default function CompleteEnterpriseAdminDashboard() {
     }]);
 
     if (!walletErr) {
-      await supabase.from('orders').update({ status: 'completed' }).eq('id', pendingDeliveryOrder.id);
+      await supabase.from('orders').update({ 
+        status: 'completed',
+        payment_method: accountNames[deliveryPaymentAccount] || 'الكاش / درج المحل'
+      }).eq('id', pendingDeliveryOrder.id);
+      
       await registerOrderInJournal(pendingDeliveryOrder);
 
       await supabase.from('customers').upsert(
@@ -746,7 +806,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <td className="p-3 text-slate-300">{j.payment_method}</td>
                       <td className="p-3 font-bold text-emerald-400">{j.total_amount} ج.م</td>
                       <td className="p-3">
-                        <button onClick={() => handlePrintOrder({ id: j.order_id, customer_name: j.customer_name }, j.journal_order_number)} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold">🖨️ طباعة</button>
+                        <button onClick={() => handlePrintOrder({ id: j.order_id, customer_name: j.customer_name, payment_method: j.payment_method }, j.journal_order_number)} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold">🖨️ طباعة</button>
                       </td>
                     </tr>
                   ))}
