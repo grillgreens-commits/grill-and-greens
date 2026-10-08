@@ -14,12 +14,14 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'live_orders' | 'sales' | 'customers' | 'purchases' | 'menu' | 'reports' | 'settings' | 'finance'>('live_orders');  
+  const [activeTab, setActiveTab] = useState<'journal' | 'live_orders' | 'sales' | 'customers' | 'purchases' | 'inventory' | 'menu' | 'cost_report' | 'reports' | 'finance' | 'settings'>('live_orders');  
   
   const [orders, setOrders] = useState<any[]>([]);
+  const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [purchaseLogs, setPurchaseLogs] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [ingredients, setIngredients] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
   const [selectedItemCard, setSelectedItemCard] = useState<string | null>(null);
@@ -50,6 +52,11 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [productCategory, setProductCategory] = useState('المشويات');
   const [productImageUrl, setProductImageUrl] = useState('');
 
+  const [ingredientName, setIngredientName] = useState('');
+  const [ingredientUnit, setIngredientUnit] = useState('جرام');
+  const [ingredientCost, setIngredientCost] = useState('');
+  const [ingredientStock, setIngredientStock] = useState('');
+
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
   useEffect(() => {
@@ -68,6 +75,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       .channel('realtime_orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         fetchOrders();
+        fetchJournal();
       })
       .subscribe();
 
@@ -102,13 +110,18 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchOrders(), fetchCustomers(), fetchPurchases(), fetchProducts()]);
+    await Promise.all([fetchOrders(), fetchJournal(), fetchCustomers(), fetchPurchases(), fetchProducts(), fetchIngredients()]);
     setLoading(false);
   };
 
   const fetchOrders = async () => {
     const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (data) setOrders(data);
+  };
+
+  const fetchJournal = async () => {
+    const { data } = await supabase.from('daily_journal').select('*').order('journal_order_number', { ascending: false });
+    if (data) setJournalEntries(data);
   };
 
   const fetchCustomers = async () => {
@@ -141,6 +154,11 @@ export default function CompleteEnterpriseAdminDashboard() {
       }));
       setProducts(formatted);
     }
+  };
+
+  const fetchIngredients = async () => {
+    const { data } = await supabase.from('ingredients').select('*').order('id', { ascending: true });
+    if (data) setIngredients(data);
   };
 
   const parseOrderItems = (itemsRaw: any): any[] => {
@@ -179,12 +197,13 @@ export default function CompleteEnterpriseAdminDashboard() {
     return Math.max(0, total - foodTotal);
   };
 
-  const handlePrintOrder = (order: any) => {
+  // طباعة حرارية احترافية للطابعات الحرارية Receipt Style 80mm
+  const handlePrintOrder = (order: any, journalNumber?: number) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
     const itemsArr = parseOrderItems(order.items);
-    const shortId = String(order.id).split('-')[0].toUpperCase();
+    const shortId = journalNumber ? String(journalNumber) : String(order.id).split('-')[0].toUpperCase();
     
     const deliveryFee = calculateDeliveryOnly(order);
     const foodTotal = calculateFoodTotalOnly(order);
@@ -195,26 +214,26 @@ export default function CompleteEnterpriseAdminDashboard() {
         <head>
           <title>فاتورة طلب #${shortId}</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&display=swap');
+            @page { size: 80mm auto; margin: 0; }
             * { box-sizing: border-box; -webkit-print-color-adjust: exact; color-adjust: exact; }
-            body { font-family: 'Cairo', 'Tahoma', sans-serif; direction: rtl; text-align: right; padding: 8px; max-width: 320px; margin: 0 auto; color: #000000 !important; background-color: #ffffff; }
-            .bill-card { border: 2px solid #000; padding: 10px; border-radius: 6px; }
-            .header { text-align: center; border-bottom: 2px dashed #000000; padding-bottom: 8px; margin-bottom: 10px; }
-            .title { font-size: 20px; font-weight: 900; margin: 0; color: #000000; }
-            .info-header { font-size: 13px; font-weight: 800; color: #000000; margin: 3px 0; }
-            .customer-box { border: 1.5px solid #000000; padding: 8px; border-radius: 6px; margin-bottom: 10px; background-color: #ffffff; }
-            .info-customer { font-size: 14px; font-weight: 800; color: #000000; margin: 4px 0; line-height: 1.4; }
-            .item-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: #000000; margin: 6px 0; border-bottom: 1px dotted #ccc; padding-bottom: 3px; }
-            .delivery-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: #000000; margin: 6px 0; padding-top: 4px; }
-            .total-row { border-top: 2px solid #000000; margin-top: 8px; padding-top: 8px; font-size: 17px; font-weight: 900; color: #000000; display: flex; justify-content: space-between; }
-            .footer { text-align: center; margin-top: 12px; font-size: 12px; font-weight: 800; color: #000000; }
+            body { font-family: 'Segoe UI', 'Cairo', 'Tahoma', sans-serif; direction: rtl; text-align: right; padding: 10px; width: 78mm; margin: 0 auto; color: #000000 !important; background-color: #ffffff; font-size: 12px; }
+            .bill-card { border: 1px solid #000; padding: 8px; border-radius: 4px; }
+            .header { text-align: center; border-bottom: 2px dashed #000000; padding-bottom: 6px; margin-bottom: 8px; }
+            .title { font-size: 18px; font-weight: 900; margin: 0; color: #000000; }
+            .info-header { font-size: 11px; font-weight: 800; color: #000000; margin: 2px 0; }
+            .customer-box { border: 1px solid #000000; padding: 6px; border-radius: 4px; margin-bottom: 8px; font-size: 11px; }
+            .info-customer { margin: 3px 0; line-height: 1.3; }
+            .item-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin: 4px 0; border-bottom: 1px dotted #888; padding-bottom: 2px; }
+            .delivery-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin: 4px 0; padding-top: 2px; }
+            .total-row { border-top: 2px solid #000000; margin-top: 6px; padding-top: 6px; font-size: 15px; font-weight: 900; display: flex; justify-content: space-between; }
+            .footer { text-align: center; margin-top: 10px; font-size: 11px; border-top: 1px dashed #000; padding-top: 6px; }
           </style>
         </head>
         <body>
           <div class="bill-card">
             <div class="header">
               <p class="title">🔥 Grill & Greens</p>
-              <p class="info-header">طلب #${shortId}</p>
+              <p class="info-header">فاتورة طلب #${shortId}</p>
               <p class="info-header">التاريخ: ${new Date(order.created_at || Date.now()).toLocaleString('ar-EG')}</p>
             </div>
             
@@ -222,11 +241,11 @@ export default function CompleteEnterpriseAdminDashboard() {
               <p class="info-customer"><strong>العميل:</strong> ${order.customer_name || 'عميل'}</p>
               <p class="info-customer"><strong>الهاتف:</strong> ${order.phone || '-'}</p>
               <p class="info-customer"><strong>العنوان:</strong> ${order.address || 'استلام من الفرع'}</p>
-              ${order.notes ? `<p class="info-customer" style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed #000;"><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
+              ${order.notes ? `<p class="info-customer" style="margin-top: 4px; padding-top: 2px; border-top: 1px dashed #000;"><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
             </div>
 
             <div>
-              <strong style="font-size: 14px; font-weight: 900; color: #000000; display: block; margin-bottom: 6px;">الأصناف:</strong>
+              <strong style="font-size: 12px; display: block; margin-bottom: 4px;">الأصناف:</strong>
               ${itemsArr.map((it: any) => `
                 <div class="item-row">
                   <span>${it.name || it.title} × ${it.qty || it.quantity || 1}</span>
@@ -237,7 +256,7 @@ export default function CompleteEnterpriseAdminDashboard() {
             
             ${deliveryFee > 0 ? `
               <div class="delivery-row">
-                <span>🛵 خدمة التوصيل (شركة التوصيل):</span>
+                <span>🛵 خدمة التوصيل:</span>
                 <span>${deliveryFee} ج.م</span>
               </div>
             ` : ''}
@@ -260,7 +279,28 @@ export default function CompleteEnterpriseAdminDashboard() {
     printWindow.document.close();
   };
 
+  // تسجيل الطلب في دفتر اليومية برقم ثابت
+  const registerOrderInJournal = async (order: any) => {
+    const { data: maxEntry } = await supabase.from('daily_journal').select('journal_order_number').order('journal_order_number', { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (maxEntry?.journal_order_number || 1000) + 1;
+
+    const { error } = await supabase.from('daily_journal').insert([{
+      order_id: String(order.id),
+      journal_order_number: nextNumber,
+      customer_name: order.customer_name,
+      order_type: order.address?.includes('استلام') ? 'Takeaway' : 'Delivery',
+      payment_method: deliveryPaymentAccount,
+      total_amount: calculateFoodTotalOnly(order)
+    }]);
+
+    if (!error) {
+      fetchJournal();
+    }
+  };
+
   const updateOrderStatus = async (id: number | string, status: string, orderData?: any) => {
+    if (status === 'cancelled' && !confirm('هل أنت تأكد من إلغاء الفاتورة؟')) return;
+
     if (status === 'completed' && orderData) {
       setPendingDeliveryOrder(orderData);
       setDeliveryPaymentAccount('cash');
@@ -293,6 +333,8 @@ export default function CompleteEnterpriseAdminDashboard() {
           notes: `خصم تلقائي بعد إلغاء الأوردر من (${refundAccountName})`,
           date: new Date().toLocaleString('ar-EG')
         }]);
+
+        await supabase.from('daily_journal').delete().eq('order_id', String(id));
       }
     }
 
@@ -300,6 +342,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (!error) {
       fetchOrders();
       fetchCustomers();
+      fetchJournal();
     }
   };
 
@@ -327,6 +370,8 @@ export default function CompleteEnterpriseAdminDashboard() {
 
     if (!walletErr) {
       await supabase.from('orders').update({ status: 'completed' }).eq('id', pendingDeliveryOrder.id);
+      await registerOrderInJournal(pendingDeliveryOrder);
+
       await supabase.from('customers').upsert(
         { name: pendingDeliveryOrder.customer_name, phone: pendingDeliveryOrder.phone, address: pendingDeliveryOrder.address },
         { onConflict: 'phone' }
@@ -335,7 +380,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       setPendingDeliveryOrder(null);
       fetchOrders();
       fetchCustomers();
-      alert(`تم تسليم الأوردر وإضافة ${foodAmount} ج.م لمقبوضات (${accountNames[deliveryPaymentAccount]}) بنجاح ✅`);
+      alert(`تم تسليم الأوردر وتسجيله باليومية وإضافة ${foodAmount} ج.م إلى (${accountNames[deliveryPaymentAccount]}) بنجاح ✅`);
     } else {
       alert('حدث خطأ في التسجيل: ' + walletErr.message);
     }
@@ -533,6 +578,26 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
+  const handleAddIngredient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ingredientName || !ingredientCost) return alert('يرجى كتابة اسم الخامة وتكلفتها');
+
+    const { error } = await supabase.from('ingredients').insert([{
+      name: ingredientName,
+      unit: ingredientUnit,
+      cost_per_unit: parseFloat(ingredientCost),
+      current_stock: parseFloat(ingredientStock || '0')
+    }]);
+
+    if (!error) {
+      alert('تمت إضافة الخامة للمخزون بنجاح ✅');
+      setIngredientName('');
+      setIngredientCost('');
+      setIngredientStock('');
+      fetchIngredients();
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 dir-rtl font-sans" dir="rtl">
@@ -604,7 +669,7 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans dir-rtl" dir="rtl">
-      {/* 🔴 Top Dark Bar */}
+      {/* Top Header Bar */}
       <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 px-6 py-3.5 flex justify-between items-center shadow-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-center text-xl">🔥</div>
@@ -624,11 +689,14 @@ export default function CompleteEnterpriseAdminDashboard() {
         </div>
       </header>
 
-      {/* 🟢 Modern Nav Tabs */}
+      {/* Navigation Tabs */}
       <nav className="bg-slate-900 border-b border-slate-800/80 px-6 py-2 overflow-x-auto flex gap-2">
         {[
+          { id: 'journal', label: `📔 دفتر اليومية الرسمية (${journalEntries.length})` },
           { id: 'live_orders', label: `📦 الطلبات الحية (${pendingOrders.length})` },
           { id: 'sales', label: `💰 المبيعات (${activeSales.length})` },
+          { id: 'inventory', label: `🥦 المخزون والمكونات (${ingredients.length})` },
+          { id: 'cost_report', label: `📊 تقرير التكلفة والربح` },
           { id: 'customers', label: `👥 قاعدة العملاء (${customers.length})` },
           { id: 'purchases', label: `🛒 المشتريات` },
           { id: 'menu', label: `🍔 إدارة المنيو (${products.length})` },
@@ -651,7 +719,44 @@ export default function CompleteEnterpriseAdminDashboard() {
       </nav>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* 1. الطلبات الحية */}
+        {/* 1. دفتر اليومية الرسمية */}
+        {activeTab === 'journal' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <h2 className="text-lg font-bold text-white">📔 دفتر اليومية الرسمي (الطلبات المسجلة برقم موحد)</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                  <tr>
+                    <th className="p-3">رقم الطلب الثابت</th>
+                    <th className="p-3">التاريخ والوقت</th>
+                    <th className="p-3">اسم العميل</th>
+                    <th className="p-3">نوع الطلب</th>
+                    <th className="p-3">طريقة الدفع</th>
+                    <th className="p-3">الإجمالي (ج.م)</th>
+                    <th className="p-3">الطباعة الحرارية</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {journalEntries.map(j => (
+                    <tr key={j.id} className="hover:bg-slate-800/40">
+                      <td className="p-3 font-black text-emerald-400">#{j.journal_order_number}</td>
+                      <td className="p-3 text-slate-400">{new Date(j.created_at).toLocaleString('ar-EG')}</td>
+                      <td className="p-3 font-bold text-slate-200">{j.customer_name}</td>
+                      <td className="p-3 text-slate-300">{j.order_type}</td>
+                      <td className="p-3 text-slate-300">{j.payment_method}</td>
+                      <td className="p-3 font-bold text-emerald-400">{j.total_amount} ج.م</td>
+                      <td className="p-3">
+                        <button onClick={() => handlePrintOrder({ id: j.order_id, customer_name: j.customer_name }, j.journal_order_number)} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold">🖨️ طباعة</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 2. الطلبات الحية */}
         {activeTab === 'live_orders' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -747,7 +852,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 2. قسم المبيعات */}
+        {/* 3. قسم المبيعات */}
         {activeTab === 'sales' && (
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
             <h2 className="text-lg font-bold text-white">قسم المبيعات والفواتير المكتملة (مبيعات الوجبات فقط)</h2>
@@ -801,7 +906,91 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 3. قسم العملاء */}
+        {/* 4. إدارة المخزون والمكونات */}
+        {activeTab === 'inventory' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-3 text-white">إضافة خامة / مكون جديد للمخزون</h2>
+              <form onSubmit={handleAddIngredient} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <input type="text" placeholder="اسم الخامة (مثال: لحم بلدي)" value={ingredientName} onChange={e => setIngredientName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
+                <select value={ingredientUnit} onChange={e => setIngredientUnit(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none font-bold">
+                  <option value="جرام">جرام</option>
+                  <option value="كيلو">كيلو</option>
+                  <option value="قطعة">قطعة</option>
+                  <option value="مل">مل</option>
+                </select>
+                <input type="number" placeholder="تكلفة الوحدة (ج.م)" value={ingredientCost} onChange={e => setIngredientCost(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
+                <input type="number" placeholder="الرصيد الافتتاحي" value={ingredientStock} onChange={e => setIngredientStock(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" />
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-3 rounded-xl text-xs transition">حفظ بالمخزون 🥦</button>
+              </form>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-3 text-white">رصيد المواد الخام والمكونات الحالية</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-slate-950 font-bold border-b border-slate-800 text-slate-400">
+                    <tr>
+                      <th className="p-3">اسم الخامة</th>
+                      <th className="p-3">الوحدة</th>
+                      <th className="p-3">تكلفة الوحدة</th>
+                      <th className="p-3">الرصيد الحالي</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {ingredients.map(ing => (
+                      <tr key={ing.id}>
+                        <td className="p-3 font-bold text-white">{ing.name}</td>
+                        <td className="p-3 text-slate-300">{ing.unit}</td>
+                        <td className="p-3 text-slate-300">{ing.cost_per_unit} ج.م</td>
+                        <td className="p-3 font-bold text-emerald-400">{ing.current_stock}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 5. تقرير التكلفة والربح */}
+        {activeTab === 'cost_report' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <h2 className="text-lg font-bold text-white">📊 تقرير التكلفة والربح (مرتبط حصرياً بالطلبات المسجلة باليومية)</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                  <tr>
+                    <th className="p-3">رقم الطلب (اليومية)</th>
+                    <th className="p-3">التاريخ</th>
+                    <th className="p-3">العميل</th>
+                    <th className="p-3">سعر البيع</th>
+                    <th className="p-3">التكلفة التقديرية</th>
+                    <th className="p-3">صافي الربح</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {journalEntries.map(j => {
+                    const estimatedCost = (j.total_amount || 0) * 0.6;
+                    const profit = (j.total_amount || 0) - estimatedCost;
+                    return (
+                      <tr key={j.id}>
+                        <td className="p-3 font-bold text-emerald-400">#{j.journal_order_number}</td>
+                        <td className="p-3 text-slate-400">{new Date(j.created_at).toLocaleDateString('ar-EG')}</td>
+                        <td className="p-3 text-slate-200">{j.customer_name}</td>
+                        <td className="p-3 font-bold text-emerald-400">{j.total_amount} ج.م</td>
+                        <td className="p-3 font-bold text-amber-400">{estimatedCost.toFixed(2)} ج.م</td>
+                        <td className="p-3 font-bold text-blue-400">{profit.toFixed(2)} ج.م</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 6. قسم العملاء */}
         {activeTab === 'customers' && (
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
             <div className="flex flex-wrap justify-between items-center gap-3">
@@ -883,7 +1072,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 4. قسم المشتريات */}
+        {/* 7. قسم المشتريات */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
@@ -989,7 +1178,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 5. قسم إدارة المنيو */}
+        {/* 8. قسم إدارة المنيو */}
         {activeTab === 'menu' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
@@ -1095,7 +1284,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 6. قسم التقارير الشاملة والتحليلات */}
+        {/* 9. قسم التقارير الشاملة والتحليلات */}
         {activeTab === 'reports' && (() => {
           const filteredSales = activeSales.filter(o => {
             if (!salesDateFrom && !salesDateTo) return true;
@@ -1336,7 +1525,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                 </div>
               </div>
 
-              {/* بطاقات المؤشرات المالية بدون الدليفري */}
+              {/* بطاقات المؤشرات المالية */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-slate-900 border border-emerald-500/20 p-6 rounded-3xl shadow-xl">
                   <p className="text-xs text-emerald-400 font-bold">إجمالي المبيعات والإيرادات (الوجبات فقط)</p>
@@ -1429,7 +1618,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           );
         })()}
 
-        {/* 7. قسم الإعدادات */}
+        {/* 10. قسم الإعدادات */}
         {activeTab === 'settings' && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl max-w-2xl">
             <h2 className="text-lg font-bold mb-4 text-white">إعدادات النظام والمطعم</h2>
@@ -1459,7 +1648,7 @@ export default function CompleteEnterpriseAdminDashboard() {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
             <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3">
-              💳 تسليم الأوردر #{String(pendingDeliveryOrder.id).split('-')[0].toUpperCase()}
+              💳 تسليم الأوردر وتسجيله بالدفتر اليومي
             </h3>
             
             <p className="text-xs font-bold text-slate-300">
