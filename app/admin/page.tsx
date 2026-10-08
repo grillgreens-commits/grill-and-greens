@@ -260,7 +260,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     printWindow.document.close();
   };
 
-  // 🛠️ تحديث حالة الأوردر بشكل متوافق مع المرتجعات المباشرة
   const updateOrderStatus = async (id: number | string, status: string, orderData?: any) => {
     if (status === 'completed' && orderData) {
       setPendingDeliveryOrder(orderData);
@@ -268,7 +267,6 @@ export default function CompleteEnterpriseAdminDashboard() {
       return;
     }
 
-    // 🎯 عند الإلغاء: خصم المرتجع تلقائياً من نفس الكارت الذي استلم الفلوس عند التسليم
     if (status === 'cancelled') {
       const targetOrder = orders.find(o => o.id === id);
       if (targetOrder && targetOrder.status === 'completed') {
@@ -343,7 +341,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 🎯 إلغاء حركة مشتريات ورد الفلوس تلقائياً لنفس الكارت
   const cancelPurchaseTransaction = async (id: number) => {
     if (!confirm('هل أنت تأكد من إلغاء هذه الحركة وإرجاع المبلغ للمحفظة؟')) return;
 
@@ -538,37 +535,35 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 dir-rtl" dir="rtl">
-        <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-gray-100">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-            🔒
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 dir-rtl font-sans" dir="rtl">
+        <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-5 text-3xl shadow-inner">
+            🔐
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">لوحة التحكم - Grill & Greens</h2>
-          <p className="text-sm text-gray-500 mb-6">يرجى إدخال كلمة المرور للوصول إلى بيانات الإدارة والطلبات</p>
+          <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Grill & Greens ERP</h2>
+          <p className="text-xs text-slate-400 mb-6 font-medium">لوحة التحكم السحابية وإدارة النظام</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <input
-                type="password"
-                placeholder="أدخل كلمة المرور..."
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full border-2 border-gray-200 focus:border-emerald-600 focus:outline-none p-3 rounded-xl text-center text-lg font-bold tracking-widest"
-                autoFocus
-              />
-              {authError && <p className="text-xs text-red-600 font-bold mt-2">{authError}</p>}
-            </div>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none p-3.5 rounded-xl text-center text-xl font-bold tracking-widest transition"
+              autoFocus
+            />
+            {authError && <p className="text-xs text-rose-500 font-bold">{authError}</p>}
 
             <button
               type="submit"
-              className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-3 rounded-xl shadow-lg transition"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-900/30 transition-all active:scale-[0.98]"
             >
-              دخول اللوحة 🔑
+              تسجيل الدخول 🔑
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t text-xs text-gray-400">
-            <a href="/" className="hover:underline text-emerald-700 font-bold">← العودة لصفحة العميل / المنيو</a>
+          <div className="mt-6 pt-4 border-t border-slate-800 text-xs">
+            <a href="/" className="hover:underline text-emerald-400 font-bold">← العودة لصفحة العميل / المنيو</a>
           </div>
         </div>
       </div>
@@ -608,24 +603,29 @@ export default function CompleteEnterpriseAdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 font-sans dir-rtl" dir="rtl">
-      {/* Header */}
-      <header className="bg-emerald-900 text-white shadow-md p-4 flex flex-wrap justify-between items-center gap-2">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          🔥 Grill & Greens | لوحة التحكم الإدارية
-        </h1>
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans dir-rtl" dir="rtl">
+      {/* 🔴 Top Dark Bar */}
+      <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 px-6 py-3.5 flex justify-between items-center shadow-xl">
         <div className="flex items-center gap-3">
-          <a href="/" className="text-xs bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded-lg font-bold transition">
-            🏪 صفحة العميل
+          <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-center text-xl">🔥</div>
+          <div>
+            <h1 className="text-base font-black text-white tracking-tight">Grill & Greens ERP</h1>
+            <p className="text-[10px] text-emerald-400 font-medium">لوحة الإدارة والمبيعات الشاملة</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <a href="/" className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5">
+            <span>🏪</span> صفحة العميل
           </a>
-          <button onClick={handleLogout} className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold transition">
+          <button onClick={handleLogout} className="text-xs bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-3.5 py-2 rounded-xl font-bold transition">
             خروج 🚪
           </button>
         </div>
       </header>
 
-      {/* Tabs */}
-      <nav className="bg-white shadow-sm border-b overflow-x-auto flex gap-2 p-2">
+      {/* 🟢 Modern Nav Tabs */}
+      <nav className="bg-slate-900 border-b border-slate-800/80 px-6 py-2 overflow-x-auto flex gap-2">
         {[
           { id: 'live_orders', label: `📦 الطلبات الحية (${pendingOrders.length})` },
           { id: 'sales', label: `💰 المبيعات (${activeSales.length})` },
@@ -639,8 +639,10 @@ export default function CompleteEnterpriseAdminDashboard() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition ${
-              activeTab === tab.id ? 'bg-emerald-700 text-white shadow' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap border ${
+              activeTab === tab.id
+                ? 'bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-lg shadow-emerald-900/20'
+                : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200'
             }`}
           >
             {tab.label}
@@ -648,13 +650,20 @@ export default function CompleteEnterpriseAdminDashboard() {
         ))}
       </nav>
 
-      <main className="p-4 max-w-7xl mx-auto">
+      <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* 1. الطلبات الحية */}
         {activeTab === 'live_orders' && (
-          <div>
-            <h2 className="text-lg font-bold mb-4 text-emerald-900">قسم الفواتير والطلبات الحالية (قيد الانتظار والتجهيز)</h2>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold text-white">قسم الفواتير والطلبات الحالية (قيد الانتظار والتجهيز)</h2>
+              <span className="text-xs text-slate-400 font-medium">مزامنة فورية حية 🟢</span>
+            </div>
+
             {pendingOrders.length === 0 ? (
-              <div className="bg-white p-8 text-center rounded-lg border text-gray-500">لا توجد طلبات جارية حالياً.</div>
+              <div className="bg-slate-900 border border-slate-800 p-12 text-center rounded-3xl text-slate-500">
+                <span className="text-4xl block mb-2">🎉</span>
+                <p className="font-bold">لا توجد طلبات جارية حالياً.</p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pendingOrders.map(order => {
@@ -663,38 +672,41 @@ export default function CompleteEnterpriseAdminDashboard() {
                   const deliveryFee = calculateDeliveryOnly(order);
                   
                   return (
-                    <div key={order.id} className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 flex flex-col justify-between">
+                    <div key={order.id} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
                       <div>
-                        <div className="flex justify-between items-center border-b pb-2 mb-2">
-                          <span className="font-extrabold text-emerald-800">
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                          <span className="font-black text-emerald-400 text-base">
                             طلب #{String(order.id).split('-')[0].toUpperCase()}
                           </span>
-                          <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                            order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                            order.status === 'preparing' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                          <span className={`text-[10px] px-2.5 py-1 rounded-lg font-black border ${
+                            order.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                            order.status === 'preparing' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
                           }`}>
                             {order.status === 'pending' ? '⏳ قيد الانتظار' : order.status === 'preparing' ? '👨‍🍳 جاري التجهيز' : '🛵 في الطريق'}
                           </span>
                         </div>
-                        <p className="font-bold text-gray-900">{order.customer_name}</p>
-                        <p className="text-sm text-gray-600">📱 {order.phone}</p>
-                        <p className="text-sm text-gray-600">📍 {order.address}</p>
-                        {order.notes && <p className="text-xs text-amber-700 mt-1 bg-amber-50 p-1.5 rounded">📝 {order.notes}</p>}
 
-                        <div className="mt-3 bg-gray-50 p-2 rounded text-sm">
-                          <p className="font-bold border-b pb-1 mb-1">الأصناف:</p>
+                        <div className="space-y-1 text-xs">
+                          <p className="font-bold text-slate-200 text-sm">{order.customer_name}</p>
+                          <p className="text-slate-400">📱 {order.phone}</p>
+                          <p className="text-slate-400">📍 {order.address}</p>
+                          {order.notes && <p className="text-amber-400 bg-amber-500/10 p-2 rounded-xl mt-2 border border-amber-500/20">📝 {order.notes}</p>}
+                        </div>
+
+                        <div className="mt-4 bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1.5">
+                          <p className="font-bold text-slate-400 border-b border-slate-800 pb-1">الأصناف:</p>
                           {itemsList.length === 0 ? (
-                            <p className="text-xs text-gray-400">لا توجد تفاصيل أصناف</p>
+                            <p className="text-xs text-slate-500">لا توجد تفاصيل أصناف</p>
                           ) : (
                             itemsList.map((item: any, idx: number) => (
-                              <div key={idx} className="flex justify-between text-xs py-0.5">
+                              <div key={idx} className="flex justify-between text-slate-300">
                                 <span>{item.name || item.title} × {item.qty || item.quantity || 1}</span>
-                                <span>{(item.price || 0) * (item.qty || item.quantity || 1)} ج.م</span>
+                                <span className="font-bold">{(item.price || 0) * (item.qty || item.quantity || 1)} ج.م</span>
                               </div>
                             ))
                           )}
                           {deliveryFee > 0 && (
-                            <div className="flex justify-between text-xs py-0.5 border-t border-dashed border-gray-300 mt-1 pt-1 font-bold text-amber-800">
+                            <div className="flex justify-between text-amber-400 border-t border-dashed border-slate-800 pt-1.5 mt-1 font-bold">
                               <span>🛵 رسوم التوصيل (شركة أخرى):</span>
                               <span>{deliveryFee} ج.م</span>
                             </div>
@@ -702,31 +714,29 @@ export default function CompleteEnterpriseAdminDashboard() {
                         </div>
                       </div>
 
-                      <div className="mt-4 border-t pt-3">
-                        <div className="flex justify-between font-bold text-emerald-900 text-xs mb-1">
+                      <div className="mt-5 pt-3 border-t border-slate-800 space-y-3">
+                        <div className="flex justify-between font-medium text-slate-400 text-xs">
                           <span>مبيعات الوجبات الصافية:</span>
-                          <span>{foodTotal} ج.م</span>
+                          <span className="text-emerald-400 font-bold">{foodTotal} ج.م</span>
                         </div>
-                        <div className="flex justify-between font-bold text-gray-900 text-sm mb-3 border-t pt-1">
+                        <div className="flex justify-between font-black text-sm text-white border-t border-slate-800 pt-1">
                           <span>المبلغ المطلوب من العميل:</span>
-                          <span>{foodTotal + deliveryFee} ج.م</span>
+                          <span className="text-emerald-400">{foodTotal + deliveryFee} ج.م</span>
                         </div>
 
-                        <div className="mb-2">
-                          <button
-                            onClick={() => handlePrintOrder(order)}
-                            className="w-full bg-gray-900 hover:bg-black text-white py-1.5 rounded font-bold text-xs flex items-center justify-center gap-1 shadow-sm transition"
-                          >
-                            <span>🖨</span> طباعة الفاتورة
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handlePrintOrder(order)}
+                          className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                        >
+                          <span>🖨</span> طباعة الفاتورة
+                        </button>
 
                         <div className="grid grid-cols-2 gap-2 text-xs">
-                          <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 text-white py-1.5 rounded font-bold hover:bg-blue-700">تجهيز 👨‍‍🍳</button>
-                          <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="bg-purple-600 text-white py-1.5 rounded font-bold hover:bg-purple-700">توصيل 🛵</button>
-                          <button onClick={() => updateOrderStatus(order.id, 'completed', order)} className="bg-green-600 text-white py-1.5 rounded font-bold hover:bg-green-700 col-span-2">تسليم وحفظ المبيعات ✅</button>
-                          <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="bg-red-100 text-red-700 py-1.5 rounded font-bold hover:bg-red-200">إلغاء الفاتورة ❌</button>
-                          <button onClick={() => sendWhatsAppNotification(order.phone, order.id, order.status)} className="bg-emerald-100 text-emerald-800 py-1.5 rounded font-bold hover:bg-emerald-200 flex items-center justify-center gap-1">📱 واتساب</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl font-bold transition">تجهيز 👨‍‍🍳</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-xl font-bold transition">توصيل 🛵</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'completed', order)} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 py-2.5 rounded-xl font-black col-span-2 transition">تسليم وحفظ المبيعات ✅</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white py-2 rounded-xl font-bold transition">إلغاء الفاتورة ❌</button>
+                          <button onClick={() => sendWhatsAppNotification(order.phone, order.id, order.status)} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1">📱 واتساب</button>
                         </div>
                       </div>
                     </div>
@@ -739,19 +749,19 @@ export default function CompleteEnterpriseAdminDashboard() {
 
         {/* 2. قسم المبيعات */}
         {activeTab === 'sales' && (
-          <div className="bg-white p-4 rounded-xl shadow-sm border space-y-4">
-            <h2 className="text-lg font-bold text-emerald-900">قسم المبيعات والفواتير المكتملة (مبيعات الوجبات فقط)</h2>
-            <div className="flex flex-wrap gap-3 items-center bg-emerald-50 p-3 rounded-lg text-sm">
-              <label className="font-bold">من تاريخ:</label>
-              <input type="date" value={salesDateFrom} onChange={e => setSalesDateFrom(e.target.value)} className="border p-1.5 rounded bg-white" />
-              <label className="font-bold">إلى تاريخ:</label>
-              <input type="date" value={salesDateTo} onChange={e => setSalesDateTo(e.target.value)} className="border p-1.5 rounded bg-white" />
-              <button onClick={() => window.print()} className="bg-emerald-800 text-white px-4 py-1.5 rounded font-bold hover:bg-emerald-900 mr-auto">طباعة التقرير 🖨️</button>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <h2 className="text-lg font-bold text-white">قسم المبيعات والفواتير المكتملة (مبيعات الوجبات فقط)</h2>
+            <div className="flex flex-wrap gap-3 items-center bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs">
+              <label className="font-bold text-slate-300">من تاريخ:</label>
+              <input type="date" value={salesDateFrom} onChange={e => setSalesDateFrom(e.target.value)} className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-white outline-none" />
+              <label className="font-bold text-slate-300">إلى تاريخ:</label>
+              <input type="date" value={salesDateTo} onChange={e => setSalesDateTo(e.target.value)} className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-white outline-none" />
+              <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl font-bold transition mr-auto">طباعة التقرير 🖨️</button>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-sm">
-                <thead className="bg-gray-100 font-bold border-b">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
                   <tr>
                     <th className="p-3">رقم الفاتورة</th>
                     <th className="p-3">التاريخ</th>
@@ -763,24 +773,24 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <th className="p-3">الإجراءات والطباعة</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-slate-800/60">
                   {activeSales.map(sale => {
                     const foodNet = calculateFoodTotalOnly(sale);
                     const delivery = calculateDeliveryOnly(sale);
                     return (
-                      <tr key={sale.id} className="hover:bg-gray-50">
-                        <td className="p-3 font-bold">#{String(sale.id).split('-')[0].toUpperCase()}</td>
-                        <td className="p-3 text-xs text-gray-500">{new Date(sale.created_at).toLocaleString('ar-EG')}</td>
-                        <td className="p-3">{sale.customer_name}</td>
-                        <td className="p-3">{sale.phone}</td>
-                        <td className="p-3 font-bold text-green-700">{foodNet} ج.م</td>
-                        <td className="p-3 font-bold text-amber-700">{delivery} ج.م</td>
-                        <td className="p-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">مكتملة ✅</span></td>
+                      <tr key={sale.id} className="hover:bg-slate-800/40">
+                        <td className="p-3 font-bold text-emerald-400">#{String(sale.id).split('-')[0].toUpperCase()}</td>
+                        <td className="p-3 text-slate-400">{new Date(sale.created_at).toLocaleString('ar-EG')}</td>
+                        <td className="p-3 font-bold">{sale.customer_name}</td>
+                        <td className="p-3 text-slate-400">{sale.phone}</td>
+                        <td className="p-3 font-bold text-emerald-400">{foodNet} ج.م</td>
+                        <td className="p-3 font-bold text-amber-400">{delivery} ج.م</td>
+                        <td className="p-3"><span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] px-2.5 py-1 rounded-full font-bold">مكتملة ✅</span></td>
                         <td className="p-3 flex gap-2 items-center">
-                          <button onClick={() => handlePrintOrder(sale)} className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded font-bold hover:bg-emerald-800 flex items-center gap-1">
-                            <span>👁️</span> معاينة وطباعة
+                          <button onClick={() => handlePrintOrder(sale)} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1">
+                            <span>👁️</span> طباعة
                           </button>
-                          <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء 🚫</button>
+                          <button onClick={() => updateOrderStatus(sale.id, 'cancelled')} className="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg font-bold transition">إلغاء 🚫</button>
                         </td>
                       </tr>
                     );
@@ -793,14 +803,14 @@ export default function CompleteEnterpriseAdminDashboard() {
 
         {/* 3. قسم العملاء */}
         {activeTab === 'customers' && (
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-              <h2 className="text-lg font-bold text-emerald-900">قاعدة العملاء والسجل الكامل</h2>
-              <input type="text" placeholder="🔍 بحث باسم العميل أو رقم الهاتف..." value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} className="border p-2 rounded-lg text-sm w-full md:w-72" />
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <div className="flex flex-wrap justify-between items-center gap-3">
+              <h2 className="text-lg font-bold text-white">قاعدة العملاء والسجل الكامل</h2>
+              <input type="text" placeholder="🔍 بحث باسم العميل أو رقم الهاتف..." value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-white outline-none w-full md:w-72" />
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-sm">
-                <thead className="bg-gray-100 font-bold border-b">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
                   <tr>
                     <th className="p-3">اسم العميل</th>
                     <th className="p-3">رقم الهاتف</th>
@@ -808,16 +818,16 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <th className="p-3">الإجراء</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-slate-800/60">
                   {filteredCustomers.map(cust => (
-                    <tr key={cust.id} className="hover:bg-gray-50">
-                      <td className="p-3 font-bold">{cust.name}</td>
-                      <td className="p-3">{cust.phone}</td>
-                      <td className="p-3">{cust.address || '-'}</td>
+                    <tr key={cust.id} className="hover:bg-slate-800/40">
+                      <td className="p-3 font-bold text-slate-200">{cust.name}</td>
+                      <td className="p-3 text-slate-400">{cust.phone}</td>
+                      <td className="p-3 text-slate-400">{cust.address || '-'}</td>
                       <td className="p-3">
                         <button
                           onClick={() => setSelectedCustomerModal(cust)}
-                          className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded text-xs font-bold hover:bg-emerald-200"
+                          className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 px-3 py-1.5 rounded-xl font-bold transition"
                         >
                           👁️ عرض الكارت
                         </button>
@@ -829,11 +839,11 @@ export default function CompleteEnterpriseAdminDashboard() {
             </div>
 
             {selectedCustomerModal && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl relative max-h-[85vh] overflow-y-auto">
-                  <button onClick={() => setSelectedCustomerModal(null)} className="absolute top-4 left-4 text-gray-500 font-bold text-lg">✖</button>
-                  <h3 className="text-xl font-bold text-emerald-900 mb-2">👤 كارت العميل: {selectedCustomerModal.name}</h3>
-                  <p className="text-sm text-gray-600 mb-4">📱 الهاتف: {selectedCustomerModal.phone} | 📍 العنوان: {selectedCustomerModal.address}</p>
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
+                  <button onClick={() => setSelectedCustomerModal(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
+                  <h3 className="text-xl font-bold text-white mb-2">👤 كارت العميل: {selectedCustomerModal.name}</h3>
+                  <p className="text-xs text-slate-400 mb-4">📱 الهاتف: {selectedCustomerModal.phone} | 📍 العنوان: {selectedCustomerModal.address}</p>
 
                   {(() => {
                     const custOrders = orders.filter(o => o.phone === selectedCustomerModal.phone && o.status === 'completed');
@@ -841,24 +851,24 @@ export default function CompleteEnterpriseAdminDashboard() {
 
                     return (
                       <>
-                        <div className="grid grid-cols-2 gap-3 mb-4 bg-emerald-50 p-3 rounded-lg text-center">
-                          <div><p className="text-xs text-gray-600">إجمالي الطلبات المكتملة</p><p className="font-bold text-emerald-900">{custOrders.length} طلب</p></div>
-                          <div><p className="text-xs text-gray-600">إجمالي مشتريات الوجبات من المطعم</p><p className="font-bold text-green-700">{totalSpent} ج.م</p></div>
+                        <div className="grid grid-cols-2 gap-3 mb-4 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center">
+                          <div><p className="text-xs text-slate-400">إجمالي الطلبات المكتملة</p><p className="font-black text-emerald-400 text-lg">{custOrders.length} طلب</p></div>
+                          <div><p className="text-xs text-slate-400">إجمالي مشتريات الوجبات</p><p className="font-black text-emerald-400 text-lg">{totalSpent} ج.م</p></div>
                         </div>
 
-                        <h4 className="font-bold mb-2">سجل الفواتير والطلبات السابقة:</h4>
+                        <h4 className="font-bold text-white mb-2 text-xs">سجل الفواتير والطلبات السابقة:</h4>
                         <table className="w-full text-right text-xs">
-                          <thead className="bg-gray-100 font-bold border-b">
-                            <tr><th className="p-2">رقم الفاتورة</th><th className="p-2">التاريخ</th><th className="p-2">مبيعات الوجبات</th><th className="p-2">الطباعة</th></tr>
+                          <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                            <tr><th className="p-2.5">رقم الفاتورة</th><th className="p-2.5">التاريخ</th><th className="p-2.5">مبيعات الوجبات</th><th className="p-2.5">الطباعة</th></tr>
                           </thead>
-                          <tbody className="divide-y">
+                          <tbody className="divide-y divide-slate-800">
                             {custOrders.map((o, i) => (
                               <tr key={i}>
-                                <td className="p-2 font-bold">#{String(o.id).split('-')[0].toUpperCase()}</td>
-                                <td className="p-2">{new Date(o.created_at).toLocaleDateString('ar-EG')}</td>
-                                <td className="p-2 font-bold text-green-700">{calculateFoodTotalOnly(o)} ج.م</td>
-                                <td className="p-2">
-                                  <button onClick={() => handlePrintOrder(o)} className="text-emerald-700 font-bold underline">🖨️ طباعة</button>
+                                <td className="p-2.5 font-bold text-emerald-400">#{String(o.id).split('-')[0].toUpperCase()}</td>
+                                <td className="p-2.5 text-slate-400">{new Date(o.created_at).toLocaleDateString('ar-EG')}</td>
+                                <td className="p-2.5 font-bold text-emerald-400">{calculateFoodTotalOnly(o)} ج.م</td>
+                                <td className="p-2.5">
+                                  <button onClick={() => handlePrintOrder(o)} className="text-emerald-400 font-bold underline">🖨️ طباعة</button>
                                 </td>
                               </tr>
                             ))}
@@ -876,17 +886,17 @@ export default function CompleteEnterpriseAdminDashboard() {
         {/* 4. قسم المشتريات */}
         {activeTab === 'purchases' && (
           <div className="space-y-6">
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold mb-4 text-emerald-900">تسجيل فاتورة / حركة مشتريات جديدة</h2>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-4 text-white">تسجيل فاتورة / حركة مشتريات جديدة</h2>
               <form onSubmit={handleAddPurchase} className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <div>
                   <input
                     list="rawMaterialsList"
                     type="text"
-                    placeholder="اكتب اسم الخامة (مثل: لحمة بلدي...)"
+                    placeholder="اسم الخامة (مثال: لحمة...)"
                     value={purchaseItemName}
                     onChange={e => setPurchaseItemName(e.target.value)}
-                    className="border p-2 rounded text-sm w-full bg-white font-bold"
+                    className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white font-bold w-full outline-none focus:border-emerald-500"
                     required
                   />
                   <datalist id="rawMaterialsList">
@@ -896,18 +906,18 @@ export default function CompleteEnterpriseAdminDashboard() {
                   </datalist>
                 </div>
 
-                <input type="number" placeholder="الكمية" value={purchaseQty} onChange={e => setPurchaseQty(e.target.value)} className="border p-2 rounded text-sm" required />
-                <input type="number" placeholder="سعر الوحدة (ج.م)" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} className="border p-2 rounded text-sm" required />
-                <input type="text" placeholder="اسم المورد (اختياري)" value={supplier} onChange={e => setSupplier(e.target.value)} className="border p-2 rounded text-sm" />
-                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm">حفظ حركة المشتريات ➕</button>
+                <input type="number" placeholder="الكمية" value={purchaseQty} onChange={e => setPurchaseQty(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
+                <input type="number" placeholder="سعر الوحدة (ج.م)" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
+                <input type="text" placeholder="اسم المورد (اختياري)" value={supplier} onChange={e => setSupplier(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" />
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl p-3 text-xs transition shadow-lg shadow-emerald-900/30">حفظ حركة المشتريات ➕</button>
               </form>
             </div>
 
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold mb-3 text-emerald-900">سجل أصناف المشتريات المجمعة</h2>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-3 text-white">سجل أصناف المشتريات المجمعة</h2>
               <div className="overflow-x-auto">
-                <table className="w-full text-right text-sm">
-                  <thead className="bg-emerald-50 font-bold border-b text-emerald-900">
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-slate-950 font-bold border-b border-slate-800 text-slate-400">
                     <tr>
                       <th className="p-3">اسم الصنف</th>
                       <th className="p-3">مرات الشراء</th>
@@ -916,18 +926,18 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <th className="p-3">عرض الكارت التفصيلي</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-800/60">
                     {groupedPurchasesList.map((group: any) => (
                       <tr 
                         key={group.item_name} 
                         onClick={() => setSelectedItemCard(group.item_name)}
-                        className="hover:bg-emerald-50 cursor-pointer"
+                        className="hover:bg-slate-800/40 cursor-pointer transition"
                       >
-                        <td className="p-3 font-bold text-emerald-900">{group.item_name}</td>
-                        <td className="p-3 font-bold">{group.purchaseCount} مرة</td>
-                        <td className="p-3">{group.totalQuantity}</td>
-                        <td className="p-3 font-bold text-red-700">{group.totalCost} ج.م</td>
-                        <td className="p-3"><span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-bold">📄 فتح الكارت</span></td>
+                        <td className="p-3 font-bold text-white">{group.item_name}</td>
+                        <td className="p-3 font-bold text-slate-300">{group.purchaseCount} مرة</td>
+                        <td className="p-3 text-slate-400">{group.totalQuantity}</td>
+                        <td className="p-3 font-bold text-rose-400">{group.totalCost} ج.م</td>
+                        <td className="p-3"><span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-bold">📄 فتح الكارت</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -936,38 +946,38 @@ export default function CompleteEnterpriseAdminDashboard() {
             </div>
 
             {selectedItemCard && groupedPurchases[selectedItemCard] && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl relative max-h-[80vh] overflow-y-auto">
-                  <button onClick={() => setSelectedItemCard(null)} className="absolute top-4 left-4 text-gray-500 font-bold text-lg">✖</button>
-                  <h3 className="text-xl font-bold text-emerald-900 mb-3">📊 كارت صنف: {selectedItemCard}</h3>
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[80vh] overflow-y-auto">
+                  <button onClick={() => setSelectedItemCard(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
+                  <h3 className="text-xl font-bold text-white mb-3">📊 كارت صنف: {selectedItemCard}</h3>
                   
-                  <div className="grid grid-cols-3 gap-3 mb-4 bg-emerald-50 p-3 rounded-lg text-center">
-                    <div><p className="text-xs text-gray-600">مرات الشراء</p><p className="font-bold text-emerald-900">{groupedPurchases[selectedItemCard].purchaseCount} مرة</p></div>
-                    <div><p className="text-xs text-gray-600">إجمالي الكمية</p><p className="font-bold text-emerald-900">{groupedPurchases[selectedItemCard].totalQuantity}</p></div>
-                    <div><p className="text-xs text-gray-600">إجمالي التكلفة</p><p className="font-bold text-red-700">{groupedPurchases[selectedItemCard].totalCost} ج.م</p></div>
+                  <div className="grid grid-cols-3 gap-3 mb-4 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center">
+                    <div><p className="text-xs text-slate-400">مرات الشراء</p><p className="font-bold text-white">{groupedPurchases[selectedItemCard].purchaseCount} مرة</p></div>
+                    <div><p className="text-xs text-slate-400">إجمالي الكمية</p><p className="font-bold text-white">{groupedPurchases[selectedItemCard].totalQuantity}</p></div>
+                    <div><p className="text-xs text-slate-400">إجمالي التكلفة</p><p className="font-bold text-rose-400">{groupedPurchases[selectedItemCard].totalCost} ج.م</p></div>
                   </div>
 
-                  <table className="w-full text-right text-sm">
-                    <thead className="bg-gray-100 font-bold border-b">
+                  <table className="w-full text-right text-xs">
+                    <thead className="bg-slate-950 font-bold border-b border-slate-800 text-slate-400">
                       <tr>
-                        <th className="p-2">التاريخ</th>
-                        <th className="p-2">الكمية</th>
-                        <th className="p-2">سعر الوحدة</th>
-                        <th className="p-2">الإجمالي</th>
-                        <th className="p-2">المورد</th>
-                        <th className="p-2">الإجراء</th>
+                        <th className="p-2.5">التاريخ</th>
+                        <th className="p-2.5">الكمية</th>
+                        <th className="p-2.5">سعر الوحدة</th>
+                        <th className="p-2.5">الإجمالي</th>
+                        <th className="p-2.5">المورد</th>
+                        <th className="p-2.5">الإجراء</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
+                    <tbody className="divide-y divide-slate-800">
                       {groupedPurchases[selectedItemCard].logs.map((log: any, i: number) => (
                         <tr key={i}>
-                          <td className="p-2 text-xs">{new Date(log.created_at || log.purchase_date).toLocaleDateString('ar-EG')}</td>
-                          <td className="p-2 font-bold">{log.quantity}</td>
-                          <td className="p-2">{log.unit_price} ج.م</td>
-                          <td className="p-2 font-bold text-red-700">{log.total_price} ج.م</td>
-                          <td className="p-2 text-xs">{log.supplier_name || '-'}</td>
-                          <td className="p-2">
-                            <button onClick={() => cancelPurchaseTransaction(log.id)} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200">إلغاء ❌</button>
+                          <td className="p-2.5 text-slate-400">{new Date(log.created_at || log.purchase_date).toLocaleDateString('ar-EG')}</td>
+                          <td className="p-2.5 font-bold text-slate-200">{log.quantity}</td>
+                          <td className="p-2.5 text-slate-300">{log.unit_price} ج.م</td>
+                          <td className="p-2.5 font-bold text-rose-400">{log.total_price} ج.م</td>
+                          <td className="p-2.5 text-slate-400">{log.supplier_name || '-'}</td>
+                          <td className="p-2.5">
+                            <button onClick={() => cancelPurchaseTransaction(log.id)} className="bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-2 py-1 rounded-lg font-bold transition">إلغاء ❌</button>
                           </td>
                         </tr>
                       ))}
@@ -982,15 +992,15 @@ export default function CompleteEnterpriseAdminDashboard() {
         {/* 5. قسم إدارة المنيو */}
         {activeTab === 'menu' && (
           <div className="space-y-6">
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold mb-4 text-emerald-900">إضافة صنف جديد للمنيو</h2>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-4 text-white">إضافة صنف جديد للمنيو</h2>
               <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                <input type="text" placeholder="اسم الوجبة/الصنف" value={productName} onChange={e => setProductName(e.target.value)} className="border p-2 rounded text-sm" required />
-                <input type="number" placeholder="سعر البيع (ج.م)" value={productPrice} onChange={e => setProductPrice(e.target.value)} className="border p-2 rounded text-sm" required />
+                <input type="text" placeholder="اسم الوجبة/الصنف" value={productName} onChange={e => setProductName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
+                <input type="number" placeholder="سعر البيع (ج.م)" value={productPrice} onChange={e => setProductPrice(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
                 <select
                   value={productCategory}
                   onChange={(e) => setProductCategory(e.target.value)}
-                  className="p-2 border rounded-md text-sm bg-white"
+                  className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none font-bold"
                 >
                   <option value="الوجبات">الوجبات</option>
                   <option value="المشويات">المشويات</option>
@@ -999,46 +1009,46 @@ export default function CompleteEnterpriseAdminDashboard() {
                   <option value="الطيور">الطيور</option>
                   <option value="أصناف إضافية">أصناف إضافية</option>
                 </select>
-                <input type="text" placeholder="رابط صورة الصنف (اختياري)" value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} className="border p-2 rounded text-sm" />
-                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="border p-2 rounded text-sm col-span-1 md:col-span-2 lg:col-span-4" />
-                <button type="submit" className="bg-emerald-800 text-white font-bold rounded p-2 hover:bg-emerald-900 text-sm md:col-span-2 lg:col-span-4">حفظ وإضافة للمنيو 🍔</button>
+                <input type="text" placeholder="رابط صورة الصنف (اختياري)" value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" />
+                <input type="text" placeholder="الوصف (مثال: يشمل: رز بسمتي + سلطة)" value={productDesc} onChange={e => setProductDesc(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500 col-span-1 md:col-span-2 lg:col-span-4" />
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl p-3 text-xs md:col-span-2 lg:col-span-4 transition shadow-lg shadow-emerald-900/30">حفظ وإضافة للمنيو 🍔</button>
               </form>
             </div>
 
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold mb-4 text-emerald-900">أصناف المنيو الحالية ({products.length})</h2>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-4 text-white">أصناف المنيو الحالية ({products.length})</h2>
               {products.length === 0 ? (
-                <div className="text-center p-6 text-gray-500">لا توجد أصناف مسجلة حتى الآن.</div>
+                <div className="text-center p-8 text-slate-500">لا توجد أصناف مسجلة حتى الآن.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {products.map(product => (
-                    <div key={product.id} className="border rounded-lg p-3 flex flex-col justify-between bg-gray-50">
+                    <div key={product.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition">
                       <div>
                         {product.image_url && (
-                          <img src={product.image_url} alt={product.name} className="w-full h-36 object-cover rounded mb-2" />
+                          <img src={product.image_url} alt={product.name} className="w-full h-36 object-cover rounded-xl mb-3 border border-slate-800" />
                         )}
-                        <h3 className="font-bold text-md">{product.name}</h3>
-                        <p className="text-xs text-emerald-800 font-bold">{product.category}</p>
-                        {product.description && <p className="text-xs text-gray-600 mt-1">{product.description}</p>}
-                        <p className="text-sm font-bold text-green-700 mt-2">السعر: {product.price} ج.م</p>
+                        <h3 className="font-bold text-sm text-white">{product.name}</h3>
+                        <p className="text-[10px] text-emerald-400 font-bold mt-0.5">{product.category}</p>
+                        {product.description && <p className="text-xs text-slate-400 mt-1.5">{product.description}</p>}
+                        <p className="text-sm font-black text-emerald-400 mt-3">السعر: {product.price} ج.م</p>
                       </div>
 
-                      <div className="flex flex-col gap-2 mt-3">
+                      <div className="flex flex-col gap-2 mt-4">
                         <button
                           onClick={() => openEditModal(product)}
-                          className="w-full bg-amber-600 hover:bg-amber-700 text-white py-1 rounded text-xs font-bold transition"
+                          className="w-full bg-slate-800 hover:bg-slate-700 text-amber-400 py-1.5 rounded-xl text-xs font-bold transition"
                         >
                           ✏️ تعديل السعر / الصورة
                         </button>
                         <button
                           onClick={() => toggleProductAvailability(product.id, product.is_available)}
-                          className={`w-full py-1 rounded text-xs font-bold text-white transition ${product.is_available ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                          className={`w-full py-1.5 rounded-xl text-xs font-bold transition ${product.is_available ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}
                         >
                           {product.is_available ? 'متوفر بالمحل (In Stock) ✅' : 'غير متوفر (Out of Stock) ❌'}
                         </button>
                         <button
                           onClick={() => handleDeleteProduct(product.id, product.name)}
-                          className="w-full bg-red-600 hover:bg-red-700 text-white py-1 rounded text-xs font-bold transition"
+                          className="w-full bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white py-1.5 rounded-xl text-xs font-bold transition"
                         >
                           🗑️ حذف الصنف نهائياً
                         </button>
@@ -1050,32 +1060,32 @@ export default function CompleteEnterpriseAdminDashboard() {
             </div>
 
             {editingProduct && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl relative">
-                  <button onClick={() => setEditingProduct(null)} className="absolute top-4 left-4 text-gray-500 font-bold text-lg">✖</button>
-                  <h3 className="text-lg font-bold text-emerald-900 mb-4">✏️ تعديل صنف: {editingProduct.name}</h3>
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+                  <button onClick={() => setEditingProduct(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
+                  <h3 className="text-lg font-bold text-white mb-4">✏️ تعديل صنف: {editingProduct.name}</h3>
                   <form onSubmit={handleSaveProductEdit} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-bold mb-1">السعر الجديد (ج.م):</label>
+                      <label className="block text-xs font-bold mb-1 text-slate-300">السعر الجديد (ج.م):</label>
                       <input
                         type="number"
                         value={editPrice}
                         onChange={e => setEditPrice(e.target.value)}
-                        className="border p-2 rounded text-sm w-full"
+                        className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white w-full outline-none focus:border-emerald-500"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold mb-1">رابط صورة الصنف (URL):</label>
+                      <label className="block text-xs font-bold mb-1 text-slate-300">رابط صورة الصنف (URL):</label>
                       <input
                         type="text"
                         placeholder="https://..."
                         value={editImageUrl}
                         onChange={e => setEditImageUrl(e.target.value)}
-                        className="border p-2 rounded text-sm w-full"
+                        className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white w-full outline-none focus:border-emerald-500"
                       />
                     </div>
-                    <button type="submit" className="w-full bg-emerald-800 text-white font-bold p-2 rounded hover:bg-emerald-900">
+                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-3 rounded-xl transition">
                       حفظ والتحديث 💾
                     </button>
                   </form>
@@ -1256,48 +1266,48 @@ export default function CompleteEnterpriseAdminDashboard() {
 
           return (
             <div className="space-y-6">
-              <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-xl">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-lg font-bold text-emerald-900 flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
                     📊 التقرير المالي والإحصائي للمطعم
                   </h2>
                   <button
                     onClick={handlePrintDetailedReport}
-                    className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition flex items-center gap-1"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5"
                   >
                     🖨️ طباعة التقرير الشامل
                   </button>
                 </div>
 
-                <div className="flex flex-wrap gap-3 items-center bg-emerald-50/60 p-3 rounded-xl text-sm border border-emerald-100">
-                  <span className="font-bold text-emerald-900">تحديد مدة التقارير:</span>
+                <div className="flex flex-wrap gap-3 items-center bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs">
+                  <span className="font-bold text-slate-300">تحديد مدة التقارير:</span>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600 font-bold">من:</label>
+                    <label className="text-slate-400 font-bold">من:</label>
                     <input
                       type="date"
                       value={salesDateFrom}
                       onChange={e => setSalesDateFrom(e.target.value)}
-                      className="border p-1.5 rounded-lg bg-white text-xs font-bold"
+                      className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-white outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-600 font-bold">إلى:</label>
+                    <label className="text-slate-400 font-bold">إلى:</label>
                     <input
                       type="date"
                       value={salesDateTo}
                       onChange={e => setSalesDateTo(e.target.value)}
-                      className="border p-1.5 rounded-lg bg-white text-xs font-bold"
+                      className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-white outline-none"
                     />
                   </div>
 
-                  <div className="flex items-center gap-1 mr-auto">
+                  <div className="flex items-center gap-1.5 mr-auto">
                     <button
                       onClick={() => {
                         const today = new Date().toISOString().split('T')[0];
                         setSalesDateFrom(today);
                         setSalesDateTo(today);
                       }}
-                      className="text-xs bg-white border border-emerald-300 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-bold text-emerald-800 transition"
+                      className="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-bold text-emerald-400 transition"
                     >
                       اليوم
                     </button>
@@ -1309,7 +1319,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                         setSalesDateFrom(firstDay);
                         setSalesDateTo(today);
                       }}
-                      className="text-xs bg-white border border-emerald-300 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-bold text-emerald-800 transition"
+                      className="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-bold text-emerald-400 transition"
                     >
                       هذا الشهر
                     </button>
@@ -1318,7 +1328,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                         setSalesDateFrom('');
                         setSalesDateTo('');
                       }}
-                      className="text-xs bg-gray-200 hover:bg-gray-300 px-2.5 py-1 rounded-md font-bold text-gray-700 transition"
+                      className="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg font-bold text-slate-300 transition"
                     >
                       عرض الكل
                     </button>
@@ -1328,37 +1338,37 @@ export default function CompleteEnterpriseAdminDashboard() {
 
               {/* بطاقات المؤشرات المالية بدون الدليفري */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-emerald-800 font-bold">إجمالي المبيعات والإيرادات (الوجبات فقط)</p>
-                  <p className="text-3xl font-extrabold text-emerald-900 mt-2">{netFoodSales} <span className="text-xs font-normal">ج.م</span></p>
-                  <p className="text-xs text-emerald-700 mt-1">تم مستثنى منها أي رسوم توصيل شرك خارجية</p>
+                <div className="bg-slate-900 border border-emerald-500/20 p-6 rounded-3xl shadow-xl">
+                  <p className="text-xs text-emerald-400 font-bold">إجمالي المبيعات والإيرادات (الوجبات فقط)</p>
+                  <p className="text-3xl font-black text-white mt-2">{netFoodSales} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                  <p className="text-[10px] text-slate-400 mt-2">مستثنى منها أي رسوم توصيل خارجية</p>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-red-800 font-bold">المصروفات والمشتريات</p>
-                  <p className="text-3xl font-extrabold text-red-900 mt-2">{totalExpenses} <span className="text-xs font-normal">ج.م</span></p>
-                  <p className="text-xs text-red-700 mt-1">عدد عمليات الشراء: {filteredPurchases.length}</p>
+                <div className="bg-slate-900 border border-rose-500/20 p-6 rounded-3xl shadow-xl">
+                  <p className="text-xs text-rose-400 font-bold">المصروفات والمشتريات</p>
+                  <p className="text-3xl font-black text-white mt-2">{totalExpenses} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                  <p className="text-[10px] text-slate-400 mt-2">عدد عمليات الشراء: {filteredPurchases.length}</p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs text-blue-800 font-bold">صافي الأرباح الصافية</p>
-                  <p className="text-3xl font-extrabold text-blue-900 mt-2">{netProfit} <span className="text-xs font-normal">ج.م</span></p>
-                  <p className="text-xs text-blue-700 mt-1">مبيعات الطعام فقط - المصروفات</p>
+                <div className="bg-slate-900 border border-blue-500/20 p-6 rounded-3xl shadow-xl">
+                  <p className="text-xs text-blue-400 font-bold">صافي الأرباح الصافية</p>
+                  <p className="text-3xl font-black text-white mt-2">{netProfit} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                  <p className="text-[10px] text-slate-400 mt-2">مبيعات الطعام فقط - المصروفات</p>
                 </div>
               </div>
 
               {/* جداول الأكثر طلباً والأكثر شراءً */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-4 rounded-xl shadow-sm border">
-                  <h3 className="font-bold text-md text-emerald-900 mb-3 flex items-center gap-1">
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+                  <h3 className="font-bold text-sm text-white mb-4 flex items-center gap-1.5">
                     <span>🔥</span> الأصناف الأكثر طلباً ومبيعاً
                   </h3>
                   {topProducts.length === 0 ? (
-                    <p className="text-xs text-gray-400 p-4 text-center">لا توجد مبيعات في هذه الفترة</p>
+                    <p className="text-xs text-slate-500 p-4 text-center">لا توجد مبيعات في هذه الفترة</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-right text-xs">
-                        <thead className="bg-emerald-50 font-bold text-emerald-900 border-b">
+                        <thead className="bg-slate-950 font-bold text-slate-400 border-b border-slate-800">
                           <tr>
                             <th className="p-2.5">#</th>
                             <th className="p-2.5">اسم الصنف</th>
@@ -1366,13 +1376,13 @@ export default function CompleteEnterpriseAdminDashboard() {
                             <th className="p-2.5">إجمالي الإيراد</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <tbody className="divide-y divide-slate-800">
                           {topProducts.map((p, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="p-2.5 font-bold text-emerald-800">{i + 1}</td>
-                              <td className="p-2.5 font-bold text-gray-900">{p.name}</td>
-                              <td className="p-2.5"><span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">{p.qty}</span></td>
-                              <td className="p-2.5 font-bold text-green-700">{p.total} ج.م</td>
+                            <tr key={i} className="hover:bg-slate-800/40">
+                              <td className="p-2.5 font-bold text-emerald-400">{i + 1}</td>
+                              <td className="p-2.5 font-bold text-white">{p.name}</td>
+                              <td className="p-2.5"><span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">{p.qty}</span></td>
+                              <td className="p-2.5 font-bold text-emerald-400">{p.total} ج.م</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1381,16 +1391,16 @@ export default function CompleteEnterpriseAdminDashboard() {
                   )}
                 </div>
 
-                <div className="bg-white p-4 rounded-xl shadow-sm border">
-                  <h3 className="font-bold text-md text-emerald-900 mb-3 flex items-center gap-1">
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+                  <h3 className="font-bold text-sm text-white mb-4 flex items-center gap-1.5">
                     <span>👑</span> الأكثر شراءً من العملاء
                   </h3>
                   {topCustomers.length === 0 ? (
-                    <p className="text-xs text-gray-400 p-4 text-center">لا توجد طلبات في هذه الفترة</p>
+                    <p className="text-xs text-slate-500 p-4 text-center">لا توجد طلبات في هذه الفترة</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-right text-xs">
-                        <thead className="bg-blue-50 font-bold text-blue-900 border-b">
+                        <thead className="bg-slate-950 font-bold text-slate-400 border-b border-slate-800">
                           <tr>
                             <th className="p-2.5">#</th>
                             <th className="p-2.5">العميل</th>
@@ -1399,14 +1409,14 @@ export default function CompleteEnterpriseAdminDashboard() {
                             <th className="p-2.5">إجمالي مشتريات الوجبات</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <tbody className="divide-y divide-slate-800">
                           {topCustomers.map((c, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="p-2.5 font-bold text-blue-800">{i + 1}</td>
-                              <td className="p-2.5 font-bold text-gray-900">{c.name}</td>
-                              <td className="p-2.5 text-gray-600">{c.phone}</td>
-                              <td className="p-2.5 font-bold">{c.count} طلبات</td>
-                              <td className="p-2.5 font-bold text-green-700">{c.totalSpent} ج.م</td>
+                            <tr key={i} className="hover:bg-slate-800/40">
+                              <td className="p-2.5 font-bold text-blue-400">{i + 1}</td>
+                              <td className="p-2.5 font-bold text-white">{c.name}</td>
+                              <td className="p-2.5 text-slate-400">{c.phone}</td>
+                              <td className="p-2.5 font-bold text-slate-200">{c.count} طلبات</td>
+                              <td className="p-2.5 font-bold text-emerald-400">{c.totalSpent} ج.م</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1421,19 +1431,19 @@ export default function CompleteEnterpriseAdminDashboard() {
 
         {/* 7. قسم الإعدادات */}
         {activeTab === 'settings' && (
-          <div className="bg-white p-4 rounded-xl shadow-sm border max-w-2xl">
-            <h2 className="text-lg font-bold mb-4 text-emerald-900">إعدادات النظام والمطعم</h2>
-            <div className="space-y-4 text-sm">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl max-w-2xl">
+            <h2 className="text-lg font-bold mb-4 text-white">إعدادات النظام والمطعم</h2>
+            <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold mb-1">رقم الواتساب الافتراضي لاستلام الطلبات الإدارية:</label>
+                <label className="block font-bold mb-1.5 text-slate-300">رقم الواتساب الافتراضي لاستلام الطلبات الإدارية:</label>
                 <input
                   type="text"
                   value={whatsappPhone}
                   onChange={e => setWhatsappPhone(e.target.value)}
-                  className="border p-2 rounded w-full"
+                  className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white outline-none w-full focus:border-emerald-500"
                 />
               </div>
-              <button onClick={() => alert('تم حفظ الإعدادات بنجاح')} className="bg-emerald-800 text-white px-4 py-2 rounded font-bold hover:bg-emerald-900">
+              <button onClick={() => alert('تم حفظ الإعدادات بنجاح')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold transition">
                 حفظ التغييرات 💾
               </button>
             </div>
@@ -1444,24 +1454,24 @@ export default function CompleteEnterpriseAdminDashboard() {
         {activeTab === 'finance' && <PersonalFinance />}
       </main>
 
-      {/* 🔽 1. النافذة المنبثقة لاختيار طريقة الدفع المنسدلة عند تسليم الأوردر */}
+      {/* 🔽 1. النافذة المنبثقة لاختيار طريقة الدفع عند تسليم الأوردر */}
       {pendingDeliveryOrder && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
-            <h3 className="text-lg font-bold text-emerald-900 border-b pb-2">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3">
               💳 تسليم الأوردر #{String(pendingDeliveryOrder.id).split('-')[0].toUpperCase()}
             </h3>
             
-            <p className="text-sm text-gray-700 font-bold">
-              مبيعات الوجبات الصافية: <span className="text-green-700 font-black text-lg">{calculateFoodTotalOnly(pendingDeliveryOrder)} ج.م</span>
+            <p className="text-xs font-bold text-slate-300">
+              مبيعات الوجبات الصافية: <span className="text-emerald-400 font-black text-base">{calculateFoodTotalOnly(pendingDeliveryOrder)} ج.م</span>
             </p>
 
             <div>
-              <label className="block text-xs font-bold mb-1 text-gray-700">اختر طريقة الدفع للإضافة للمحفظة السحابية:</label>
+              <label className="block text-xs font-bold mb-1 text-slate-300">اختر طريقة الدفع للإضافة للمحفظة السحابية:</label>
               <select
                 value={deliveryPaymentAccount}
                 onChange={(e) => setDeliveryPaymentAccount(e.target.value)}
-                className="w-full border-2 border-emerald-600 p-2.5 rounded-xl font-bold bg-white text-emerald-900 text-sm focus:outline-none"
+                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl font-bold text-emerald-400 text-xs outline-none"
               >
                 <option value="cash">💵 الكاش / درج المحل</option>
                 <option value="instapay">📱 InstaPay</option>
@@ -1473,13 +1483,13 @@ export default function CompleteEnterpriseAdminDashboard() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={confirmDeliveryWithPayment}
-                className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl transition text-sm"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition text-xs shadow-lg shadow-emerald-900/30"
               >
                 تأكيد التسليم وحفظ المبيعات ✅
               </button>
               <button
                 onClick={() => setPendingDeliveryOrder(null)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2.5 rounded-xl transition text-sm"
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-3 rounded-xl transition text-xs"
               >
                 إلغاء ✖
               </button>
@@ -1488,24 +1498,24 @@ export default function CompleteEnterpriseAdminDashboard() {
         </div>
       )}
 
-      {/* 🔽 2. النافذة المنبثقة لاختيار طريقة الدفع المنسدلة عند تسجيل المشتريات */}
+      {/* 🔽 2. النافذة المنبثقة لاختيار طريقة الدفع عند تسجيل المشتريات */}
       {pendingPurchaseData && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
-            <h3 className="text-lg font-bold text-emerald-900 border-b pb-2">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3">
               🛒 خصم فاتورة مشتريات ({pendingPurchaseData.itemName})
             </h3>
             
-            <p className="text-sm text-gray-700 font-bold">
-              إجمالي التكلفة المطلوب خصمها: <span className="text-red-700 font-black text-lg">{pendingPurchaseData.total} ج.م</span>
+            <p className="text-xs font-bold text-slate-300">
+              إجمالي التكلفة المطلوب خصمها: <span className="text-rose-400 font-black text-base">{pendingPurchaseData.total} ج.م</span>
             </p>
 
             <div>
-              <label className="block text-xs font-bold mb-1 text-gray-700">اختر الحساب/الكارت المخصوم منه المبلغ:</label>
+              <label className="block text-xs font-bold mb-1 text-slate-300">اختر الحساب/الكارت المخصوم منه المبلغ:</label>
               <select
                 value={purchasePaymentAccount}
                 onChange={(e) => setPurchasePaymentAccount(e.target.value)}
-                className="w-full border-2 border-emerald-600 p-2.5 rounded-xl font-bold bg-white text-emerald-900 text-sm focus:outline-none"
+                className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl font-bold text-emerald-400 text-xs outline-none"
               >
                 <option value="cash">💵 الكاش / درج المحل</option>
                 <option value="instapay">📱 InstaPay</option>
@@ -1517,13 +1527,13 @@ export default function CompleteEnterpriseAdminDashboard() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={confirmPurchaseWithPayment}
-                className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl transition text-sm"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition text-xs shadow-lg shadow-emerald-900/30"
               >
                 تأكيد الخصم وحفظ المشتريات 💾
               </button>
               <button
                 onClick={() => setPendingPurchaseData(null)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2.5 rounded-xl transition text-sm"
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-3 rounded-xl transition text-xs"
               >
                 إلغاء ✖
               </button>
