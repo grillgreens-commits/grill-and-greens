@@ -25,9 +25,9 @@ export interface Category {
 export const CATEGORIES: Category[] = [
   { id: 'all', name: 'الكل 🍽️' },
   { id: 'الوجبات', name: 'الوجبات 🍱' },
-  { id: 'المشويات', name: 'المشويات 🥩' }, // تعديل الاسم ليطابق الـ id والداتابيز
+  { id: 'المشويات', name: 'المشويات 🥩' },
   { id: 'المحاشي', name: 'المحاشي 🥬' },
-  { id: 'الطواجن', name: 'الطواجن 🍲' },   // تعديل الاسم ليطابق الـ id والداتابيز
+  { id: 'الطواجن', name: 'الطواجن 🍲' },
   { id: 'الطيور', name: 'الطيور 🍗' },
   { id: 'أصناف إضافية', name: 'أصناف إضافية 🥗' },
 ];
@@ -47,11 +47,13 @@ export default function CustomerMenu() {
   const [orderId, setOrderId] = useState<string | number | null>(null);
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
 
-  // بيانات الطلب
+  // بيانات الطلب المحدثة
   const [customerName, setCustomerName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
+  const [altPhone, setAltPhone] = useState<string>(''); // رقم إضافي اختياري
   const [address, setAddress] = useState<string>('');
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash'); // طريقة الدفع
   const [notes, setNotes] = useState<string>('');
 
   const DELIVERY_FEE = 30;
@@ -136,6 +138,12 @@ export default function CustomerMenu() {
       qty: item.quantity,
     }));
 
+    // تجميع الملاحظات مع الرقم الإضافي وطريقة الدفع
+    const finalNotes = [
+      altPhone ? `رقم إضافي: ${altPhone}` : '',
+      notes ? `ملاحظات: ${notes}` : ''
+    ].filter(Boolean).join(' | ');
+
     const orderPayload = {
       customer_name: customerName,
       phone: phone,
@@ -143,7 +151,8 @@ export default function CustomerMenu() {
       items: formattedItems,
       total: grandTotal,
       total_amount: grandTotal,
-      notes: notes,
+      payment_method: paymentMethod === 'cash' ? 'كاش عند الاستلام' : paymentMethod === 'instapay' ? 'InstaPay' : 'محفظة إلكترونية',
+      notes: finalNotes,
       status: 'pending',
     };
 
@@ -252,6 +261,12 @@ export default function CustomerMenu() {
                   <span>{itemsSubtotal} ج.م</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
+                  <span>طريقة الدفع:</span>
+                  <span className="font-bold text-slate-800">
+                    {paymentMethod === 'cash' ? 'كاش عند الاستلام 💵' : paymentMethod === 'instapay' ? 'انستاباي InstaPay 📱' : 'محفظة إلكترونية 💳'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-slate-600">
                   <span>نوع الطلب:</span>
                   <span>{orderType === 'delivery' ? 'توصيل دليفري' : 'استلام من المطعم'}</span>
                 </div>
@@ -329,26 +344,25 @@ export default function CustomerMenu() {
       </div>
 
       {/* الفوتر */}
-<footer className="bg-slate-900 text-slate-400 text-xs py-6 px-4 text-center mt-8 space-y-3">
-  <p className="font-bold text-amber-400 text-sm">Grill & Greens - سوهاج</p>
-  <div className="flex justify-center items-center gap-4 text-slate-300 font-medium">
-    <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer">فيسبوك</a>
-    <span>•</span>
-    <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer">انستجرام</a>
-    <span>•</span>
-    <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer">تيك توك</a>
-    <span>•</span>
-    <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer">يوتيوب</a>
-  </div>
-  <p className="text-[11px] text-slate-500">جميع الحقوق محفوظة © Grill & Greens</p>
+      <footer className="bg-slate-900 text-slate-400 text-xs py-6 px-4 text-center mt-8 space-y-3">
+        <p className="font-bold text-amber-400 text-sm">Grill & Greens - سوهاج</p>
+        <div className="flex justify-center items-center gap-4 text-slate-300 font-medium">
+          <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer">فيسبوك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer">انستجرام</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer">تيك توك</a>
+          <span>•</span>
+          <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer">يوتيوب</a>
+        </div>
+        <p className="text-[11px] text-slate-500">جميع الحقوق محفوظة © Grill & Greens</p>
 
-  {/* 👈 ضع زر دخول اللوحة هنا بالضبط قبل إغلاق وسم الفوتر 👇 */}
-  <div className="pt-2 border-t border-slate-800">
-    <a href="/admin" className="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
-      🔒 دخول لوحة الإدارة
-    </a>
-  </div>
-</footer>
+        <div className="pt-2 border-t border-slate-800">
+          <a href="/admin" className="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
+            🔒 دخول لوحة الإدارة
+          </a>
+        </div>
+      </footer>
 
       {/* الشريط العائم للسلة */}
       {cart.length > 0 && !orderSent && (
@@ -463,6 +477,21 @@ export default function CustomerMenu() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    رقم إضافي (اختياري)
+                  </label>
+                  <input
+                    type="tel"
+                    value={altPhone}
+                    onChange={(e) => setAltPhone(e.target.value)}
+                    placeholder="01xxxxxxxxx"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
                     نوع الاستلام
                   </label>
                   <select
@@ -474,7 +503,29 @@ export default function CustomerMenu() {
                     <option value="takeaway">استلام من المطعم (0 ج.م)</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    طريقة الدفع *
+                  </label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white font-bold text-slate-800 focus:outline-none focus:border-red-500"
+                  >
+                    <option value="cash">💵 كاش عند الاستلام</option>
+                    <option value="instapay">📱 انستاباي (InstaPay)</option>
+                    <option value="wallet">💳 محفظة إلكترونية</option>
+                  </select>
+                </div>
               </div>
+
+              {/* تنبيه تعليمات عند اختيار طرق الدفع الإلكتروني */}
+              {paymentMethod !== 'cash' && (
+                <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-[11px] text-emerald-800 font-medium">
+                  💡 سيتم تحويل المبلغ إلى الحساب: <span className="font-bold underline">01101616480</span> عند تأكيد الطلب.
+                </div>
+              )}
 
               {orderType === 'delivery' && (
                 <div>
