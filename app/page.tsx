@@ -77,6 +77,7 @@ export default function CustomerMenu() {
     tiktok: 'https://www.tiktok.com/@grillgreens',
     youtube: 'https://youtube.com/@grillgreens',
     whatsapp: 'https://wa.me/201101616480',
+    phoneCall: 'tel:201101616480',
   };
 
   useEffect(() => {
@@ -254,7 +255,7 @@ export default function CustomerMenu() {
 
       <div className="max-w-xl mx-auto px-4 mt-5 space-y-4">
         
-        {/* 2. شريط كروت البيانات السريعة */}
+        {/* 2. شريط كروت البيانات السريعة مع زري اتصال وواتساب */}
         <div className="flex flex-wrap items-center gap-2 text-[11px] font-black">
           <span className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border ${
             isOpenNow 
@@ -273,17 +274,26 @@ export default function CustomerMenu() {
             💳 كاش • محفظة • انستاباي
           </span>
 
+          {/* زر اتصل بنا توجيه للمكالمات الهاتفية */}
+          <a 
+            href={SOCIAL_LINKS.phoneCall} 
+            className="bg-[#b93828] hover:bg-[#a12f21] text-white px-3.5 py-1.5 rounded-xl flex items-center gap-1 transition shadow-md"
+          >
+            📞 اتصل بنا
+          </a>
+
+          {/* زر الواتساب باللون الزيتوني الجذاب */}
           <a 
             href={SOCIAL_LINKS.whatsapp} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="mr-auto bg-[#b93828] hover:bg-[#a12f21] text-white px-3.5 py-1.5 rounded-xl flex items-center gap-1 transition shadow-md"
+            className="bg-[#2d5a27] hover:bg-[#23471f] text-[#4ade80] border border-[#3b7534] px-3.5 py-1.5 rounded-xl flex items-center gap-1 transition shadow-md font-black"
           >
-            📞 اتصل بنا
+            💬 واتساب
           </a>
         </div>
 
-        {/* 3. كرت العرض المميز المتزامن تلقائياً (لا يظهر أثناء التحميل لمنع ظهور القديم) */}
+        {/* 3. كرت العرض المميز المتزامن تلقائياً */}
         {!loadingPromo && promoOffer && promoOffer.isActive && (
           <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-4 text-white shadow-xl">
             {promoOffer.type === 'image' && promoOffer.imageUrl ? (
@@ -347,7 +357,7 @@ export default function CustomerMenu() {
           </div>
         </div>
 
-        {/* 5. قائمة الأصناف: الصورة يمين | التفاصيل منتصف | زر الإضافة شمال */}
+        {/* 5. قائمة الأصناف */}
         <main className="space-y-3 pt-1">
           {loadingMenu ? (
             <div className="text-center py-12 text-stone-500 font-black">جاري تحميل أشهى الوجبات... ⏳</div>
