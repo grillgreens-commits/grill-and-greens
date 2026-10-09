@@ -49,7 +49,7 @@ export default function CustomerMenu() {
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
 
-  // إعدادات العرض الخاص (تم تصفير القيمة الافتراضية لمنع الوميض بالعرض القديم)
+  // إعدادات العرض الخاص (تصفير القيمة الافتراضية لمنع الوميض)
   const [promoOffer, setPromoOffer] = useState<{
     type: 'text' | 'image';
     title?: string;
@@ -234,7 +234,7 @@ export default function CustomerMenu() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/30 to-transparent"></div>
         </div>
 
-        {/* الهيدر: اللوجو على اليمين مع خلفية بيج دافئة واسم المطعم بوضوح */}
+        {/* الهيدر: اللوجو واسم المطعم */}
         <div className="max-w-xl mx-auto px-4 flex items-center justify-start gap-4 -mt-12 relative z-10">
           <div className="w-20 h-20 bg-[#e8dbca] border-2 border-[#b93828] rounded-full overflow-hidden shadow-2xl flex items-center justify-center p-1.5 shrink-0">
             <img 
@@ -253,53 +253,55 @@ export default function CustomerMenu() {
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 mt-5 space-y-3">
+      <div className="max-w-xl mx-auto px-4 mt-4 space-y-3">
         
-        {/* 2. شريط كروت البيانات السريعة والأزرار (مرتبة على سطرين بالظبط) */}
-        <div className="space-y-2 text-[11px] font-black">
-          {/* السطر الأول: البيانات الثلاثة */}
-          <div className="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar">
-            <span className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-sm border shrink-0 ${
+        {/* 2. شريط كروت البيانات السريعة محدد في سطرين بالظبط بدون سكرول */}
+        <div className="space-y-1.5 text-[10px] sm:text-[11px] font-black">
+          {/* السطر الأول: الحالة + وقت التجهيز */}
+          <div className="flex items-center gap-1.5 w-full">
+            <span className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-sm border flex-1 justify-center whitespace-nowrap ${
               isOpenNow 
                 ? 'bg-[#183a24]/80 text-[#4ade80] border-[#22673a]' 
                 : 'bg-[#3b1513]/80 text-[#fca5a5] border-[#8a221a]'
             }`}>
               <span className={`w-2 h-2 rounded-full ${isOpenNow ? 'bg-[#4ade80] animate-pulse' : 'bg-[#ef4444]'}`}></span>
-              {isOpenNow ? 'مفتوح 🟢' : 'مغلق (الجمعة إجازة) 🔴'}
+              {isOpenNow ? 'مفتوح الآن 🟢' : 'مغلق (الجمعة إجازة) 🔴'}
             </span>
 
-            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2.5 py-1.5 rounded-xl shadow-sm shrink-0">
+            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2.5 py-1.5 rounded-xl shadow-sm flex-1 text-center whitespace-nowrap">
               ⏳ تجهيز: 1 - 2 ساعة
-            </span>
-
-            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2.5 py-1.5 rounded-xl shadow-sm shrink-0">
-              💳 كاش • محفظة • انستاباي
             </span>
           </div>
 
-          {/* السطر الثاني: زري اتصل بنا وواتساب متساويين جنب بعض */}
-          <div className="grid grid-cols-2 gap-2 w-full">
-            <a 
-              href={SOCIAL_LINKS.phoneCall} 
-              className="bg-[#b93828] hover:bg-[#a12f21] text-white py-2 rounded-xl flex items-center justify-center gap-1.5 transition shadow-md w-full text-center"
-            >
-              📞 اتصل بنا
-            </a>
+          {/* السطر الثاني: طرق الدفع + اتصل بنا + زر الواتساب في مكان الدائرة بالظبط */}
+          <div className="flex items-center gap-1.5 w-full">
+            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2 py-1.5 rounded-xl shadow-sm text-center whitespace-nowrap">
+              💳 كاش • محفظة • انستاباي
+            </span>
 
+            {/* زر الواتساب في الدائرة المحددة */}
             <a 
               href={SOCIAL_LINKS.whatsapp} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-[#2d5a27] hover:bg-[#23471f] text-[#4ade80] border border-[#3b7534] py-2 rounded-xl flex items-center justify-center gap-1.5 transition shadow-md font-black w-full text-center"
+              className="bg-[#2d5a27] hover:bg-[#23471f] text-[#4ade80] border border-[#3b7534] px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1 transition shadow-md font-black shrink-0 whitespace-nowrap"
             >
               💬 واتساب
+            </a>
+
+            {/* زر اتصل بنا */}
+            <a 
+              href={SOCIAL_LINKS.phoneCall} 
+              className="bg-[#b93828] hover:bg-[#a12f21] text-white px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1 transition shadow-md shrink-0 whitespace-nowrap"
+            >
+              📞 اتصل بنا
             </a>
           </div>
         </div>
 
         {/* 3. كرت العرض المميز المتزامن تلقائياً */}
         {!loadingPromo && promoOffer && promoOffer.isActive && (
-          <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-4 text-white shadow-xl mt-3">
+          <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-4 text-white shadow-xl mt-2">
             {promoOffer.type === 'image' && promoOffer.imageUrl ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
