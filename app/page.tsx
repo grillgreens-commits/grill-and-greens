@@ -49,7 +49,7 @@ export default function CustomerMenu() {
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
 
-  // إعدادات العرض الخاص المحدثة (تزامن تلقائي مع قاعدة البيانات)
+  // إعدادات العرض الخاص (تم تصفير القيمة الافتراضية لمنع الوميض بالعرض القديم)
   const [promoOffer, setPromoOffer] = useState<{
     type: 'text' | 'image';
     title?: string;
@@ -57,14 +57,8 @@ export default function CustomerMenu() {
     price?: number;
     imageUrl?: string;
     isActive: boolean;
-  }>({
-    type: 'text',
-    title: 'مشكل Grill & Greens للعيلة',
-    description: 'كيلو مشويات مشكلة + 4 أطباق جانبية',
-    price: 1150,
-    imageUrl: '',
-    isActive: true,
-  });
+  } | null>(null);
+  const [loadingPromo, setLoadingPromo] = useState<boolean>(true);
 
   // بيانات الطلب
   const [customerName, setCustomerName] = useState<string>('');
@@ -120,10 +114,14 @@ export default function CustomerMenu() {
   };
 
   const fetchPromoOffer = async () => {
+    setLoadingPromo(true);
     const { data } = await supabase.from('settings').select('*').eq('key', 'promo_offer').maybeSingle();
     if (data && data.value) {
       setPromoOffer(data.value);
+    } else {
+      setPromoOffer(null);
     }
+    setLoadingPromo(false);
   };
 
   const addToCart = (item: MenuItem) => {
@@ -285,8 +283,8 @@ export default function CustomerMenu() {
           </a>
         </div>
 
-        {/* 3. كرت العرض المميز المتزامن تلقائياً */}
-        {promoOffer && promoOffer.isActive && (
+        {/* 3. كرت العرض المميز المتزامن تلقائياً (لا يظهر أثناء التحميل لمنع ظهور القديم) */}
+        {!loadingPromo && promoOffer && promoOffer.isActive && (
           <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-4 text-white shadow-xl">
             {promoOffer.type === 'image' && promoOffer.imageUrl ? (
               <div className="space-y-3">
