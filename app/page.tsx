@@ -98,9 +98,9 @@ export default function CustomerMenu() {
     const hour = now.getHours();
 
     if (day === 5) {
-      setIsOpenNow(false); // الجمعة إجازة
+      setIsOpenNow(false);
     } else if (hour >= 11 && hour < 20) {
-      setIsOpenNow(true); // مفتوح من 11 صباحاً لـ 8 مساءً
+      setIsOpenNow(true);
     } else {
       setIsOpenNow(false);
     }
@@ -219,26 +219,24 @@ export default function CustomerMenu() {
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-stone-100 font-sans dir-rtl pb-28" dir="rtl">
-      {/* استدعاء خطوط القاهرة وتاجاوال العريضة */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Tajawal:wght@700;900&display=swap');
         body { font-family: 'Cairo', 'Tajawal', sans-serif; }
       `}</style>
       
-      {/* 1. البانر العلوي وتداخل اللوجو والاسم باليمين */}
+      {/* 1. البانر العلوي وصورة الفحم والمشويات */}
       <div className="relative">
-        <div className="h-40 w-full bg-gradient-to-r from-[#5a1210] via-[#1c2419] to-[#121212] overflow-hidden relative">
+        <div className="h-44 w-full bg-gradient-to-r from-[#5a1210] via-[#121212] to-[#1c2419] overflow-hidden relative">
           <img 
-            src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80" 
-            alt="Grill & Greens Cover" 
-            className="w-full h-full object-cover opacity-30 mix-blend-overlay"
+            src="https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=1200&q=80" 
+            alt="Grill & Greens BBQ Cover" 
+            className="w-full h-full object-cover opacity-50 mix-blend-luminosity"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/40 to-transparent"></div>
         </div>
 
-        {/* الهيدر: اللوجو على اليمين مع خلفية بيج دافئة واسم المطعم بوسط/جنب اللوجو */}
+        {/* الهيدر: اللوجو على اليمين مع خلفية بيج دافئة واسم المطعم باللون المشرق والواضح */}
         <div className="max-w-xl mx-auto px-4 flex items-center justify-start gap-4 -mt-12 relative z-10">
-          {/* دائرة اللوجو بخلفية بيج دافئة (ورق كرافت) */}
           <div className="w-20 h-20 bg-[#e8dbca] border-2 border-[#b93828] rounded-full overflow-hidden shadow-2xl flex items-center justify-center p-1.5 shrink-0">
             <img 
               src="https://www2.0zz0.com/2025/12/05/23/289980791.png" 
@@ -247,10 +245,10 @@ export default function CustomerMenu() {
             />
           </div>
 
-          {/* الاسم والوصف بجوار اللوجو على اليمين */}
-          <div className="space-y-0.5">
-            <h1 className="text-2xl font-black text-[#f1ede6] tracking-tight drop-shadow">Grill & Greens</h1>
-            <p className="text-xs text-[#2e593d] font-black bg-[#2e593d]/20 px-2 py-0.5 rounded-md inline-block border border-[#2e593d]/40">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black text-[#f1ede6] tracking-tight drop-shadow-md">Grill & Greens</h1>
+            {/* اللون الأخضر الزيتي الفاتح المضيء والمناسب للـ Dark Mode */}
+            <p className="text-xs text-[#4ade80] font-black bg-[#183a24]/90 px-2.5 py-0.5 rounded-md inline-block border border-[#22673a]">
               مشويات وأكل بيتي • سوهاج
             </p>
           </div>
@@ -259,9 +257,8 @@ export default function CustomerMenu() {
 
       <div className="max-w-xl mx-auto px-4 mt-5 space-y-4">
         
-        {/* 2. شريط كروت البيانات السريعة والتفاعلية */}
+        {/* 2. شريط كروت البيانات السريعة */}
         <div className="flex flex-wrap items-center gap-2 text-[11px] font-black">
-          {/* كرت مفتوح/مغلق البرمجي */}
           <span className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border ${
             isOpenNow 
               ? 'bg-[#183a24]/80 text-[#4ade80] border-[#22673a]' 
@@ -271,17 +268,14 @@ export default function CustomerMenu() {
             {isOpenNow ? 'مفتوح الآن 🟢' : 'مغلق الآن (الجمعة إجازة) 🔴'}
           </span>
 
-          {/* كرت زمن التجهيز */}
           <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-3 py-1.5 rounded-xl shadow-sm">
             ⏳ تجهيز الأوردر: 1 - 2 ساعة
           </span>
 
-          {/* كرت طرق الدفع */}
           <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-3 py-1.5 rounded-xl shadow-sm">
             💳 كاش • محفظة • انستاباي
           </span>
 
-          {/* زر اتصل بنا */}
           <a 
             href={SOCIAL_LINKS.whatsapp} 
             target="_blank" 
@@ -292,9 +286,9 @@ export default function CustomerMenu() {
           </a>
         </div>
 
-        {/* 3. كرت العرض المميز بأسلوب هوية أحمر المشويات والأخضر الزيتي */}
+        {/* 3. كرت العرض المميز */}
         {promoOffer.isActive && (
-          <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#2e593d] p-4 text-white shadow-xl">
+          <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-4 text-white shadow-xl">
             {promoOffer.type === 'image' && promoOffer.imageUrl ? (
               <img 
                 src={promoOffer.imageUrl} 
@@ -410,7 +404,7 @@ export default function CustomerMenu() {
                 key={item.id}
                 className="bg-[#161616] border border-stone-800/80 hover:border-stone-700 p-3.5 rounded-2xl shadow-xl flex items-center justify-between gap-3 transition"
               >
-                {/* 1. الصورة على اليمين */}
+                {/* الصورة على اليمين */}
                 <div className="w-16 h-16 bg-[#0d0d0d] rounded-xl overflow-hidden shrink-0 border border-stone-800 flex items-center justify-center">
                   {item.image_url ? (
                     <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
@@ -419,7 +413,7 @@ export default function CustomerMenu() {
                   )}
                 </div>
 
-                {/* 2. الاسم والوصف والسعر في المنتصف */}
+                {/* التفاصيل بالمنتصف */}
                 <div className="flex-1 text-right space-y-0.5">
                   <div className="flex items-center gap-2">
                     <h3 className="font-black text-stone-100 text-sm">{item.name}</h3>
@@ -437,7 +431,7 @@ export default function CustomerMenu() {
                   </span>
                 </div>
 
-                {/* 3. زر الإضافة + على الشمال */}
+                {/* زر الإضافة على الشمال */}
                 <button
                   onClick={() => addToCart(item)}
                   className="w-10 h-10 bg-[#b93828] hover:bg-[#a12f21] text-white rounded-xl font-black text-xl flex items-center justify-center shadow-lg active:scale-95 transition shrink-0"
