@@ -49,7 +49,7 @@ export default function CustomerMenu() {
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
 
-  // إعدادات العرض الخاص (إما نص أو صورة)
+  // إعدادات العرض الخاص المحدثة (تزامن تلقائي مع قاعدة البيانات)
   const [promoOffer, setPromoOffer] = useState<{
     type: 'text' | 'image';
     title?: string;
@@ -120,7 +120,7 @@ export default function CustomerMenu() {
   };
 
   const fetchPromoOffer = async () => {
-    const { data } = await supabase.from('settings').select('*').eq('key', 'promo_offer').single();
+    const { data } = await supabase.from('settings').select('*').eq('key', 'promo_offer').maybeSingle();
     if (data && data.value) {
       setPromoOffer(data.value);
     }
@@ -285,15 +285,22 @@ export default function CustomerMenu() {
           </a>
         </div>
 
-        {/* 3. كرت العرض المميز */}
-        {promoOffer.isActive && (
+        {/* 3. كرت العرض المميز المتزامن تلقائياً */}
+        {promoOffer && promoOffer.isActive && (
           <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-4 text-white shadow-xl">
             {promoOffer.type === 'image' && promoOffer.imageUrl ? (
-              <img 
-                src={promoOffer.imageUrl} 
-                alt="العرض الخاص" 
-                className="w-full h-auto rounded-xl object-cover"
-              />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="bg-[#0d0d0d] text-[#e8dbca] text-[10px] font-black px-2.5 py-0.5 rounded-md border border-[#e8dbca]/20">
+                    🔥 عرض اليوم الخاص
+                  </span>
+                </div>
+                <img 
+                  src={promoOffer.imageUrl} 
+                  alt="العرض الخاص" 
+                  className="w-full h-auto max-h-52 rounded-xl object-cover border border-stone-800"
+                />
+              </div>
             ) : (
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
@@ -307,8 +314,8 @@ export default function CustomerMenu() {
                   <span className="text-2xl font-black block text-[#e8dbca]">{promoOffer.price} <span className="text-xs font-bold">ج.م</span></span>
                   <button 
                     onClick={() => addToCart({
-                      id: 'promo-offer',
-                      name: promoOffer.title || 'عرض خاص',
+                      id: 'promo-offer-special',
+                      name: promoOffer.title || 'عرض خاص اليوم',
                       price: promoOffer.price || 0,
                       category: 'العروض',
                       description: promoOffer.description
