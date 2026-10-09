@@ -49,7 +49,7 @@ export default function CustomerMenu() {
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
 
-  // إعدادات العرض الخاص (تصفير القيمة الافتراضية لمنع الوميض)
+  // إعدادات العرض الخاص
   const [promoOffer, setPromoOffer] = useState<{
     type: 'text' | 'image';
     title?: string;
@@ -86,10 +86,9 @@ export default function CustomerMenu() {
     checkWorkingHours();
   }, []);
 
-  // فحص مواعيد العمل: كل يوم من 11 ص لـ 8 م ماعدا الجمعة إجازة
   const checkWorkingHours = () => {
     const now = new Date();
-    const day = now.getDay(); // 5 = الجمعة
+    const day = now.getDay();
     const hour = now.getHours();
 
     if (day === 5) {
@@ -255,11 +254,11 @@ export default function CustomerMenu() {
 
       <div className="max-w-xl mx-auto px-4 mt-4 space-y-3">
         
-        {/* 2. شريط كروت البيانات السريعة محدد في سطرين بالظبط بدون سكرول */}
+        {/* 2. شريط كروت البيانات السريعة محدد في سطرين ومتمدد بالكامل لتعبئة الشاشة */}
         <div className="space-y-1.5 text-[10px] sm:text-[11px] font-black">
-          {/* السطر الأول: الحالة + وقت التجهيز */}
+          {/* السطر الأول: الحالة + وقت التجهيز (موزعين 50% / 50%) */}
           <div className="flex items-center gap-1.5 w-full">
-            <span className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-sm border flex-1 justify-center whitespace-nowrap ${
+            <span className={`px-2 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow-sm border flex-1 text-center whitespace-nowrap ${
               isOpenNow 
                 ? 'bg-[#183a24]/80 text-[#4ade80] border-[#22673a]' 
                 : 'bg-[#3b1513]/80 text-[#fca5a5] border-[#8a221a]'
@@ -268,31 +267,29 @@ export default function CustomerMenu() {
               {isOpenNow ? 'مفتوح الآن 🟢' : 'مغلق (الجمعة إجازة) 🔴'}
             </span>
 
-            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2.5 py-1.5 rounded-xl shadow-sm flex-1 text-center whitespace-nowrap">
-              ⏳ تجهيز: 1 - 2 ساعة
+            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2 py-1.5 rounded-xl shadow-sm flex-1 text-center whitespace-nowrap">
+              ⏳ تجهيز الأوردر: 1 - 2 ساعة
             </span>
           </div>
 
-          {/* السطر الثاني: طرق الدفع + اتصل بنا + زر الواتساب في مكان الدائرة بالظبط */}
+          {/* السطر الثاني: طرق الدفع + واتساب + اتصل بنا (موزعين بالتساوي لتعبئة كامل السطر بدون فراغ) */}
           <div className="flex items-center gap-1.5 w-full">
-            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2 py-1.5 rounded-xl shadow-sm text-center whitespace-nowrap">
+            <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2 py-1.5 rounded-xl shadow-sm flex-1 text-center whitespace-nowrap">
               💳 كاش • محفظة • انستاباي
             </span>
 
-            {/* زر الواتساب في الدائرة المحددة */}
             <a 
               href={SOCIAL_LINKS.whatsapp} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-[#2d5a27] hover:bg-[#23471f] text-[#4ade80] border border-[#3b7534] px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1 transition shadow-md font-black shrink-0 whitespace-nowrap"
+              className="bg-[#2d5a27] hover:bg-[#23471f] text-[#4ade80] border border-[#3b7534] px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 transition shadow-md font-black flex-1 text-center whitespace-nowrap"
             >
               💬 واتساب
             </a>
 
-            {/* زر اتصل بنا */}
             <a 
               href={SOCIAL_LINKS.phoneCall} 
-              className="bg-[#b93828] hover:bg-[#a12f21] text-white px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1 transition shadow-md shrink-0 whitespace-nowrap"
+              className="bg-[#b93828] hover:bg-[#a12f21] text-white px-3 py-1.5 rounded-xl flex items-center justify-center gap-1 transition shadow-md flex-1 text-center whitespace-nowrap"
             >
               📞 اتصل بنا
             </a>
