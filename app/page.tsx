@@ -224,18 +224,18 @@ export default function CustomerMenu() {
         body { font-family: 'Cairo', 'Tajawal', sans-serif; }
       `}</style>
       
-      {/* 1. البانر العلوي وصورة الفحم والمشويات */}
+      {/* 1. البانر العلوي بصورة السفرة والأكل البيتي والوجبات */}
       <div className="relative">
         <div className="h-44 w-full bg-gradient-to-r from-[#5a1210] via-[#121212] to-[#1c2419] overflow-hidden relative">
           <img 
-            src="https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=1200&q=80" 
-            alt="Grill & Greens BBQ Cover" 
-            className="w-full h-full object-cover opacity-50 mix-blend-luminosity"
+            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" 
+            alt="Grill & Greens Feast Cover" 
+            className="w-full h-full object-cover opacity-45 mix-blend-luminosity"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/30 to-transparent"></div>
         </div>
 
-        {/* الهيدر: اللوجو على اليمين مع خلفية بيج دافئة واسم المطعم باللون المشرق والواضح */}
+        {/* الهيدر: اللوجو على اليمين مع خلفية بيج دافئة واسم المطعم بوضوح */}
         <div className="max-w-xl mx-auto px-4 flex items-center justify-start gap-4 -mt-12 relative z-10">
           <div className="w-20 h-20 bg-[#e8dbca] border-2 border-[#b93828] rounded-full overflow-hidden shadow-2xl flex items-center justify-center p-1.5 shrink-0">
             <img 
@@ -247,7 +247,6 @@ export default function CustomerMenu() {
 
           <div className="space-y-1">
             <h1 className="text-2xl font-black text-[#f1ede6] tracking-tight drop-shadow-md">Grill & Greens</h1>
-            {/* اللون الأخضر الزيتي الفاتح المضيء والمناسب للـ Dark Mode */}
             <p className="text-xs text-[#4ade80] font-black bg-[#183a24]/90 px-2.5 py-0.5 rounded-md inline-block border border-[#22673a]">
               مشويات وأكل بيتي • سوهاج
             </p>
