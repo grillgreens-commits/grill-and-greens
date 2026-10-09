@@ -59,6 +59,23 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
+  // 🔥 إدارة حالة العرض اليومي بصفحة العميل
+  const [promoOfferAdmin, setPromoOfferAdmin] = useState<{
+    type: 'text' | 'image';
+    title: string;
+    description: string;
+    price: number;
+    imageUrl: string;
+    isActive: boolean;
+  }>({
+    type: 'text',
+    title: 'مشكل Grill & Greens للعيلة',
+    description: 'كيلو مشويات مشكلة + 4 أطباق جانبية',
+    price: 1150,
+    imageUrl: '',
+    isActive: true,
+  });
+
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('admin_authenticated');
     if (savedAuth === 'true') {
@@ -70,6 +87,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (!isAuthenticated) return;
 
     fetchAllData();
+    fetchPromoSettings();
 
     const ordersChannel = supabase
       .channel('realtime_orders')
@@ -112,6 +130,28 @@ export default function CompleteEnterpriseAdminDashboard() {
     setLoading(true);
     await Promise.all([fetchOrders(), fetchJournal(), fetchCustomers(), fetchPurchases(), fetchProducts(), fetchIngredients()]);
     setLoading(false);
+  };
+
+  const fetchPromoSettings = async () => {
+    const { data } = await supabase.from('settings').select('*').eq('key', 'promo_offer').maybeSingle();
+    if (data && data.value) {
+      setPromoOfferAdmin(data.value);
+    }
+  };
+
+  const handleSavePromoOffer = async () => {
+    const { error } = await supabase
+      .from('settings')
+      .upsert(
+        { key: 'promo_offer', value: promoOfferAdmin },
+        { onConflict: 'key' }
+      );
+
+    if (error) {
+      alert('حدث خطأ أثناء حفظ العرض: ' + error.message);
+    } else {
+      alert('تم تحديث العرض بنجاح ونشره بصفحة العميل! 🔥');
+    }
   };
 
   const fetchOrders = async () => {
@@ -1678,23 +1718,128 @@ export default function CompleteEnterpriseAdminDashboard() {
           );
         })()}
 
-        {/* 10. قسم الإعدادات */}
+        {/* 10. قسم الإعدادات وإدارة العرض المميز */}
         {activeTab === 'settings' && (
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl max-w-2xl">
-            <h2 className="text-lg font-bold mb-4 text-white">إعدادات النظام والمطعم</h2>
-            <div className="space-y-4 text-xs">
-              <div>
-                <label className="block font-bold mb-1.5 text-slate-300">رقم الواتساب الافتراضي لاستلام الطلبات الإدارية:</label>
-                <input
-                  type="text"
-                  value={whatsappPhone}
-                  onChange={e => setWhatsappPhone(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white outline-none w-full focus:border-emerald-500"
-                />
+          <div className="space-y-6 max-w-2xl">
+            {/* واجهة التحكم في العرض اليومي المميز */}
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                🔥 إدارة العرض اليومي المميز (أعلى المنيو)
+              </h2>
+
+              <div className="space-y-3 text-xs">
+                {/* تفعيل أو إيقاف العرض */}
+                <div className="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  <span className="font-bold text-slate-300">حالة العرض بصفحة العميل:</span>
+                  <button
+                    type="button"
+                    onClick={() => setPromoOfferAdmin({ ...promoOfferAdmin, isActive: !promoOfferAdmin.isActive })}
+                    className={`px-4 py-1.5 rounded-lg font-bold transition ${
+                      promoOfferAdmin.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
+                  >
+                    {promoOfferAdmin.isActive ? 'مفعل ويعرض الآن ✅' : 'معطل ومخفي ❌'}
+                  </button>
+                </div>
+
+                {/* اختيار نوع العرض */}
+                <div>
+                  <label className="block font-bold mb-1.5 text-slate-300">نوع العرض المفضّل:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPromoOfferAdmin({ ...promoOfferAdmin, type: 'text' })}
+                      className={`p-2.5 rounded-xl font-bold border transition ${
+                        promoOfferAdmin.type === 'text' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      📝 نص وسعر ومكونات
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPromoOfferAdmin({ ...promoOfferAdmin, type: 'image' })}
+                      className={`p-2.5 rounded-xl font-bold border transition ${
+                        promoOfferAdmin.type === 'image' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-950 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      🖼️ صورة مصممة / GIF
+                    </button>
+                  </div>
+                </div>
+
+                {/* تفاصيل العرض النصي */}
+                {promoOfferAdmin.type === 'text' ? (
+                  <div className="space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div>
+                      <label className="block font-bold mb-1 text-slate-400">عنوان العرض:</label>
+                      <input
+                        type="text"
+                        value={promoOfferAdmin.title}
+                        onChange={e => setPromoOfferAdmin({ ...promoOfferAdmin, title: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-white outline-none focus:border-emerald-500"
+                        placeholder="عنوان العرض..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold mb-1 text-slate-400">مكونات وتفاصيل العرض:</label>
+                      <input
+                        type="text"
+                        value={promoOfferAdmin.description}
+                        onChange={e => setPromoOfferAdmin({ ...promoOfferAdmin, description: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-white outline-none focus:border-emerald-500"
+                        placeholder="مثال: كيلو كفتة + رز + سلطات..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold mb-1 text-slate-400">سعر العرض (ج.م):</label>
+                      <input
+                        type="number"
+                        value={promoOfferAdmin.price}
+                        onChange={e => setPromoOfferAdmin({ ...promoOfferAdmin, price: Number(e.target.value) })}
+                        className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-white outline-none font-bold text-emerald-400 focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* رابط الصورة الجاهزة */
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <label className="block font-bold mb-1 text-slate-400">رابط صورة/GIF العرض (المقاس 1080 × 400 px):</label>
+                    <input
+                      type="text"
+                      value={promoOfferAdmin.imageUrl}
+                      onChange={e => setPromoOfferAdmin({ ...promoOfferAdmin, imageUrl: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-white outline-none focus:border-emerald-500"
+                      placeholder="https://..."
+                    />
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSavePromoOffer}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-900/30 text-xs"
+                >
+                  حفظ ونشر العرض بصفحة العميل 💾
+                </button>
               </div>
-              <button onClick={() => alert('تم حفظ الإعدادات بنجاح')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold transition">
-                حفظ التغييرات 💾
-              </button>
+            </div>
+
+            {/* إعدادات الواتساب العامة */}
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-4 text-white">إعدادات النظام العامة</h2>
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold mb-1.5 text-slate-300">رقم الواتساب الافتراضي لاستلام الطلبات الإدارية:</label>
+                  <input
+                    type="text"
+                    value={whatsappPhone}
+                    onChange={e => setWhatsappPhone(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white outline-none w-full focus:border-emerald-500"
+                  />
+                </div>
+                <button onClick={() => alert('تم حفظ الإعدادات بنجاح')} className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold transition">
+                  حفظ التغييرات 💾
+                </button>
+              </div>
             </div>
           </div>
         )}
