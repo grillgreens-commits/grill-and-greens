@@ -59,7 +59,7 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
-  // 🔥 إدارة حالة العرض اليومي بصفحة العميل
+  // إدارة حالة العرض اليومي بصفحة العميل
   const [promoOfferAdmin, setPromoOfferAdmin] = useState<{
     type: 'text' | 'image';
     title: string;
@@ -446,6 +446,10 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (!pendingDeliveryOrder) return;
 
     const foodAmount = calculateFoodTotalOnly(pendingDeliveryOrder);
+    const deliveryFee = calculateDeliveryOnly(pendingDeliveryOrder);
+    const grandTotalWithDelivery = foodAmount + deliveryFee;
+    const shortId = String(pendingDeliveryOrder.id).split('-')[0].toUpperCase();
+
     const accountNames: Record<string, string> = {
       cash: 'الكاش / درج المحل',
       instapay: 'InstaPay',
@@ -453,16 +457,51 @@ export default function CompleteEnterpriseAdminDashboard() {
       savings: 'المُدخرات الشخصية',
     };
 
-    const { error: walletErr } = await supabase.from('wallet_logs').insert([{
-      account_id: deliveryPaymentAccount,
-      account_name: accountNames[deliveryPaymentAccount] || 'الكاش / درج المحل',
-      type: 'income',
-      category: 'مبيعات مطعم',
-      amount: foodAmount,
-      source: `إيراد أوردر #${String(pendingDeliveryOrder.id).split('-')[0].toUpperCase()}`,
-      notes: `تسليم أوردر العميل: ${pendingDeliveryOrder.customer_name || ''}`,
-      date: new Date().toLocaleString('ar-EG')
-    }]);
+    let walletErr = null;
+
+    if (deliveryPaymentAccount === 'cash') {
+      // الدفع كاش: تسجيل إيراد الوجبات فقط في الكاش
+      const { error } = await supabase.from('wallet_logs').insert([{
+        account_id: 'cash',
+        account_name: 'الكاش / درج المحل',
+        type: 'income',
+        category: 'مبيعات مطعم',
+        amount: foodAmount,
+        source: `إيراد أوردر #${shortId}`,
+        notes: `تسليم أوردر كاش للعميل: ${pendingDeliveryOrder.customer_name || ''}`,
+        date: new Date().toLocaleString('ar-EG')
+      }]);
+      walletErr = error;
+    } else {
+      // الدفع إنستاباي أو محفظة أو مدخرات: إضافة الإجمالي شامل التوصيل للحساب المختار
+      const { error: incError } = await supabase.from('wallet_logs').insert([{
+        account_id: deliveryPaymentAccount,
+        account_name: accountNames[deliveryPaymentAccount],
+        type: 'income',
+        category: 'مبيعات مطعم (شامل التوصيل)',
+        amount: grandTotalWithDelivery,
+        source: `إيراد أوردر شامل التوصيل #${shortId}`,
+        notes: `دفع إلكتروني أوردر: ${pendingDeliveryOrder.customer_name || ''} (شامل توصيل ${deliveryFee}ج)`,
+        date: new Date().toLocaleString('ar-EG')
+      }]);
+
+      if (incError) {
+        walletErr = incError;
+      } else {
+        // خصم رسوم التوصيل تلقائياً من الكاش لتعويض العجز الناتج عن دفع الكاش للمندوب
+        const { error: expError } = await supabase.from('wallet_logs').insert([{
+          account_id: 'cash',
+          account_name: 'الكاش / درج المحل',
+          type: 'expense',
+          category: 'تسوية مصاريف توصيل',
+          amount: deliveryFee,
+          source: `تسوية توصيل أوردر #${shortId}`,
+          notes: `خصم قيمة التوصيل المدفوعة نقداً للمندوب من الكاش مقابل تحصيلها إلكترونياً`,
+          date: new Date().toLocaleString('ar-EG')
+        }]);
+        walletErr = expError;
+      }
+    }
 
     if (!walletErr) {
       await supabase.from('orders').update({ 
@@ -480,7 +519,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       setPendingDeliveryOrder(null);
       fetchOrders();
       fetchCustomers();
-      alert(`تم تسليم الأوردر وتسجيله باليومية وإضافة ${foodAmount} ج.م إلى (${accountNames[deliveryPaymentAccount]}) بنجاح ✅`);
+      alert(`تم تسليم الأوردر بنجاح وتسجيل المبالغ المالية بالشكل الصحيح ✅`);
     } else {
       alert('حدث خطأ في التسجيل: ' + walletErr.message);
     }
