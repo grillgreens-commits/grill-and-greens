@@ -48,6 +48,7 @@ export default function CustomerMenu() {
   const [orderId, setOrderId] = useState<string | number | null>(null);
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
+  const [statusText, setStatusText] = useState<string>('مفتوح الآن 🟢');
 
   // إعدادات العرض الخاص
   const [promoOffer, setPromoOffer] = useState<{
@@ -88,15 +89,18 @@ export default function CustomerMenu() {
 
   const checkWorkingHours = () => {
     const now = new Date();
-    const day = now.getDay();
+    const day = now.getDay(); // 5 = الجمعة
     const hour = now.getHours();
 
     if (day === 5) {
       setIsOpenNow(false);
+      setStatusText('مغلق (الجمعة إجازة) 🔴');
     } else if (hour >= 11 && hour < 20) {
       setIsOpenNow(true);
+      setStatusText('مفتوح الآن 🟢');
     } else {
       setIsOpenNow(false);
+      setStatusText('مغلق الآن 🔴');
     }
   };
 
@@ -264,7 +268,7 @@ export default function CustomerMenu() {
                 : 'bg-[#3b1513]/80 text-[#fca5a5] border-[#8a221a]'
             }`}>
               <span className={`w-2 h-2 rounded-full ${isOpenNow ? 'bg-[#4ade80] animate-pulse' : 'bg-[#ef4444]'}`}></span>
-              {isOpenNow ? 'مفتوح الآن 🟢' : 'مغلق (الجمعة إجازة) 🔴'}
+              {statusText}
             </span>
 
             <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2 py-1.5 rounded-xl shadow-sm flex-1 text-center whitespace-nowrap">
