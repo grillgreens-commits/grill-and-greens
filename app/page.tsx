@@ -21,16 +21,16 @@ export interface MenuItem {
 export interface Category {
   id: string;
   name: string;
+  icon: string;
 }
 
 export const CATEGORIES: Category[] = [
-  { id: 'all', name: 'الكل 🍽️' },
-  { id: 'المشويات', name: 'المشويات 🥩' },
-  { id: 'الوجبات', name: 'الوجبات 🍱' },
-  { id: 'المحاشي', name: 'المحاشي 🥬' },
-  { id: 'الطواجن', name: 'الطواجن 🍲' },
-  { id: 'الطيور', name: 'الطيور 🍗' },
-  { id: 'أصناف إضافية', name: 'أصناف إضافية 🥗' },
+  { id: 'المشويات', name: 'المشويات', icon: '🥩' },
+  { id: 'الوجبات', name: 'الوجبات', icon: '🍱' },
+  { id: 'المحاشي', name: 'المحاشي', icon: '🥬' },
+  { id: 'الطواجن', name: 'الطواجن', icon: '🍲' },
+  { id: 'الطيور', name: 'الطيور', icon: '🍗' },
+  { id: 'أصناف إضافية', name: 'أصناف إضافية', icon: '🥗' },
 ];
 
 interface CartItem {
@@ -39,7 +39,7 @@ interface CartItem {
 }
 
 export default function CustomerMenu() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loadingMenu, setLoadingMenu] = useState<boolean>(true);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -76,7 +76,7 @@ export default function CustomerMenu() {
     facebook: 'https://facebook.com/grillgreens',
     instagram: 'https://www.instagram.com/grillgreens',
     tiktok: 'https://www.tiktok.com/@grillgreens',
-    youtube: 'https://youtube.com/@grillgreens',
+    youtube: 'https://youtube.com/@grillgreens', // 👈 أضف هذا السطر هنا
     whatsapp: 'https://wa.me/201101616480',
     phoneCall: 'tel:201101616480',
   };
@@ -89,7 +89,7 @@ export default function CustomerMenu() {
 
   const checkWorkingHours = () => {
     const now = new Date();
-    const day = now.getDay(); // 5 = الجمعة
+    const day = now.getDay();
     const hour = now.getHours();
 
     if (day === 5) {
@@ -157,10 +157,9 @@ export default function CustomerMenu() {
   const grandTotal = itemsSubtotal + deliveryFee;
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const filteredItems =
-    selectedCategory === 'all'
-      ? menuItems
-      : menuItems.filter((item: MenuItem) => item.category === selectedCategory);
+  const filteredItems = selectedCategory
+    ? menuItems.filter((item: MenuItem) => item.category === selectedCategory)
+    : [];
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,9 +225,9 @@ export default function CustomerMenu() {
         body { font-family: 'Cairo', 'Tajawal', sans-serif; background-color: #fff9f4; }
       `}</style>
 
-      {/* 1. رأس الصفحة: بانر خلفية مع كارت المعلومات المدمج باللون الأحمر الفاخر */}
+      {/* 1. البانر العلوي الهيدر */}
       <div className="relative">
-        <div className="h-52 w-full bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#2d4a3e] overflow-hidden relative shadow-md">
+        <div className="h-44 w-full bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#2d4a3e] overflow-hidden relative shadow-md">
           <img 
             src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" 
             alt="Grill & Greens Cover" 
@@ -237,47 +236,47 @@ export default function CustomerMenu() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
         </div>
 
-        {/* كارت المطعم العائم فوق البانر */}
-        <div className="max-w-xl mx-auto px-4 -mt-20 relative z-10">
+        {/* كارت المطعم الرئيسي */}
+        <div className="max-w-xl mx-auto px-4 -mt-16 relative z-10">
           <div className="bg-[#b93828] text-white rounded-3xl p-5 shadow-2xl border border-red-500/30 space-y-4">
             
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-1 text-right">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-black tracking-tight">Grill & Greens</h1>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${isOpenNow ? 'bg-emerald-500 text-white' : 'bg-stone-800 text-red-300'}`}>
-                    {statusText}
-                  </span>
-                </div>
-                <p className="text-xs text-stone-200 font-bold">العنوان: سوهاج • أكل بيتي ومشويات</p>
-                <p className="text-xs text-stone-200 font-bold">الهواتف: 01101616480+</p>
-              </div>
-
-              {/* مربع اللوجو الأنيق */}
-              <div className="w-20 h-20 bg-[#e8dbca] border-2 border-white rounded-2xl overflow-hidden shadow-lg flex items-center justify-center p-1.5 shrink-0">
+            {/* اللوجو والاسم جنب بعض في سطر واحد */}
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 bg-[#e8dbca] border-2 border-white rounded-2xl overflow-hidden shadow-md flex items-center justify-center p-1 shrink-0">
                 <img 
                   src="https://www2.0zz0.com/2025/12/05/23/289980791.png" 
                   alt="Grill & Greens Logo" 
                   className="w-full h-full object-contain"
                 />
               </div>
+
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-black tracking-tight leading-none">Grill & Greens</h1>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${isOpenNow ? 'bg-emerald-500 text-white' : 'bg-stone-800 text-red-300'}`}>
+                    {statusText}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-200 font-bold pt-1">العنوان: سوهاج • أكل بيتي ومشويات</p>
+                <p className="text-xs text-amber-200 font-black">⏳ تجهيز الأوردر: 1 - 2 ساعة</p>
+              </div>
             </div>
 
-            {/* أزرار التواصل الاجتماعي والاتصال السريعة */}
-            <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-red-600/60 overflow-x-auto no-scrollbar">
-              <a href={SOCIAL_LINKS.phoneCall} className="bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1 flex-1 transition">
+            {/* أزرار التواصل موزعة بالتساوي بدون سكرول */}
+            <div className="grid grid-cols-5 gap-1.5 pt-2 border-t border-red-600/60">
+              <a href={SOCIAL_LINKS.phoneCall} className="bg-white/10 hover:bg-white/20 py-2 rounded-xl text-white text-[10px] font-black flex items-center justify-center text-center transition">
                 📞 اتصال
               </a>
-              <a href={SOCIAL_LINKS.whatsapp} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-500 p-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1 flex-1 transition">
+              <a href={SOCIAL_LINKS.whatsapp} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-500 py-2 rounded-xl text-white text-[10px] font-black flex items-center justify-center text-center transition">
                 💬 واتساب
               </a>
-              <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1 flex-1 transition">
+              <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 py-2 rounded-xl text-white text-[10px] font-black flex items-center justify-center text-center transition">
                 فيسبوك
               </a>
-              <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1 flex-1 transition">
+              <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 py-2 rounded-xl text-white text-[10px] font-black flex items-center justify-center text-center transition">
                 انستجرام
               </a>
-              <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1 flex-1 transition">
+              <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/20 py-2 rounded-xl text-white text-[10px] font-black flex items-center justify-center text-center transition">
                 تيك توك
               </a>
             </div>
@@ -288,7 +287,7 @@ export default function CustomerMenu() {
 
       <div className="max-w-xl mx-auto px-4 mt-4 space-y-4">
 
-        {/* 2. بانر العروض الخاصة البارز */}
+        {/* 2. العروض الخاصة */}
         {!loadingPromo && promoOffer && promoOffer.isActive && (
           <div className="space-y-2">
             <h3 className="text-sm font-black text-[#b93828] flex items-center gap-1">
@@ -331,27 +330,8 @@ export default function CustomerMenu() {
           </div>
         )}
 
-        {/* 3. شريط التصنيفات (Categories Bar) بتصميم عصري أفقي */}
-        <div className="sticky top-0 z-20 bg-[#fff9f4]/95 backdrop-blur-md py-2.5 border-b border-stone-200">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-5 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all shadow-sm ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#b93828] text-white shadow-md shadow-[#b93828]/30 scale-105'
-                    : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-100'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 4. قائمة الأصناف بتصميم شبكي (Grid Cards) مطابق تماماً للصورة المعروضة */}
-        <main className="space-y-4 pt-2">
+        {/* 3. العرض الرئيسي: إما كروت الأقسام وإما أصناف القسم المحدد */}
+        <main className="space-y-4 pt-1">
           {loadingMenu ? (
             <div className="text-center py-16 text-stone-400 font-black">جاري تحميل أشهى الوجبات... ⏳</div>
           ) : orderSent ? (
@@ -397,59 +377,111 @@ export default function CustomerMenu() {
                   setOrderSent(false);
                   setIsCartOpen(false);
                   setCart([]);
+                  setSelectedCategory(null);
                 }}
                 className="bg-[#b93828] text-white font-black px-6 py-3 rounded-2xl text-xs hover:bg-[#a12f21] transition shadow"
               >
                 طلب جديد 🍽️
               </button>
             </div>
-          ) : filteredItems.length === 0 ? (
-            <div className="text-center py-16 text-stone-400 font-black">لا توجد أصناف متوفرة في هذا القسم حالياً.</div>
+          ) : selectedCategory === null ? (
+            /* 🔥 الواجهة الأولى: عرض كروت الأقسام فقط */
+            <div className="space-y-3">
+              <h3 className="text-sm font-black text-[#b93828] flex items-center gap-1">
+                <span>🍽️</span> اختار القسم واستمتع بأشهى الأكلات
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {CATEGORIES.map((cat) => {
+                  const count = menuItems.filter(i => i.category === cat.id).length;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className="bg-white border border-stone-200 hover:border-[#b93828] p-5 rounded-3xl shadow-sm hover:shadow-md transition text-right space-y-2 flex flex-col justify-between group active:scale-95"
+                    >
+                      <div className="flex justify-between items-center w-full">
+                        <span className="text-3xl group-hover:scale-110 transition">{cat.icon}</span>
+                        <span className="bg-stone-100 text-stone-600 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          {count} صنف
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-black text-stone-900 text-base">{cat.name}</h4>
+                        <p className="text-[11px] text-[#b93828] font-bold mt-1 flex items-center gap-1">
+                          عرض الأصناف ➔
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3.5">
-              {filteredItems.map((item: MenuItem) => (
-                <div
-                  key={item.id}
-                  className="bg-white border border-stone-200/80 hover:border-[#b93828]/40 rounded-3xl p-3 shadow-sm hover:shadow-md flex flex-col justify-between transition relative overflow-hidden group"
+            /* 🔥 الواجهة الثانية: صفحة أصناف القسم المحدد + زر العودة للأقسام */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className="bg-stone-200 hover:bg-stone-300 text-stone-800 px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1"
                 >
-                  {/* زر الإضافة السريع (+) أعلى الصورة */}
-                  <button
-                    onClick={() => addToCart(item)}
-                    className="absolute top-4 left-4 z-10 w-9 h-9 bg-[#b93828] hover:bg-[#a12f21] text-white rounded-full font-black text-lg flex items-center justify-center shadow-lg active:scale-95 transition"
-                  >
-                    +
-                  </button>
+                  ➔ العودة للأقسام
+                </button>
+                <h3 className="text-base font-black text-[#b93828]">
+                  قسم {selectedCategory} ({filteredItems.length})
+                </h3>
+              </div>
 
-                  {/* صورة الصنف */}
-                  <div className="w-full h-32 bg-stone-100 rounded-2xl overflow-hidden mb-3 border border-stone-100 flex items-center justify-center">
-                    {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                    ) : (
-                      <span className="text-3xl">🍲</span>
-                    )}
-                  </div>
+              {filteredItems.length === 0 ? (
+                <div className="text-center py-12 text-stone-400 font-black">لا توجد أصناف متوفرة في هذا القسم حالياً.</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3.5">
+                  {filteredItems.map((item: MenuItem) => (
+                    <div
+                      key={item.id}
+                      className="bg-white border border-stone-200 hover:border-[#b93828]/40 rounded-3xl p-3 shadow-sm hover:shadow-md flex flex-col justify-between transition relative overflow-hidden group"
+                    >
+                      {/* زر الإضافة السريع (+) */}
+                      <button
+                        onClick={() => addToCart(item)}
+                        className="absolute top-4 left-4 z-10 w-9 h-9 bg-[#b93828] hover:bg-[#a12f21] text-white rounded-full font-black text-lg flex items-center justify-center shadow-lg active:scale-95 transition"
+                      >
+                        +
+                      </button>
 
-                  {/* تفاصيل الصنف */}
-                  <div className="space-y-1 text-right flex-1">
-                    {item.is_popular && (
-                      <span className="bg-[#b93828]/10 text-[#b93828] text-[9px] font-black px-2 py-0.5 rounded-md inline-block">
-                        الأكثر طلباً 🔥
-                      </span>
-                    )}
-                    <h3 className="font-black text-stone-900 text-sm leading-tight">{item.name}</h3>
-                    {item.description && (
-                      <p className="text-[11px] text-stone-500 line-clamp-2 leading-snug font-bold">{item.description}</p>
-                    )}
-                  </div>
+                      {/* صورة الصنف */}
+                      <div className="w-full h-32 bg-stone-100 rounded-2xl overflow-hidden mb-3 border border-stone-100 flex items-center justify-center">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                        ) : (
+                          <span className="text-3xl">🍲</span>
+                        )}
+                      </div>
 
-                  {/* السعر */}
-                  <div className="mt-3 pt-2 border-t border-stone-100 flex items-center justify-between">
-                    <span className="text-[#b93828] font-black text-sm">
-                      {item.price} <span className="text-[10px] font-bold text-stone-500">ج.م</span>
-                    </span>
-                  </div>
+                      {/* التفاصيل */}
+                      <div className="space-y-1 text-right flex-1">
+                        {item.is_popular && (
+                          <span className="bg-[#b93828]/10 text-[#b93828] text-[9px] font-black px-2 py-0.5 rounded-md inline-block">
+                            الأكثر طلباً 🔥
+                          </span>
+                        )}
+                        <h3 className="font-black text-stone-900 text-sm leading-tight">{item.name}</h3>
+                        {item.description && (
+                          <p className="text-[11px] text-stone-500 line-clamp-2 leading-snug font-bold">{item.description}</p>
+                        )}
+                      </div>
+
+                      {/* السعر */}
+                      <div className="mt-3 pt-2 border-t border-stone-100 flex items-center justify-between">
+                        <span className="text-[#b93828] font-black text-sm">
+                          {item.price} <span className="text-[10px] font-bold text-stone-500">ج.م</span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
         </main>
@@ -476,7 +508,7 @@ export default function CustomerMenu() {
         </div>
       </footer>
 
-      {/* 5. الشريط العائم السفلي للسلة */}
+      {/* 4. الشريط العائم السفلي للسلة */}
       {cart.length > 0 && !orderSent && (
         <div className="fixed bottom-4 left-4 right-4 max-w-lg mx-auto z-40">
           <button
@@ -494,7 +526,7 @@ export default function CustomerMenu() {
         </div>
       )}
 
-      {/* 6. نافذة السلة وتأكيد الطلب المنبثقة */}
+      {/* 5. نافذة السلة وتأكيد الطلب المنبثقة */}
       {isCartOpen && !orderSent && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 font-bold">
           <div className="bg-white border border-stone-200 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4 text-stone-900 shadow-2xl">
