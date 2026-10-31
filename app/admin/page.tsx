@@ -57,10 +57,13 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [ingredientCost, setIngredientCost] = useState('');
   const [ingredientStock, setIngredientStock] = useState('');
 
+  // حالات لتعديل الجرد الأسبوعي السريع
+  const [editingIngredientId, setEditingIngredientId] = useState<number | null>(null);
+  const [tempStockValue, setTempStockValue] = useState('');
+
   const [storeStatusMode, setStoreStatusMode] = useState<'auto' | 'open' | 'closed'>('auto');
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
-  // 🔥 إدارة حالة العرض اليومي بصفحة العميل
   const [promoOfferAdmin, setPromoOfferAdmin] = useState<{
     type: 'text' | 'image';
     title: string;
@@ -150,8 +153,12 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   const handleSaveStoreStatus = async (mode: 'auto' | 'open' | 'closed') => {
     setStoreStatusMode(mode);
-    await supabase.from('settings').upsert({ key: 'store_status_mode', value: mode }, { onConflict: 'key' });
-    alert('تم تحديث حالة المطعم بنجاح ✅');
+    const { error } = await supabase.from('settings').upsert({ key: 'store_status_mode', value: mode }, { onConflict: 'key' });
+    if (error) {
+      alert('خطأ في الحفظ: تأكد من أن جدول settings يحتوي على key كـ Primary Key. التفاصيل: ' + error.message);
+    } else {
+      alert('تم تحديث حالة المطعم بنجاح ✅');
+    }
   };
 
   const handleSavePromoOffer = async () => {
@@ -163,7 +170,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       );
 
     if (error) {
-      alert('حدث خطأ أثناء حفظ العرض: ' + error.message);
+      alert('حدث خطأ أثناء حفظ العرض (تأكد من إعداد Primary Key لجدول settings): ' + error.message);
     } else {
       alert('تم تحديث العرض بنجاح ونشره بصفحة العميل! 🔥');
     }
@@ -529,6 +536,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
+  // 🔥 إضافة مشتريات وتحديث/إضافة الخامة للمخزون تلقائياً
   const handleAddPurchase = (e: React.FormEvent) => {
     e.preventDefault();
     const finalItemName = purchaseItemName.trim();
@@ -562,6 +570,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       savings: 'المُدخرات الشخصية',
     };
 
+    // 1. حفظ فاتورة المشتريات
     const { error: purchaseErr } = await supabase.from('purchase_transactions').insert([{
       item_name: pendingPurchaseData.itemName,
       quantity: pendingPurchaseData.qty,
@@ -576,6 +585,21 @@ export default function CompleteEnterpriseAdminDashboard() {
       return;
     }
 
+    // 2. تحديث المخزون أو إضافته تلقائياً
+    const existingIng = ingredients.find(ing => ing.name.trim().toLowerCase() === pendingPurchaseData.itemName.trim().toLowerCase());
+    if (existingIng) {
+      const newStock = Number(existingIng.current_stock || 0) + Number(pendingPurchaseData.qty);
+      await supabase.from('ingredients').update({ current_stock: newStock }).eq('id', existingIng.id);
+    } else {
+      await supabase.from('ingredients').insert([{
+        name: pendingPurchaseData.itemName,
+        unit: 'كيلو',
+        cost_per_unit: pendingPurchaseData.price,
+        current_stock: pendingPurchaseData.qty
+      }]);
+    }
+
+    // 3. خصم المبلغ من المحفظة المالية
     await supabase.from('wallet_logs').insert([{
       account_id: purchasePaymentAccount,
       account_name: accountNames[purchasePaymentAccount] || 'الكاش / درج المحل',
@@ -592,8 +616,8 @@ export default function CompleteEnterpriseAdminDashboard() {
     setPurchaseQty('');
     setPurchasePrice('');
     setSupplier('');
-    alert('تم حفظ الفاتورة وخصم المبلغ من المحفظة بنجاح ✅');
-    fetchPurchases();
+    alert('تم حفظ الفاتورة وإضافة الكمية للمخزون وخصم المبلغ من المحفظة بنجاح ✅');
+    fetchAllData();
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -679,6 +703,20 @@ export default function CompleteEnterpriseAdminDashboard() {
       setIngredientCost('');
       setIngredientStock('');
       fetchIngredients();
+    }
+  };
+
+  // 🔥 تحديث جرد الصنف مباشرة بضغطة زر دون إعادة كتابته
+  const handleUpdateStockDirect = async (id: number) => {
+    if (tempStockValue === '') return;
+    const { error } = await supabase.from('ingredients').update({ current_stock: parseFloat(tempStockValue) }).eq('id', id);
+    if (!error) {
+      alert('تم تحديث الرصيد الفعلي للجرد بنجاح ✅');
+      setEditingIngredientId(null);
+      setTempStockValue('');
+      fetchIngredients();
+    } else {
+      alert('خطأ في التحديث: ' + error.message);
     }
   };
 
@@ -984,11 +1022,11 @@ export default function CompleteEnterpriseAdminDashboard() {
         {activeTab === 'inventory' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-              <h2 className="text-lg font-bold mb-2 text-white">🥦 إدارة الخامات ورصيد المخزون (بالكيلو / الفراخ / التوابل)</h2>
-              <p className="text-xs text-slate-400 mb-4">أدخل الخامات بالوحدة الأساسية (فرخة، كيلو لحم مفروم، توابل). النظام سيضيف المشتريات الجديدة عليها تلقائياً، وفي نهاية الأسبوع قم بتحديث الجرد المتبقي لمعرفة الاستهلاك الفعلي وصافي الربح الحقيقي.</p>
+              <h2 className="text-lg font-bold mb-2 text-white">🥦 إدارة الخامات والجرد الأسبوعي السريع</h2>
+              <p className="text-xs text-slate-400 mb-4">كل خامة تسجلها في المشتريات تضاف هنا تلقائياً. الأسبوع القادم، فقط اضغط على زر "تحديث الجرد" بجانب الصنف وأدخل الكمية الفعلية المتبقية دون الحاجة لإعادة إنشاء الصنف من جديد.</p>
               
               <form onSubmit={handleAddIngredient} className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <input type="text" placeholder="اسم الخامة (مثال: فراخ بيضاء، لحمة مفرومة)" value={ingredientName} onChange={e => setIngredientName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
+                <input type="text" placeholder="اسم الخامة (مثال: فراخ، لحمة مفرومة)" value={ingredientName} onChange={e => setIngredientName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
                 <select value={ingredientUnit} onChange={e => setIngredientUnit(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none font-bold">
                   <option value="كيلو">كيلو</option>
                   <option value="فرخة / طيور">فرخة / طيور</option>
@@ -996,13 +1034,16 @@ export default function CompleteEnterpriseAdminDashboard() {
                   <option value="قطعة">قطعة</option>
                 </select>
                 <input type="number" placeholder="تكلفة الوحدة (ج.م)" value={ingredientCost} onChange={e => setIngredientCost(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
-                <input type="number" placeholder="رصيد أول الأسبوع (افتتاحي)" value={ingredientStock} onChange={e => setIngredientStock(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" />
-                <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-3 rounded-xl text-xs transition">حفظ وإضافة للمخزون ➕</button>
+                <input type="number" placeholder="رصيد أول الأسبوع" value={ingredientStock} onChange={e => setIngredientStock(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" />
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-3 rounded-xl text-xs transition">إضافة خامة جديدة ➕</button>
               </form>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-              <h2 className="text-lg font-bold mb-3 text-white">قائمة الخامات ورصيد المخزون الحالي</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-white">قائمة الخامات ورصيد الجرد الحالي</h2>
+                <button onClick={() => window.print()} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold">🖨️ طباعة تقرير الجرد</button>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-xs">
                   <thead className="bg-slate-950 font-bold border-b border-slate-800 text-slate-400">
@@ -1010,7 +1051,8 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <th className="p-3">اسم الخامة / المكون</th>
                       <th className="p-3">الوحدة</th>
                       <th className="p-3">تكلفة الوحدة</th>
-                      <th className="p-3">الرصيد المتاح حالياً</th>
+                      <th className="p-3">الرصيد المتاح</th>
+                      <th className="p-3">جرد الأسبوع (تحديث سريع)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
@@ -1020,6 +1062,29 @@ export default function CompleteEnterpriseAdminDashboard() {
                         <td className="p-3 text-slate-300">{ing.unit}</td>
                         <td className="p-3 text-slate-300">{ing.cost_per_unit} ج.م</td>
                         <td className="p-3 font-bold text-emerald-400">{ing.current_stock}</td>
+                        <td className="p-3">
+                          {editingIngredientId === ing.id ? (
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="number"
+                                value={tempStockValue}
+                                onChange={e => setTempStockValue(e.target.value)}
+                                placeholder="الكمية الفعلية"
+                                className="bg-slate-950 border border-emerald-500 p-1.5 rounded-lg text-white w-24 text-xs"
+                                autoFocus
+                              />
+                              <button onClick={() => handleUpdateStockDirect(ing.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">حفظ</button>
+                              <button onClick={() => setEditingIngredientId(null)} className="text-slate-400">إلغاء</button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setEditingIngredientId(ing.id); setTempStockValue(String(ing.current_stock || '')); }}
+                              className="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1.5 rounded-xl font-bold"
+                            >
+                              🔄 تحديث جرد الأسبوع
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1144,13 +1209,13 @@ export default function CompleteEnterpriseAdminDashboard() {
         {activeTab === 'purchases' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-              <h2 className="text-lg font-bold mb-4 text-white">تسجيل فاتورة / حركة مشتريات جديدة</h2>
+              <h2 className="text-lg font-bold mb-4 text-white">تسجيل فاتورة / حركة مشتريات جديدة (تضاف تلقائياً للجرد)</h2>
               <form onSubmit={handleAddPurchase} className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <div>
                   <input
                     list="rawMaterialsList"
                     type="text"
-                    placeholder="اسم الخامة (مثال: فراخ...)"
+                    placeholder="اسم الخامة (مثال: فراخ، لحمة...)"
                     value={purchaseItemName}
                     onChange={e => setPurchaseItemName(e.target.value)}
                     className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white font-bold w-full outline-none"
@@ -1166,7 +1231,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                 <input type="number" placeholder="الكمية" value={purchaseQty} onChange={e => setPurchaseQty(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none" required />
                 <input type="number" placeholder="سعر الوحدة (ج.م)" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none" required />
                 <input type="text" placeholder="اسم المورد (اختياري)" value={supplier} onChange={e => setSupplier(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none" />
-                <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl p-3 text-xs transition">حفظ حركة المشتريات ➕</button>
+                <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl p-3 text-xs transition">حفظ وإضافة للمخزون ➕</button>
               </form>
             </div>
 
@@ -1415,7 +1480,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           );
         })()}
 
-        {/* قسم الإعدادات والتحكم في حالة المطعم */}
+        {/* قسم الإعدادات والتحكم في حالة المطعم وعرض العميل */}
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
@@ -1481,21 +1546,9 @@ export default function CompleteEnterpriseAdminDashboard() {
                 </button>
               </div>
             </div>
-
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-              <h2 className="text-lg font-bold mb-4 text-white">إعدادات النظام العامة</h2>
-              <div className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold mb-1.5 text-slate-300">رقم الواتساب الافتراضي:</label>
-                  <input type="text" value={whatsappPhone} onChange={e => setWhatsappPhone(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white outline-none w-full" />
-                </div>
-                <button onClick={() => alert('تم حفظ الإعدادات بنجاح')} className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold">حفظ التغييرات 💾</button>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* قسم المحفظة الشخصية والسيولة المالية الشامل */}
         {activeTab === 'finance' && <PersonalFinance />}
       </main>
 
