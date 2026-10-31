@@ -57,11 +57,10 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [ingredientCost, setIngredientCost] = useState('');
   const [ingredientStock, setIngredientStock] = useState('');
 
-  // إعدادات حالة المطعم اليدوية والتلقائية
   const [storeStatusMode, setStoreStatusMode] = useState<'auto' | 'open' | 'closed'>('auto');
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
-  // إدارة حالة العرض اليومي بصفحة العميل
+  // 🔥 إدارة حالة العرض اليومي بصفحة العميل
   const [promoOfferAdmin, setPromoOfferAdmin] = useState<{
     type: 'text' | 'image';
     title: string;
@@ -152,7 +151,7 @@ export default function CompleteEnterpriseAdminDashboard() {
   const handleSaveStoreStatus = async (mode: 'auto' | 'open' | 'closed') => {
     setStoreStatusMode(mode);
     await supabase.from('settings').upsert({ key: 'store_status_mode', value: mode }, { onConflict: 'key' });
-    alert('تم تحديث حالة وفتح/غلق المطعم بنجاح ✅');
+    alert('تم تحديث حالة المطعم بنجاح ✅');
   };
 
   const handleSavePromoOffer = async () => {
@@ -687,7 +686,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 dir-rtl font-sans" dir="rtl">
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-5 text-3xl shadow-inner">
+          <div className="w-20 h-20 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-5 text-3xl shadow-inner">
             🔐
           </div>
           <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Grill & Greens ERP</h2>
@@ -756,7 +755,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans dir-rtl" dir="rtl">
       <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 px-6 py-3.5 flex justify-between items-center shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-center text-xl">🔥</div>
+          <div className="w-10 h-10 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center justify-center text-xl">🔥</div>
           <div>
             <h1 className="text-base font-black text-white tracking-tight">Grill & Greens ERP</h1>
             <p className="text-[10px] text-emerald-400 font-medium">لوحة الإدارة والمبيعات الشاملة</p>
@@ -778,7 +777,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           { id: 'journal', label: `📔 دفتر اليومية الرسمية (${journalEntries.length})` },
           { id: 'live_orders', label: `📦 الطلبات الحية (${pendingOrders.length})` },
           { id: 'sales', label: `💰 المبيعات (${activeSales.length})` },
-          { id: 'inventory', label: `🥦 المخزون والجرد الأسبوعي` },
+          { id: 'inventory', label: `🥦 المخزون والجرد الأسبوعي (${ingredients.length})` },
           { id: 'cost_report', label: `📊 تقرير التكلفة والربح` },
           { id: 'customers', label: `👥 قاعدة العملاء (${customers.length})` },
           { id: 'purchases', label: `🛒 المشتريات` },
@@ -1096,6 +1095,49 @@ export default function CompleteEnterpriseAdminDashboard() {
                 </tbody>
               </table>
             </div>
+
+            {selectedCustomerModal && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
+                  <button onClick={() => setSelectedCustomerModal(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
+                  <h3 className="text-xl font-bold text-white mb-2">👤 كارت العميل: {selectedCustomerModal.name}</h3>
+                  <p className="text-xs text-slate-400 mb-4">📱 الهاتف: {selectedCustomerModal.phone} | 📍 العنوان: {selectedCustomerModal.address}</p>
+
+                  {(() => {
+                    const custOrders = orders.filter(o => o.phone === selectedCustomerModal.phone && o.status === 'completed');
+                    const totalSpent = custOrders.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
+
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 gap-3 mb-4 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center">
+                          <div><p className="text-xs text-slate-400">إجمالي الطلبات المكتملة</p><p className="font-black text-emerald-400 text-lg">{custOrders.length} طلب</p></div>
+                          <div><p className="text-xs text-slate-400">إجمالي مشتريات الوجبات</p><p className="font-black text-emerald-400 text-lg">{totalSpent} ج.م</p></div>
+                        </div>
+
+                        <h4 className="font-bold text-white mb-2 text-xs">سجل الفواتير والطلبات السابقة:</h4>
+                        <table className="w-full text-right text-xs">
+                          <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                            <tr><th className="p-2.5">رقم الفاتورة</th><th className="p-2.5">التاريخ</th><th className="p-2.5">مبيعات الوجبات</th><th className="p-2.5">الطباعة</th></tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800">
+                            {custOrders.map((o, i) => (
+                              <tr key={i}>
+                                <td className="p-2.5 font-bold text-emerald-400">#{String(o.id).split('-')[0].toUpperCase()}</td>
+                                <td className="p-2.5 text-slate-400">{new Date(o.created_at).toLocaleDateString('ar-EG')}</td>
+                                <td className="p-2.5 font-bold text-emerald-400">{calculateFoodTotalOnly(o)} ج.م</td>
+                                <td className="p-2.5">
+                                  <button onClick={() => handlePrintOrder(o)} className="text-emerald-400 font-bold underline">🖨️ طباعة</button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1104,7 +1146,23 @@ export default function CompleteEnterpriseAdminDashboard() {
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
               <h2 className="text-lg font-bold mb-4 text-white">تسجيل فاتورة / حركة مشتريات جديدة</h2>
               <form onSubmit={handleAddPurchase} className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <input type="text" placeholder="اسم الخامة (مثال: فراخ، لحمة...)" value={purchaseItemName} onChange={e => setPurchaseItemName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white font-bold w-full outline-none" required />
+                <div>
+                  <input
+                    list="rawMaterialsList"
+                    type="text"
+                    placeholder="اسم الخامة (مثال: فراخ...)"
+                    value={purchaseItemName}
+                    onChange={e => setPurchaseItemName(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white font-bold w-full outline-none"
+                    required
+                  />
+                  <datalist id="rawMaterialsList">
+                    {rawMaterialSuggestions.map((itemName, idx) => (
+                      <option key={idx} value={itemName} />
+                    ))}
+                  </datalist>
+                </div>
+
                 <input type="number" placeholder="الكمية" value={purchaseQty} onChange={e => setPurchaseQty(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none" required />
                 <input type="number" placeholder="سعر الوحدة (ج.م)" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none" required />
                 <input type="text" placeholder="اسم المورد (اختياري)" value={supplier} onChange={e => setSupplier(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none" />
@@ -1122,6 +1180,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                       <th className="p-3">مرات الشراء</th>
                       <th className="p-3">إجمالي الكمية</th>
                       <th className="p-3">إجمالي التكلفة</th>
+                      <th className="p-3">عرض الكارت</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
@@ -1131,12 +1190,40 @@ export default function CompleteEnterpriseAdminDashboard() {
                         <td className="p-3 font-bold text-slate-300">{group.purchaseCount} مرة</td>
                         <td className="p-3 text-slate-400">{group.totalQuantity}</td>
                         <td className="p-3 font-bold text-rose-400">{group.totalCost} ج.م</td>
+                        <td className="p-3"><span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg font-bold">📄 فتح الكارت</span></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
+
+            {selectedItemCard && groupedPurchases[selectedItemCard] && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[80vh] overflow-y-auto">
+                  <button onClick={() => setSelectedItemCard(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
+                  <h3 className="text-xl font-bold text-white mb-3">📊 كارت صنف: {selectedItemCard}</h3>
+                  <table className="w-full text-right text-xs">
+                    <thead className="bg-slate-950 font-bold border-b border-slate-800 text-slate-400">
+                      <tr><th className="p-2.5">التاريخ</th><th className="p-2.5">الكمية</th><th className="p-2.5">سعر الوحدة</th><th className="p-2.5">الإجمالي</th><th className="p-2.5">الإجراء</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {groupedPurchases[selectedItemCard].logs.map((log: any, i: number) => (
+                        <tr key={i}>
+                          <td className="p-2.5 text-slate-400">{new Date(log.created_at || log.purchase_date).toLocaleDateString('ar-EG')}</td>
+                          <td className="p-2.5 font-bold text-slate-200">{log.quantity}</td>
+                          <td className="p-2.5 text-slate-300">{log.unit_price} ج.م</td>
+                          <td className="p-2.5 font-bold text-rose-400">{log.total_price} ج.م</td>
+                          <td className="p-2.5">
+                            <button onClick={() => cancelPurchaseTransaction(log.id)} className="bg-rose-500/10 text-rose-400 px-2 py-1 rounded-lg font-bold">إلغاء ❌</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1183,17 +1270,152 @@ export default function CompleteEnterpriseAdminDashboard() {
                 ))}
               </div>
             </div>
+
+            {editingProduct && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+                  <button onClick={() => setEditingProduct(null)} className="absolute top-4 left-4 text-slate-400 hover:text-white font-bold text-lg">✖</button>
+                  <h3 className="text-lg font-bold text-white mb-4">✏️ تعديل صنف: {editingProduct.name}</h3>
+                  <form onSubmit={handleSaveProductEdit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold mb-1 text-slate-300">السعر الجديد (ج.م):</label>
+                      <input type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white w-full outline-none" required />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold mb-1 text-slate-300">رابط صورة الصنف (URL):</label>
+                      <input type="text" value={editImageUrl} onChange={e => setEditImageUrl(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white w-full outline-none" />
+                    </div>
+                    <button type="submit" className="w-full bg-emerald-600 text-white font-bold p-3 rounded-xl">حفظ والتحديث 💾</button>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {activeTab === 'reports' && (
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
-            <h2 className="text-lg font-bold text-white">📊 التقارير المالية والإحصائية الشاملة</h2>
-            <p className="text-xs text-slate-400">راجع الأرباح والمبيعات والأصناف الأكثر طلباً بكل سهولة.</p>
-          </div>
-        )}
+        {/* قسم التقارير الشاملة والتحليلات */}
+        {activeTab === 'reports' && (() => {
+          const filteredSales = activeSales.filter(o => {
+            if (!salesDateFrom && !salesDateTo) return true;
+            const orderDate = new Date(o.created_at).getTime();
+            const from = salesDateFrom ? new Date(salesDateFrom).getTime() : 0;
+            const to = salesDateTo ? new Date(salesDateTo).setHours(23, 59, 59) : Infinity;
+            return orderDate >= from && orderDate <= to;
+          });
 
-        {/* قسم الإعدادات والتحكم في حالة المطعم (مفتوح / مغلق / تلقائي) */}
+          const filteredPurchases = activePurchases.filter(p => {
+            if (!salesDateFrom && !salesDateTo) return true;
+            const pDate = new Date(p.created_at || p.purchase_date).getTime();
+            const from = salesDateFrom ? new Date(salesDateFrom).getTime() : 0;
+            const to = salesDateTo ? new Date(salesDateTo).setHours(23, 59, 59) : Infinity;
+            return pDate >= from && pDate <= to;
+          });
+
+          const itemStats: { [key: string]: { name: string; qty: number; total: number } } = {};
+          filteredSales.forEach(order => {
+            const items = parseOrderItems(order.items);
+            items.forEach((it: any) => {
+              const name = it.name || it.title || 'صنف غير مسمى';
+              const qty = Number(it.qty || it.quantity || 1);
+              const price = Number(it.price || 0);
+              if (!itemStats[name]) {
+                itemStats[name] = { name, qty: 0, total: 0 };
+              }
+              itemStats[name].qty += qty;
+              itemStats[name].total += qty * price;
+            });
+          });
+
+          const topProducts = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 5);
+
+          const customerStats: { [key: string]: { name: string; phone: string; count: number; totalSpent: number } } = {};
+          filteredSales.forEach(order => {
+            const phone = order.phone || 'بدون رقم';
+            const name = order.customer_name || 'عميل غير معروف';
+            const foodTotal = calculateFoodTotalOnly(order);
+
+            if (!customerStats[phone]) {
+              customerStats[phone] = { name, phone, count: 0, totalSpent: 0 };
+            }
+            customerStats[phone].count += 1;
+            customerStats[phone].totalSpent += foodTotal;
+          });
+
+          const topCustomers = Object.values(customerStats).sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5);
+
+          const netFoodSales = filteredSales.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
+          const totalExpenses = filteredPurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+          const netProfit = netFoodSales - totalExpenses;
+
+          return (
+            <div className="space-y-6">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-bold text-white">📊 التقرير المالي والإحصائي للمطعم</h2>
+                  <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition">🖨️ طباعة التقرير الشامل</button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-900 border border-emerald-500/20 p-6 rounded-3xl shadow-xl">
+                  <p className="text-xs text-emerald-400 font-bold">إجمالي المبيعات (الوجبات فقط)</p>
+                  <p className="text-3xl font-black text-white mt-2">{netFoodSales} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                </div>
+                <div className="bg-slate-900 border border-rose-500/20 p-6 rounded-3xl shadow-xl">
+                  <p className="text-xs text-rose-400 font-bold">المصروفات والمشتريات</p>
+                  <p className="text-3xl font-black text-white mt-2">{totalExpenses} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                </div>
+                <div className="bg-slate-900 border border-blue-500/20 p-6 rounded-3xl shadow-xl">
+                  <p className="text-xs text-blue-400 font-bold">صافي الأرباح الصافية</p>
+                  <p className="text-3xl font-black text-white mt-2">{netProfit} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+                  <h3 className="font-bold text-sm text-white mb-4">🔥 الأصناف الأكثر طلباً ومبيعاً</h3>
+                  <table className="w-full text-right text-xs">
+                    <thead className="bg-slate-950 font-bold text-slate-400 border-b border-slate-800">
+                      <tr><th className="p-2.5">#</th><th className="p-2.5">اسم الصنف</th><th className="p-2.5">الكمية</th><th className="p-2.5">الإيراد</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {topProducts.map((p, i) => (
+                        <tr key={i}>
+                          <td className="p-2.5 font-bold text-emerald-400">{i + 1}</td>
+                          <td className="p-2.5 font-bold text-white">{p.name}</td>
+                          <td className="p-2.5">{p.qty}</td>
+                          <td className="p-2.5 font-bold text-emerald-400">{p.total} ج.م</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+                  <h3 className="font-bold text-sm text-white mb-4">👑 الأكثر شراءً من العملاء</h3>
+                  <table className="w-full text-right text-xs">
+                    <thead className="bg-slate-950 font-bold text-slate-400 border-b border-slate-800">
+                      <tr><th className="p-2.5">#</th><th className="p-2.5">العميل</th><th className="p-2.5">الهاتف</th><th className="p-2.5">الطلبات</th><th className="p-2.5">الإجمالي</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {topCustomers.map((c, i) => (
+                        <tr key={i}>
+                          <td className="p-2.5 font-bold text-blue-400">{i + 1}</td>
+                          <td className="p-2.5 font-bold text-white">{c.name}</td>
+                          <td className="p-2.5 text-slate-400">{c.phone}</td>
+                          <td className="p-2.5">{c.count}</td>
+                          <td className="p-2.5 font-bold text-emerald-400">{c.totalSpent} ج.م</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* قسم الإعدادات والتحكم في حالة المطعم */}
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
@@ -1208,7 +1430,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                   onClick={() => handleSaveStoreStatus('auto')}
                   className={`p-3 rounded-2xl font-bold border text-xs transition ${storeStatusMode === 'auto' ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-slate-950 text-slate-400 border-slate-800'}`}
                 >
-                  🕒 المواعيد الرسمية تلقائياً (11ص - 8م)
+                  🕒 المواعيد التلقائية (11ص - 8م)
                 </button>
                 <button
                   type="button"
@@ -1222,12 +1444,11 @@ export default function CompleteEnterpriseAdminDashboard() {
                   onClick={() => handleSaveStoreStatus('closed')}
                   className={`p-3 rounded-2xl font-bold border text-xs transition ${storeStatusMode === 'closed' ? 'bg-rose-600 text-white border-rose-500 shadow-lg' : 'bg-slate-950 text-slate-400 border-slate-800'}`}
                 >
-                  🔴 مغلق تماماً (اليوم إجازة)
+                  🔴 مغلق تماماً (إجازة عارضة)
                 </button>
               </div>
             </div>
 
-            {/* إدارة العرض اليومي المميز */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
               <h2 className="text-lg font-bold text-white">🔥 إدارة العرض اليومي المميز بصفحة العميل</h2>
               <div className="space-y-3 text-xs">
@@ -1260,13 +1481,24 @@ export default function CompleteEnterpriseAdminDashboard() {
                 </button>
               </div>
             </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
+              <h2 className="text-lg font-bold mb-4 text-white">إعدادات النظام العامة</h2>
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold mb-1.5 text-slate-300">رقم الواتساب الافتراضي:</label>
+                  <input type="text" value={whatsappPhone} onChange={e => setWhatsappPhone(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white outline-none w-full" />
+                </div>
+                <button onClick={() => alert('تم حفظ الإعدادات بنجاح')} className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold">حفظ التغييرات 💾</button>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* قسم المحفظة الشخصية والسيولة المالية الشامل */}
         {activeTab === 'finance' && <PersonalFinance />}
       </main>
 
-      {/* نوافذ التأكيد والدفع المنبثقة */}
       {pendingDeliveryOrder && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
