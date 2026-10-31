@@ -153,24 +153,19 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   const handleSaveStoreStatus = async (mode: 'auto' | 'open' | 'closed') => {
     setStoreStatusMode(mode);
-    const { error } = await supabase.from('settings').upsert({ key: 'store_status_mode', value: mode }, { onConflict: 'key' });
+    const { error } = await supabase.from('settings').upsert({ key: 'store_status_mode', value: mode });
     if (error) {
-      alert('خطأ في الحفظ: تأكد من أن جدول settings يحتوي على key كـ Primary Key. التفاصيل: ' + error.message);
+      alert('خطأ في الحفظ: ' + error.message);
     } else {
       alert('تم تحديث حالة المطعم بنجاح ✅');
     }
   };
 
   const handleSavePromoOffer = async () => {
-    const { error } = await supabase
-      .from('settings')
-      .upsert(
-        { key: 'promo_offer', value: promoOfferAdmin },
-        { onConflict: 'key' }
-      );
+    const { error } = await supabase.from('settings').upsert({ key: 'promo_offer', value: promoOfferAdmin });
 
     if (error) {
-      alert('حدث خطأ أثناء حفظ العرض (تأكد من إعداد Primary Key لجدول settings): ' + error.message);
+      alert('حدث خطأ أثناء حفظ العرض: ' + error.message);
     } else {
       alert('تم تحديث العرض بنجاح ونشره بصفحة العميل! 🔥');
     }
@@ -536,7 +531,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 🔥 إضافة مشتريات وتحديث/إضافة الخامة للمخزون تلقائياً
+  // 🔥 فتح النموذج لتحديد حساب الدفع للمشتريات
   const handleAddPurchase = (e: React.FormEvent) => {
     e.preventDefault();
     const finalItemName = purchaseItemName.trim();
@@ -560,6 +555,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     setPurchasePaymentAccount('cash');
   };
 
+  // 🔥 تأكيد المشتريات وترحيلها تلقائياً لجدول المخزون والجرد
   const confirmPurchaseWithPayment = async () => {
     if (!pendingPurchaseData) return;
 
@@ -570,7 +566,7 @@ export default function CompleteEnterpriseAdminDashboard() {
       savings: 'المُدخرات الشخصية',
     };
 
-    // 1. حفظ فاتورة المشتريات
+    // 1. تسجيل فاتورة المشتريات
     const { error: purchaseErr } = await supabase.from('purchase_transactions').insert([{
       item_name: pendingPurchaseData.itemName,
       quantity: pendingPurchaseData.qty,
@@ -585,21 +581,28 @@ export default function CompleteEnterpriseAdminDashboard() {
       return;
     }
 
-    // 2. تحديث المخزون أو إضافته تلقائياً
+    // 2. ترحيل الكمية إلى جدول المخزون والجرد (تحديث الخامة الحالية أو إنشائها)
     const existingIng = ingredients.find(ing => ing.name.trim().toLowerCase() === pendingPurchaseData.itemName.trim().toLowerCase());
     if (existingIng) {
-      const newStock = Number(existingIng.current_stock || 0) + Number(pendingPurchaseData.qty);
-      await supabase.from('ingredients').update({ current_stock: newStock }).eq('id', existingIng.id);
+      const newPurchased = Number(existingIng.purchased_stock || 0) + Number(pendingPurchaseData.qty);
+      const newCurrent = Number(existingIng.current_stock || 0) + Number(pendingPurchaseData.qty);
+      await supabase.from('ingredients').update({
+        purchased_stock: newPurchased,
+        current_stock: newCurrent,
+        cost_per_unit: pendingPurchaseData.price
+      }).eq('id', existingIng.id);
     } else {
       await supabase.from('ingredients').insert([{
         name: pendingPurchaseData.itemName,
         unit: 'كيلو',
         cost_per_unit: pendingPurchaseData.price,
+        opening_stock: 0,
+        purchased_stock: pendingPurchaseData.qty,
         current_stock: pendingPurchaseData.qty
       }]);
     }
 
-    // 3. خصم المبلغ من المحفظة المالية
+    // 3. خصم قيمة الفاتورة من المحفظة المالية المختارة
     await supabase.from('wallet_logs').insert([{
       account_id: purchasePaymentAccount,
       account_name: accountNames[purchasePaymentAccount] || 'الكاش / درج المحل',
@@ -616,7 +619,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     setPurchaseQty('');
     setPurchasePrice('');
     setSupplier('');
-    alert('تم حفظ الفاتورة وإضافة الكمية للمخزون وخصم المبلغ من المحفظة بنجاح ✅');
+    alert('تم حفظ الفاتورة، وخصم المبلغ من المحفظة، وترحيل الكمية إلى الجرد بنجاح ✅');
     fetchAllData();
   };
 
@@ -691,9 +694,11 @@ export default function CompleteEnterpriseAdminDashboard() {
     if (!ingredientName || !ingredientCost) return alert('يرجى كتابة اسم الخامة وتكلفتها');
 
     const { error } = await supabase.from('ingredients').insert([{
-      name: ingredientName,
+      name: ingredientName.trim(),
       unit: ingredientUnit,
       cost_per_unit: parseFloat(ingredientCost),
+      opening_stock: parseFloat(ingredientStock || '0'),
+      purchased_stock: 0,
       current_stock: parseFloat(ingredientStock || '0')
     }]);
 
@@ -703,15 +708,17 @@ export default function CompleteEnterpriseAdminDashboard() {
       setIngredientCost('');
       setIngredientStock('');
       fetchIngredients();
+    } else {
+      alert('خطأ أثناء الإضافة: ' + error.message);
     }
   };
 
-  // 🔥 تحديث جرد الصنف مباشرة بضغطة زر دون إعادة كتابته
+  // 🔥 تحديث رصيد الجرد المتبقي بضغطة زر دون إعادة أدخال بيانات الخامة
   const handleUpdateStockDirect = async (id: number) => {
     if (tempStockValue === '') return;
     const { error } = await supabase.from('ingredients').update({ current_stock: parseFloat(tempStockValue) }).eq('id', id);
     if (!error) {
-      alert('تم تحديث الرصيد الفعلي للجرد بنجاح ✅');
+      alert('تم تحديث رصيد الجرد الفعلي بنجاح ✅');
       setEditingIngredientId(null);
       setTempStockValue('');
       fetchIngredients();
@@ -1018,12 +1025,12 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* مخزون المواد الخام ونظام الجرد الأسبوعي الذكي */}
+        {/* مخزون المواد الخام ونظام الجرد الأسبوعي التفصيلي الشامل */}
         {activeTab === 'inventory' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
               <h2 className="text-lg font-bold mb-2 text-white">🥦 إدارة الخامات والجرد الأسبوعي السريع</h2>
-              <p className="text-xs text-slate-400 mb-4">كل خامة تسجلها في المشتريات تضاف هنا تلقائياً. الأسبوع القادم، فقط اضغط على زر "تحديث الجرد" بجانب الصنف وأدخل الكمية الفعلية المتبقية دون الحاجة لإعادة إنشاء الصنف من جديد.</p>
+              <p className="text-xs text-slate-400 mb-4">أي حركة مشتريات تضاف هنا تلقائياً. وفي نهاية الأسبوع، قم بالنقر على "تحديث الجرد" لإدخال الكمية الفعلية المتبقية دون الحاجة لإعادة إنشاء الصنف.</p>
               
               <form onSubmit={handleAddIngredient} className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <input type="text" placeholder="اسم الخامة (مثال: فراخ، لحمة مفرومة)" value={ingredientName} onChange={e => setIngredientName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-white outline-none focus:border-emerald-500" required />
@@ -1039,54 +1046,72 @@ export default function CompleteEnterpriseAdminDashboard() {
               </form>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-white">قائمة الخامات ورصيد الجرد الحالي</h2>
-                <button onClick={() => window.print()} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold">🖨️ طباعة تقرير الجرد</button>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-bold text-white">📊 تقرير الجرد الأسبوعي وحركة المخزون الشاملة</h2>
+                  <p className="text-xs text-slate-400">متابعة الأرصدة الافتتاحية، المشتريات الواردة، ورصيد الجرد المتبقي والتكلفة.</p>
+                </div>
+                <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition">🖨️ طباعة تقرير الجرد</button>
               </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-xs">
                   <thead className="bg-slate-950 font-bold border-b border-slate-800 text-slate-400">
                     <tr>
-                      <th className="p-3">اسم الخامة / المكون</th>
+                      <th className="p-3">اسم الخامة / الصنف</th>
                       <th className="p-3">الوحدة</th>
-                      <th className="p-3">تكلفة الوحدة</th>
-                      <th className="p-3">الرصيد المتاح</th>
-                      <th className="p-3">جرد الأسبوع (تحديث سريع)</th>
+                      <th className="p-3">سعر الوحدة</th>
+                      <th className="p-3">الرصيد القديم (افتتاحي)</th>
+                      <th className="p-3">الوارد (المشتريات)</th>
+                      <th className="p-3">الرصيد الفعلي (المتبقي)</th>
+                      <th className="p-3">إجمالي القيمة التقديرية</th>
+                      <th className="p-3">تحديث الجرد السريع</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
-                    {ingredients.map(ing => (
-                      <tr key={ing.id}>
-                        <td className="p-3 font-bold text-white">{ing.name}</td>
-                        <td className="p-3 text-slate-300">{ing.unit}</td>
-                        <td className="p-3 text-slate-300">{ing.cost_per_unit} ج.م</td>
-                        <td className="p-3 font-bold text-emerald-400">{ing.current_stock}</td>
-                        <td className="p-3">
-                          {editingIngredientId === ing.id ? (
-                            <div className="flex gap-2 items-center">
-                              <input
-                                type="number"
-                                value={tempStockValue}
-                                onChange={e => setTempStockValue(e.target.value)}
-                                placeholder="الكمية الفعلية"
-                                className="bg-slate-950 border border-emerald-500 p-1.5 rounded-lg text-white w-24 text-xs"
-                                autoFocus
-                              />
-                              <button onClick={() => handleUpdateStockDirect(ing.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">حفظ</button>
-                              <button onClick={() => setEditingIngredientId(null)} className="text-slate-400">إلغاء</button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => { setEditingIngredientId(ing.id); setTempStockValue(String(ing.current_stock || '')); }}
-                              className="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1.5 rounded-xl font-bold"
-                            >
-                              🔄 تحديث جرد الأسبوع
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {ingredients.map(ing => {
+                      const opening = Number(ing.opening_stock || 0);
+                      const purchased = Number(ing.purchased_stock || 0);
+                      const current = Number(ing.current_stock || 0);
+                      const costPerUnit = Number(ing.cost_per_unit || 0);
+                      const totalEstimatedValue = current * costPerUnit;
+
+                      return (
+                        <tr key={ing.id} className="hover:bg-slate-800/40">
+                          <td className="p-3 font-bold text-white">{ing.name}</td>
+                          <td className="p-3 text-slate-300">{ing.unit}</td>
+                          <td className="p-3 text-slate-300">{costPerUnit} ج.م</td>
+                          <td className="p-3 text-slate-400 font-bold">{opening}</td>
+                          <td className="p-3 text-emerald-400 font-bold">+{purchased}</td>
+                          <td className="p-3 font-black text-blue-400">{current}</td>
+                          <td className="p-3 font-bold text-amber-400">{totalEstimatedValue.toFixed(2)} ج.م</td>
+                          <td className="p-3">
+                            {editingIngredientId === ing.id ? (
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  type="number"
+                                  value={tempStockValue}
+                                  onChange={e => setTempStockValue(e.target.value)}
+                                  placeholder="الكمية الفعلية"
+                                  className="bg-slate-950 border border-emerald-500 p-1.5 rounded-lg text-white w-24 text-xs outline-none"
+                                  autoFocus
+                                />
+                                <button onClick={() => handleUpdateStockDirect(ing.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold">حفظ</button>
+                                <button onClick={() => setEditingIngredientId(null)} className="text-slate-400">إلغاء</button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setEditingIngredientId(ing.id); setTempStockValue(String(ing.current_stock || '')); }}
+                                className="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1.5 rounded-xl font-bold"
+                              >
+                                🔄 تحديث الجرد
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1552,6 +1577,34 @@ export default function CompleteEnterpriseAdminDashboard() {
         {activeTab === 'finance' && <PersonalFinance />}
       </main>
 
+      {/* Modal اختيار حساب الخصم عند الشراء */}
+      {pendingPurchaseData && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3">🛒 خصم مبلغ الفاتورة وتأكيد المشتريات</h3>
+            <div className="text-xs space-y-1 text-slate-300">
+              <p>الصنف/الخامة: <span className="font-bold text-white">{pendingPurchaseData.itemName}</span></p>
+              <p>الكمية: <span className="font-bold text-white">{pendingPurchaseData.qty}</span> | السعر: <span className="font-bold text-white">{pendingPurchaseData.price} ج.م</span></p>
+              <p className="text-sm font-bold text-amber-400 pt-1">إجمالي الفاتورة: <span className="font-black text-emerald-400">{pendingPurchaseData.total} ج.م</span></p>
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-1 text-slate-300">اختر المحفظة المراد الخصم منها:</label>
+              <select value={purchasePaymentAccount} onChange={(e) => setPurchasePaymentAccount(e.target.value)} className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl font-bold text-emerald-400 text-xs outline-none">
+                <option value="cash">💵 الكاش / درج المحل</option>
+                <option value="instapay">📱 InstaPay</option>
+                <option value="e_wallet">💳 المحفظة الإلكترونية</option>
+                <option value="savings">🏦 المُدخرات الشخصية</option>
+              </select>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={confirmPurchaseWithPayment} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition">تأكيد وترحيل للمخزون ✅</button>
+              <button onClick={() => setPendingPurchaseData(null)} className="bg-slate-800 text-slate-300 px-4 py-3 rounded-xl text-xs font-bold">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal اختيار حساب الإيداع عند تسليم الأوردر */}
       {pendingDeliveryOrder && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
