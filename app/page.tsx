@@ -186,10 +186,17 @@ export default function CustomerMenu() {
   const grandTotal = itemsSubtotal + deliveryFee;
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const filteredItems =
-    selectedCategory === 'all'
-      ? menuItems
-      : menuItems.filter((item: MenuItem) => item.category === selectedCategory);
+  // دالة مطابقة مرنة للقسم لتجنب مشكلة القسم الفارغ
+  const filteredItems = menuItems.filter((item: MenuItem) => {
+    if (selectedCategory === 'all') return true;
+    if (!item.category) return false;
+    
+    // إزالة الهمزات والمسافات للمقارنة الدقيقة
+    const normalize = (str: string) => 
+      str ? str.trim().replace(/إج|أ|إ|آ/g, 'ا').toLowerCase() : '';
+
+    return normalize(item.category) === normalize(selectedCategory);
+  });
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,7 +453,12 @@ export default function CustomerMenu() {
             // عرض الكروت الكبيرة للأقسام فقط (بدون شريط علوي)
             <div className="grid grid-cols-2 gap-3.5">
               {CATEGORIES.filter(c => c.id !== 'all').map((cat) => {
-                const count = menuItems.filter(item => item.category === cat.name || item.category === cat.id).length;
+                const count = menuItems.filter(item => {
+                  if (!item.category) return false;
+                  return item.category.trim().toLowerCase() === cat.name.trim().toLowerCase() ||
+                         item.category.trim().toLowerCase() === cat.id.trim().toLowerCase();
+                }).length;
+
                 return (
                   <div
                     key={cat.id}
