@@ -810,7 +810,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // زر طباعة التقارير بنسق A4 واحترافي
+  // زر طباعة التقارير بنسق A4 احترافي وألوان منسقة وتصميم جداول متناسق
   const handlePrintReports = () => {
     const reportContent = document.getElementById('printable-reports-section');
     if (!reportContent) return;
@@ -821,31 +821,49 @@ export default function CompleteEnterpriseAdminDashboard() {
     printWindow.document.write(`
       <html dir="rtl" lang="ar">
         <head>
-          <title>التقرير الشامل - Grill & Greens</title>
+          <title>التقرير المالي والإحصائي - Grill & Greens</title>
           <style>
-            @page { size: A4; margin: 15mm; }
-            body { font-family: 'Cairo', Tahoma, Arial, sans-serif; background: #fff; color: #000; margin: 0; padding: 10px; font-size: 13px; }
-            .header-print { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-            .header-print h1 { margin: 0; font-size: 20px; }
-            .header-print p { margin: 5px 0 0; font-size: 13px; color: #555; }
-            .summary-box { display: flex; justify-content: space-around; border: 1px solid #000; padding: 10px; margin-bottom: 20px; text-align: center; background: #f9f9f9; }
-            .summary-item h3 { margin: 0; font-size: 16px; color: #111; }
-            .summary-item p { margin: 5px 0 0; font-size: 14px; font-weight: bold; }
-            .section-title { font-size: 15px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin: 15px 0 8px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
-            th, td { border: 1px solid #000; padding: 6px; text-align: right; }
-            th { background-color: #eee; }
-            .footer-print { text-align: center; margin-top: 30px; font-size: 11px; border-top: 1px dashed #000; padding-top: 10px; }
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+            @page { size: A4; margin: 12mm; }
+            body { font-family: 'Cairo', Tahoma, Arial, sans-serif; background: #fff; color: #111; margin: 0; padding: 0; font-size: 12px; line-height: 1.4; }
+            
+            .print-container { width: 100%; max-width: 210mm; margin: 0 auto; box-sizing: border-box; }
+            
+            .header-print { text-align: center; border-bottom: 3px solid #059669; padding-bottom: 12px; margin-bottom: 20px; }
+            .header-print h1 { margin: 0; font-size: 22px; color: #064e3b; font-weight: 900; }
+            .header-print p { margin: 4px 0 0; font-size: 12px; color: #4b5563; font-weight: 600; }
+
+            .summary-grid { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+            .summary-card { flex: 1; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; text-align: center; background: #f3f4f6; }
+            .summary-card.green { border-color: #059669; background: #ecfdf5; }
+            .summary-card.rose { border-color: #e11d48; background: #fff1f2; }
+            .summary-card.blue { border-color: #2563eb; background: #eff6ff; }
+            .summary-card h4 { margin: 0; font-size: 11px; color: #374151; font-weight: 700; }
+            .summary-card p { margin: 4px 0 0; font-size: 16px; font-weight: 900; color: #111; }
+
+            .section-title { font-size: 14px; font-weight: 800; color: #064e3b; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; margin: 18px 0 10px; display: flex; align-items: center; gap: 6px; }
+            
+            .grid-2 { display: flex; gap: 15px; margin-bottom: 15px; }
+            .col { flex: 1; }
+
+            table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
+            th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: right; }
+            th { background-color: #f9fafb; color: #1f2937; font-weight: 700; }
+            tr:nth-child(even) { background-color: #fcfcfc; }
+
+            .footer-print { text-align: center; margin-top: 25px; font-size: 10px; border-top: 1px dashed #9ca3af; padding-top: 8px; color: #6b7280; }
           </style>
         </head>
         <body>
-          <div class="header-print">
-            <h1>Grill & Greens - التقرير المالي والإحصائي الشامل</h1>
-            <p>تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}</p>
-          </div>
-          ${reportContent.innerHTML}
-          <div class="footer-print">
-            جميع الحقوق محفوظة © Grill & Greens - سوهاج
+          <div class="print-container">
+            <div class="header-print">
+              <h1>Grill & Greens - تقرير الأداء الشامل</h1>
+              <p>سوهاج | 📞 01101616480 — تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}</p>
+            </div>
+            ${reportContent.innerHTML}
+            <div class="footer-print">
+              جميع الحقوق محفوظة © Grill & Greens - النظام السحابي للإدارة والمبيعات
+            </div>
           </div>
           <script>
             window.onload = function() { window.print(); window.close(); };
@@ -1532,7 +1550,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 📊 قسم التقارير الشاملة المطور (إجمالي المبيعات، المشتريات، صافي الأرباح، وزر طباعة A4) */}
+        {/* 📊 قسم التقارير الشاملة المطور بتصميم A4 احترافي وجودة عالية */}
         {activeTab === 'reports' && (() => {
           const now = new Date();
 
@@ -1615,18 +1633,17 @@ export default function CompleteEnterpriseAdminDashboard() {
 
           return (
             <div className="space-y-6">
-              {/* شريط التحكم والأزرار */}
+              {/* شريط التحكم والفلترة والأزرار */}
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-lg font-bold text-white flex items-center gap-2">📊 التقارير الشاملة والأداء</h2>
                   
                   <div className="flex items-center gap-3">
-                    {/* زر طباعة التقارير */}
                     <button
                       onClick={handlePrintReports}
                       className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-emerald-900/30"
                     >
-                      <span>🖨️</span> طباعة التقارير (A4)
+                      <span>🖨️</span> طباعة التقارير (A4 احترافي)
                     </button>
 
                     <div className="flex flex-wrap gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
@@ -1649,94 +1666,126 @@ export default function CompleteEnterpriseAdminDashboard() {
                 )}
               </div>
 
-              {/* المنطقة القابلة للطباعة حصرياً (A4 Layout) */}
+              {/* المنطقة القابلة للطباعة حصرياً بتصميم A4 مرتب وجداول منسقة */}
               <div id="printable-reports-section" className="space-y-6">
-                {/* كروت المبيعات، المشتريات، وصافي الأرباح */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="summary-item bg-slate-900 border border-emerald-500/20 p-5 rounded-3xl shadow-xl">
-                    <p className="text-xs text-emerald-400 font-bold">إجمالي المبيعات (صافي الوجبات)</p>
+                
+                {/* كروت الملخص المالي */}
+                <div className="summary-grid grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="summary-card green bg-slate-900 border border-emerald-500/20 p-5 rounded-3xl shadow-xl">
+                    <h4 className="text-xs text-emerald-400 font-bold">إجمالي المبيعات (صافي الوجبات)</h4>
                     <p className="text-3xl font-black text-white mt-1">{totalReportFoodSales} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
                   </div>
-                  <div className="summary-item bg-slate-900 border border-rose-500/20 p-5 rounded-3xl shadow-xl">
-                    <p className="text-xs text-rose-400 font-bold">إجمالي المشتريات والخامات</p>
+                  <div className="summary-card rose bg-slate-900 border border-rose-500/20 p-5 rounded-3xl shadow-xl">
+                    <h4 className="text-xs text-rose-400 font-bold">إجمالي المشتريات والخامات</h4>
                     <p className="text-3xl font-black text-white mt-1">{totalReportPurchasesCost} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
                   </div>
-                  <div className="summary-item bg-slate-900 border border-blue-500/20 p-5 rounded-3xl shadow-xl">
-                    <p className="text-xs text-blue-400 font-bold">صافي الأرباح</p>
+                  <div className="summary-card blue bg-slate-900 border border-blue-500/20 p-5 rounded-3xl shadow-xl">
+                    <h4 className="text-xs text-blue-400 font-bold">صافي الأرباح</h4>
                     <p className="text-3xl font-black text-white mt-1">{netReportProfit} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
                   </div>
                 </div>
 
-                {/* كروت العملاء والأصناف */}
+                {/* جداول البيانات منسقة بشكل احترافي للطباعة */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* أكثر 5 عملاء طلباً (بالعدد) */}
-                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
-                      <span>👑</span> أكثر 5 عملاء طلباً (عدد الطلبات)
-                    </h3>
-                    <div className="space-y-2">
-                      {top5CustomersByCount.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحددة</p> : top5CustomersByCount.map((c, i) => (
-                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                          <div>
-                            <p className="font-bold text-white">{c.name}</p>
-                            <p className="text-[10px] text-slate-400">{c.phone}</p>
-                          </div>
-                          <span className="font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">{c.count} طلب</span>
-                        </div>
-                      ))}
-                    </div>
+                  
+                  {/* أكثر 5 عملاء طلباً */}
+                  <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <h3 className="section-title text-sm font-bold text-white mb-3">👑 أكثر 5 عملاء طلباً (عدد الطلبات)</h3>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>اسم العميل</th>
+                          <th>رقم الهاتف</th>
+                          <th>الطلبات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {top5CustomersByCount.length === 0 ? (
+                          <tr><td colSpan={3} className="text-center text-slate-500">لا توجد بيانات</td></tr>
+                        ) : top5CustomersByCount.map((c, i) => (
+                          <tr key={i}>
+                            <td className="font-bold text-white">{c.name}</td>
+                            <td>{c.phone}</td>
+                            <td className="font-bold text-emerald-400">{c.count} طلب</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
 
-                  {/* أكثر 5 عملاء شراءً (بالمبلغ) */}
-                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
-                      <span>💰</span> أكثر 5 عملاء شراءً (إجمالي المبلغ)
-                    </h3>
-                    <div className="space-y-2">
-                      {top5CustomersBySpent.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحددة</p> : top5CustomersBySpent.map((c, i) => (
-                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                          <div>
-                            <p className="font-bold text-white">{c.name}</p>
-                            <p className="text-[10px] text-slate-400">{c.phone}</p>
-                          </div>
-                          <span className="font-black text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">{c.totalSpent} ج.م</span>
-                        </div>
-                      ))}
-                    </div>
+                  {/* أكثر 5 عملاء شراءً */}
+                  <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <h3 className="section-title text-sm font-bold text-white mb-3">💰 أكثر 5 عملاء شراءً (إجمالي المبلغ)</h3>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>اسم العميل</th>
+                          <th>رقم الهاتف</th>
+                          <th>المبلغ الإجمالي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {top5CustomersBySpent.length === 0 ? (
+                          <tr><td colSpan={3} className="text-center text-slate-500">لا توجد بيانات</td></tr>
+                        ) : top5CustomersBySpent.map((c, i) => (
+                          <tr key={i}>
+                            <td className="font-bold text-white">{c.name}</td>
+                            <td>{c.phone}</td>
+                            <td className="font-bold text-amber-400">{c.totalSpent} ج.م</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
 
                   {/* أكثر 10 أصناف طلباً */}
-                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
-                      <span>🔥</span> أكثر 10 أصناف طلباً (الأكثر مبيعاً)
-                    </h3>
-                    <div className="space-y-2">
-                      {top10ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد مبيعات في هذه الفترة</p> : top10ProductsByQty.map((item, i) => (
-                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                          <span className="font-bold text-white">{i + 1}. {item.name}</span>
-                          <div className="text-left">
-                            <span className="font-black text-emerald-400 block">{item.qty} وجبة</span>
-                            <span className="text-[10px] text-slate-400">({item.totalAmount} ج.م)</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <h3 className="section-title text-sm font-bold text-white mb-3">🔥 أكثر 10 أصناف طلباً (الأكثر مبيعاً)</h3>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>الصنف</th>
+                          <th>الكمية</th>
+                          <th>إجمالي السعر</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {top10ProductsByQty.length === 0 ? (
+                          <tr><td colSpan={3} className="text-center text-slate-500">لا توجد مبيعات</td></tr>
+                        ) : top10ProductsByQty.map((item, i) => (
+                          <tr key={i}>
+                            <td className="font-bold text-white">{i + 1}. {item.name}</td>
+                            <td className="font-bold text-emerald-400">{item.qty} وجبة</td>
+                            <td>{item.totalAmount} ج.م</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
 
                   {/* أقل 5 أصناف طلباً */}
-                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
-                      <span>❄️</span> أقل 5 أصناف طلباً (تحتاج ترويج)
-                    </h3>
-                    <div className="space-y-2">
-                      {bottom5ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد أصناف كافية</p> : bottom5ProductsByQty.map((item, i) => (
-                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                          <span className="font-bold text-white">{i + 1}. {item.name}</span>
-                          <span className="font-bold text-rose-400 bg-rose-500/10 px-3 py-1 rounded-xl border border-rose-500/20">{item.qty} طلب فقط</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <h3 className="section-title text-sm font-bold text-white mb-3">❄️ أقل 5 أصناف طلباً (تحتاج ترويج)</h3>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>الصنف</th>
+                          <th>عدد الطلبات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bottom5ProductsByQty.length === 0 ? (
+                          <tr><td colSpan={2} className="text-center text-slate-500">لا توجد بيانات</td></tr>
+                        ) : bottom5ProductsByQty.map((item, i) => (
+                          <tr key={i}>
+                            <td className="font-bold text-white">{i + 1}. {item.name}</td>
+                            <td className="font-bold text-rose-400">{item.qty} طلب فقط</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
+
                 </div>
               </div>
             </div>
