@@ -47,6 +47,9 @@ export default function CustomerMenu() {
   const [orderSent, setOrderSent] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string | number | null>(null);
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
+  
+  // حالة المتجر (مفتوح / مغلق / تلقائي)
+  const [storeStatusMode, setStoreStatusMode] = useState<string>('auto');
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
 
   // إعدادات العرض الخاص
@@ -83,37 +86,49 @@ export default function CustomerMenu() {
   useEffect(() => {
     fetchMenuItems();
     fetchPromoOffer();
-    fetchStoreStatus();
+    fetchStoreStatusSettings();
+
+    const settingsChannel = supabase
+      .channel('realtime_settings_customer')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+        fetchPromoOffer();
+        fetchStoreStatusSettings();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(settingsChannel);
+    };
   }, []);
 
-  const fetchStoreStatus = async () => {
-    const { data } = await supabase.from('settings').select('*').eq('key', 'store_status_config').maybeSingle();
+  const fetchStoreStatusSettings = async () => {
+    const { data } = await supabase.from('settings').select('*').eq('key', 'store_status_mode').maybeSingle();
     if (data && data.value) {
-      const config = data.value;
-      if (config.mode === 'open') {
-        setIsOpenNow(true);
-      } else if (config.mode === 'closed') {
-        setIsOpenNow(false);
-      } else {
-        // التوقيت التلقائي
-        checkWorkingHours();
-      }
+      const mode = data.value.mode || 'auto';
+      setStoreStatusMode(mode);
+      evaluateStoreOpenState(mode);
     } else {
-      checkWorkingHours();
+      evaluateStoreOpenState('auto');
     }
   };
 
-  const checkWorkingHours = () => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-
-    if (day === 5) {
-      setIsOpenNow(false);
-    } else if (hour >= 11 && hour < 20) {
+  const evaluateStoreOpenState = (mode: string) => {
+    if (mode === 'open') {
       setIsOpenNow(true);
-    } else {
+    } else if (mode === 'closed') {
       setIsOpenNow(false);
+    } else {
+      const now = new Date();
+      const day = now.getDay();
+      const hour = now.getHours();
+
+      if (day === 5) {
+        setIsOpenNow(false);
+      } else if (hour >= 11 && hour < 20) {
+        setIsOpenNow(true);
+      } else {
+        setIsOpenNow(false);
+      }
     }
   };
 
@@ -240,7 +255,6 @@ export default function CustomerMenu() {
         body { font-family: 'Cairo', 'Tajawal', sans-serif; }
       `}</style>
       
-      {/* 1. البانر العلوي بصورة السفرة والأكل البيتي والوجبات */}
       <div className="relative">
         <div className="h-44 w-full bg-gradient-to-r from-[#5a1210] via-[#121212] to-[#1c2419] overflow-hidden relative">
           <img 
@@ -251,7 +265,6 @@ export default function CustomerMenu() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/30 to-transparent"></div>
         </div>
 
-        {/* الهيدر: اللوجو واسم المطعم */}
         <div className="max-w-xl mx-auto px-4 flex items-center justify-start gap-4 -mt-12 relative z-10">
           <div className="w-20 h-20 bg-[#e8dbca] border-2 border-[#b93828] rounded-full overflow-hidden shadow-2xl flex items-center justify-center p-1.5 shrink-0">
             <img 
@@ -271,10 +284,7 @@ export default function CustomerMenu() {
       </div>
 
       <div className="max-w-xl mx-auto px-4 mt-4 space-y-3">
-        
-        {/* 2. شريط كروت البيانات السريعة محدد في سطرين ومتمدد بالكامل لتعبئة الشاشة */}
         <div className="space-y-1.5 text-[10px] sm:text-[11px] font-black">
-          {/* السطر الأول: الحالة + وقت التجهيز (موزعين 50% / 50%) */}
           <div className="flex items-center gap-1.5 w-full">
             <span className={`px-2 py-1.5 rounded-xl flex items-center justify-center gap-1 shadow-sm border flex-1 text-center whitespace-nowrap ${
               isOpenNow 
@@ -290,7 +300,6 @@ export default function CustomerMenu() {
             </span>
           </div>
 
-          {/* السطر الثاني: طرق الدفع + واتساب + اتصل بنا */}
           <div className="flex items-center gap-1.5 w-full">
             <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2 py-1.5 rounded-xl shadow-sm flex-1 text-center whitespace-nowrap">
               💳 كاش • محفظة • انستاباي
@@ -314,7 +323,6 @@ export default function CustomerMenu() {
           </div>
         </div>
 
-        {/* 3. كرت العرض المميز المتزامن تلقائياً */}
         {!loadingPromo && promoOffer && promoOffer.isActive && (
           <div className="relative overflow-hidden rounded-2xl border border-[#b93828]/50 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-4 text-white shadow-xl mt-2">
             {promoOffer.type === 'image' && promoOffer.imageUrl ? (
@@ -359,7 +367,6 @@ export default function CustomerMenu() {
           </div>
         )}
 
-        {/* 4. شريط التصنيفات السريع */}
         <div className="sticky top-0 z-20 bg-[#0d0d0d]/95 backdrop-blur-md py-2 border-b border-stone-800">
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
             {CATEGORIES.map((cat) => (
@@ -378,7 +385,6 @@ export default function CustomerMenu() {
           </div>
         </div>
 
-        {/* 5. قائمة الأصناف */}
         <main className="space-y-3 pt-1">
           {loadingMenu ? (
             <div className="text-center py-12 text-stone-500 font-black">جاري تحميل أشهى الوجبات... ⏳</div>
@@ -439,7 +445,6 @@ export default function CustomerMenu() {
                 key={item.id}
                 className="bg-[#161616] border border-stone-800/80 hover:border-stone-700 p-3.5 rounded-2xl shadow-xl flex items-center justify-between gap-3 transition"
               >
-                {/* الصورة على اليمين */}
                 <div className="w-16 h-16 bg-[#0d0d0d] rounded-xl overflow-hidden shrink-0 border border-stone-800 flex items-center justify-center">
                   {item.image_url ? (
                     <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
@@ -448,7 +453,6 @@ export default function CustomerMenu() {
                   )}
                 </div>
 
-                {/* التفاصيل بالمنتصف */}
                 <div className="flex-1 text-right space-y-0.5">
                   <div className="flex items-center gap-2">
                     <h3 className="font-black text-stone-100 text-sm">{item.name}</h3>
@@ -466,7 +470,6 @@ export default function CustomerMenu() {
                   </span>
                 </div>
 
-                {/* زر الإضافة على الشمال */}
                 <button
                   onClick={() => addToCart(item)}
                   className="w-10 h-10 bg-[#b93828] hover:bg-[#a12f21] text-white rounded-xl font-black text-xl flex items-center justify-center shadow-lg active:scale-95 transition shrink-0"
@@ -479,7 +482,6 @@ export default function CustomerMenu() {
         </main>
       </div>
 
-      {/* الفوتر */}
       <footer className="bg-[#080808] text-stone-500 text-xs py-8 px-4 text-center mt-12 space-y-3 border-t border-stone-900 font-bold">
         <p className="font-black text-[#e8dbca] text-sm">Grill & Greens - سوهاج</p>
         <div className="flex justify-center items-center gap-4 text-stone-400">
@@ -500,7 +502,6 @@ export default function CustomerMenu() {
         </div>
       </footer>
 
-      {/* 6. الشريط العائم للسلة */}
       {cart.length > 0 && !orderSent && (
         <div className="fixed bottom-4 left-4 right-4 max-w-lg mx-auto z-40">
           <button
@@ -518,7 +519,6 @@ export default function CustomerMenu() {
         </div>
       )}
 
-      {/* 7. نافذة السلة وتأكيد الطلب */}
       {isCartOpen && !orderSent && (
         <div className="fixed inset-0 bg-[#0d0d0d]/85 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 font-bold">
           <div className="bg-[#161616] border border-stone-800 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4">

@@ -59,10 +59,9 @@ export default function CompleteEnterpriseAdminDashboard() {
 
   const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
 
-  // 🔥 إدارة حالة المتجر (مغلق / مفتوح / تلقائي)
+  // أزرار حالة المتجر (مغلق / مفتوح / تلقائي)
   const [storeStatusMode, setStoreStatusMode] = useState<string>('auto');
 
-  // 🔥 إدارة حالة العرض اليومي بصفحة العميل
   const [promoOfferAdmin, setPromoOfferAdmin] = useState<{
     type: 'text' | 'image';
     title: string;
@@ -362,7 +361,7 @@ export default function CompleteEnterpriseAdminDashboard() {
             ${order.notes ? `<div class="notes-box"><b>ملاحظات الطلب:</b> ${order.notes}</div>` : ''}
 
             <div style="text-align:center;margin-top:8px">
-              <p style="font-size:11px;margin:2px 0">شكرًا لاختياركم Grill & Greens 🌿</p>
+              <p style="font-size:12px;margin-top:6px;font-weight:bold">شكرًا لاختياركم Grill & Greens 🌿</p>
             </div>
           </div>
           <script>
@@ -440,7 +439,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 🔥 التسوية المالية التلقائية للمدفوعات الإلكترونية/المحفظة (إضافة شامل التوصيل للحساب المختار + خصم 30ج توصيل فوراً من الكاش مثل صورتك)
+  // تسوية الدفع الإلكتروني والمحفظة وخصم 30ج توصيل فوراً من الكاش مثل صورتك
   const confirmDeliveryWithPayment = async () => {
     if (!pendingDeliveryOrder) return;
 
@@ -461,7 +460,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     let walletInserts: any[] = [];
 
     if (isCash) {
-      // لو الدفع كاش: يدخل الإجمالي بالكامل (وجبات + توصيل) إلى درج الكاش، ثم نعمل تسوية التوصيل 30ج
       walletInserts.push({
         account_id: 'cash',
         account_name: 'الكاش / درج المحل',
@@ -486,8 +484,6 @@ export default function CompleteEnterpriseAdminDashboard() {
         });
       }
     } else {
-      // لو الدفع إلكتروني (InstaPay أو محفظة):
-      // 1. الإيراد الإلكتروني يدخل بالكامل (قيمة الوجبات + التوصيل) للحساب الإلكتروني
       walletInserts.push({
         account_id: deliveryPaymentAccount,
         account_name: accountNames[deliveryPaymentAccount],
@@ -499,7 +495,6 @@ export default function CompleteEnterpriseAdminDashboard() {
         date: new Date().toLocaleString('ar-EG')
       });
 
-      // 2. في نفس اللحظة: خصم رسوم التوصيل (30 ج.م) من الكاش / درج المحل (تسوية توصيل أوردر)
       if (deliveryFee > 0) {
         walletInserts.push({
           account_id: 'cash',
@@ -1507,10 +1502,8 @@ export default function CompleteEnterpriseAdminDashboard() {
           );
         })()}
 
-        {/* 10. قسم الإعدادات وحالة المتجر (مغلق / مفتوح / تلقائي) */}
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
-            {/* 🏪 أزرار حالة المتجر الجديدة */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 🏪 حالة المتجر بصفحة العميل (مغلق / مفتوح / تلقائي)
@@ -1561,7 +1554,6 @@ export default function CompleteEnterpriseAdminDashboard() {
               </div>
             </div>
 
-            {/* إدارة العرض اليومي المميز */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 🔥 إدارة العرض اليومي المميز (أعلى المنيو)
@@ -1661,7 +1653,6 @@ export default function CompleteEnterpriseAdminDashboard() {
         {activeTab === 'finance' && <PersonalFinance />}
       </main>
 
-      {/* النافذة المنبثقة لاختيار طريقة الدفع وتسليم الأوردر مع تسوية التوصيل */}
       {pendingDeliveryOrder && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
