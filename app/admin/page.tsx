@@ -57,9 +57,6 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [ingredientCost, setIngredientCost] = useState('');
   const [ingredientStock, setIngredientStock] = useState('');
 
-  const [whatsappPhone, setWhatsappPhone] = useState('20101616490');
-
-  // أزرار حالة المتجر (مغلق / مفتوح / تلقائي)
   const [storeStatusMode, setStoreStatusMode] = useState<string>('auto');
 
   // 📊 تقارير شاملة - الفلاتر
@@ -67,7 +64,6 @@ export default function CompleteEnterpriseAdminDashboard() {
   const [reportStartDate, setReportStartDate] = useState('');
   const [reportEndDate, setReportEndDate] = useState('');
 
-  // 💰 التحويل بين الكروت في السيولة
   const [transferFrom, setTransferFrom] = useState<string>('instapay');
   const [transferTo, setTransferTo] = useState<string>('cash');
   const [transferAmount, setTransferAmount] = useState<string>('');
@@ -810,126 +806,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  const handlePrintReports = () => {
-    const reportContent = document.getElementById('printable-reports-section');
-    if (!reportContent) return;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    printWindow.document.write(`
-      <html dir="rtl" lang="ar">
-        <head>
-          <title>التقرير المالي والإحصائي - Grill & Greens</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-            @page { size: A4; margin: 10mm; }
-            body { 
-              font-family: 'Cairo', Tahoma, Arial, sans-serif; 
-              background: #ffffff; 
-              color: #111111; 
-              margin: 0; 
-              padding: 0; 
-              direction: rtl; 
-              text-align: right;
-              font-size: 12px; 
-              line-height: 1.5; 
-            }
-            .print-container { width: 100%; max-width: 190mm; margin: 0 auto; box-sizing: border-box; }
-            .header-print { text-align: center; border-bottom: 3px solid #059669; padding-bottom: 10px; margin-bottom: 15px; }
-            .header-print h1 { margin: 0; font-size: 20px; color: #064e3b; font-weight: 900; }
-            .header-print p { margin: 4px 0 0; font-size: 11px; color: #4b5563; font-weight: 600; }
-            .summary-grid { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; direction: rtl; }
-            .summary-card { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc; }
-            .summary-card h4 { margin: 0; font-size: 11px; color: #475569; font-weight: 700; }
-            .summary-card p { margin: 4px 0 0; font-size: 15px; font-weight: 900; color: #0f172a; }
-            .section-title { font-size: 13px; font-weight: 800; color: #064e3b; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; margin: 12px 0 6px; }
-            .grid-2 { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-            .col { flex: 1; min-width: 48%; box-sizing: border-box; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11px; direction: rtl; }
-            th, td { border: 1px solid #cbd5e1; padding: 5px 8px; text-align: right; }
-            th { background-color: #f1f5f9; color: #1e293b; font-weight: 700; }
-            tr:nth-child(even) { background-color: #f8fafc; }
-            .footer-print { text-align: center; margin-top: 20px; font-size: 10px; border-top: 1px dashed #94a3b8; padding-top: 6px; color: #64748b; }
-          </style>
-        </head>
-        <body>
-          <div class="print-container">
-            <div class="header-print">
-              <h1>Grill & Greens - تقرير الأداء الشامل</h1>
-              <p>سوهاج | 📞 01101616480 — تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}</p>
-            </div>
-            <div class="summary-grid">
-              <div class="summary-card" style="border-color: #059669; background: #ecfdf5;">
-                <h4>إجمالي المبيعات (صافي الوجبات)</h4>
-                <p style="color: #065f46;">${totalReportFoodSales} ج.م</p>
-              </div>
-              <div class="summary-card" style="border-color: #e11d48; background: #fff1f2;">
-                <h4>إجمالي المشتريات والخامات</h4>
-                <p style="color: #9f1239;">${totalReportPurchasesCost} ج.م</p>
-              </div>
-              <div class="summary-card" style="border-color: #2563eb; background: #eff6ff;">
-                <h4>صافي الأرباح</h4>
-                <p style="color: #1e40af;">${netReportProfit} ج.م</p>
-              </div>
-            </div>
-            <div class="grid-2">
-              <div class="col">
-                <div class="section-title">👑 أكثر 5 عملاء طلباً</div>
-                <table>
-                  <thead><tr><th>اسم العميل</th><th>الهاتف</th><th>الطلبات</th></tr></thead>
-                  <tbody>
-                    ${top5CustomersByCount.length === 0 ? '<tr><td colspan="3" style="text-align:center">لا توجد بيانات</td></tr>' : 
-                      top5CustomersByCount.map(c => `<tr><td><b>${c.name}</b></td><td>${c.phone}</td><td><b>${c.count} طلب</b></td></tr>`).join('')}
-                  </tbody>
-                </table>
-              </div>
-              <div class="col">
-                <div class="section-title">💰 أكثر 5 عملاء شراءً</div>
-                <table>
-                  <thead><tr><th>اسم العميل</th><th>الهاتف</th><th>المبلغ الإجمالي</th></tr></thead>
-                  <tbody>
-                    ${top5CustomersBySpent.length === 0 ? '<tr><td colspan="3" style="text-align:center">لا توجد بيانات</td></tr>' : 
-                      top5CustomersBySpent.map(c => `<tr><td><b>${c.name}</b></td><td>${c.phone}</td><td><b>${c.totalSpent} ج.م</b></td></tr>`).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="grid-2">
-              <div class="col">
-                <div class="section-title">🔥 أكثر 10 أصناف طلباً</div>
-                <table>
-                  <thead><tr><th>الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
-                  <tbody>
-                    ${top10ProductsByQty.length === 0 ? '<tr><td colspan="3" style="text-align:center">لا توجد بيانات</td></tr>' : 
-                      top10ProductsByQty.map((item, i) => `<tr><td><b>${i+1}. ${item.name}</b></td><td>${item.qty} وجبة</td><td>${item.totalAmount} ج.م</td></tr>`).join('')}
-                  </tbody>
-                </table>
-              </div>
-              <div class="col">
-                <div class="section-title">❄️ أقل 5 أصناف طلباً (تحتاج ترويج)</div>
-                <table>
-                  <thead><tr><th>الصنف</th><th>عدد الطلبات</th></tr></thead>
-                  <tbody>
-                    ${bottom5ProductsByQty.length === 0 ? '<tr><td colspan="2" style="text-align:center">لا توجد بيانات</td></tr>' : 
-                      bottom5ProductsByQty.map((item, i) => `<tr><td><b>${i+1}. ${item.name}</b></td><td style="color: #e11d48"><b>${item.qty} طلب فقط</b></td></tr>`).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="footer-print">
-              جميع الحقوق محفوظة © Grill & Greens - النظام السحابي للإدارة والمبيعات (سوهاج)
-            </div>
-          </div>
-          <script>
-            window.onload = function() { window.print(); window.close(); };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 dir-rtl font-sans" dir="rtl">
@@ -1606,7 +1482,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 📊 قسم التقارير الشاملة المطور (تنسيق منظم بالكامل داخل الموقع وخارج الموقع) */}
+        {/* 📊 قسم التقارير الشاملة والدالة التابعة لها في النطاق الصحيح */}
         {activeTab === 'reports' && (() => {
           const now = new Date();
 
@@ -1687,6 +1563,127 @@ export default function CompleteEnterpriseAdminDashboard() {
           const top10ProductsByQty = [...itemList].sort((a, b) => b.qty - a.qty).slice(0, 10);
           const bottom5ProductsByQty = [...itemList].sort((a, b) => a.qty - b.qty).slice(0, 5);
 
+          // تعريف دالة الطباعة هنا لتراها كل المتغيرات بلا استثناء
+          const handlePrintReports = () => {
+            const reportContent = document.getElementById('printable-reports-section');
+            if (!reportContent) return;
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) return;
+
+            printWindow.document.write(`
+              <html dir="rtl" lang="ar">
+                <head>
+                  <title>التقرير المالي والإحصائي - Grill & Greens</title>
+                  <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+                    @page { size: A4; margin: 10mm; }
+                    body { 
+                      font-family: 'Cairo', Tahoma, Arial, sans-serif; 
+                      background: #ffffff; 
+                      color: #111111; 
+                      margin: 0; 
+                      padding: 0; 
+                      direction: rtl; 
+                      text-align: right;
+                      font-size: 12px; 
+                      line-height: 1.5; 
+                    }
+                    .print-container { width: 100%; max-width: 190mm; margin: 0 auto; box-sizing: border-box; }
+                    .header-print { text-align: center; border-bottom: 3px solid #059669; padding-bottom: 10px; margin-bottom: 15px; }
+                    .header-print h1 { margin: 0; font-size: 20px; color: #064e3b; font-weight: 900; }
+                    .header-print p { margin: 4px 0 0; font-size: 11px; color: #4b5563; font-weight: 600; }
+                    .summary-grid { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; direction: rtl; }
+                    .summary-card { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc; }
+                    .summary-card h4 { margin: 0; font-size: 11px; color: #475569; font-weight: 700; }
+                    .summary-card p { margin: 4px 0 0; font-size: 15px; font-weight: 900; color: #0f172a; }
+                    .section-title { font-size: 13px; font-weight: 800; color: #064e3b; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; margin: 12px 0 6px; }
+                    .grid-2 { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+                    .col { flex: 1; min-width: 48%; box-sizing: border-box; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11px; direction: rtl; }
+                    th, td { border: 1px solid #cbd5e1; padding: 5px 8px; text-align: right; }
+                    th { background-color: #f1f5f9; color: #1e293b; font-weight: 700; }
+                    tr:nth-child(even) { background-color: #f8fafc; }
+                    .footer-print { text-align: center; margin-top: 20px; font-size: 10px; border-top: 1px dashed #94a3b8; padding-top: 6px; color: #64748b; }
+                  </style>
+                </head>
+                <body>
+                  <div class="print-container">
+                    <div class="header-print">
+                      <h1>Grill & Greens - تقرير الأداء الشامل</h1>
+                      <p>سوهاج | 📞 01101616480 — تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}</p>
+                    </div>
+                    <div class="summary-grid">
+                      <div class="summary-card" style="border-color: #059669; background: #ecfdf5;">
+                        <h4>إجمالي المبيعات (صافي الوجبات)</h4>
+                        <p style="color: #065f46;">${totalReportFoodSales} ج.م</p>
+                      </div>
+                      <div class="summary-card" style="border-color: #e11d48; background: #fff1f2;">
+                        <h4>إجمالي المشتريات والخامات</h4>
+                        <p style="color: #9f1239;">${totalReportPurchasesCost} ج.م</p>
+                      </div>
+                      <div class="summary-card" style="border-color: #2563eb; background: #eff6ff;">
+                        <h4>صافي الأرباح</h4>
+                        <p style="color: #1e40af;">${netReportProfit} ج.م</p>
+                      </div>
+                    </div>
+                    <div class="grid-2">
+                      <div class="col">
+                        <div class="section-title">👑 أكثر 5 عملاء طلباً</div>
+                        <table>
+                          <thead><tr><th>اسم العميل</th><th>الهاتف</th><th>الطلبات</th></tr></thead>
+                          <tbody>
+                            ${top5CustomersByCount.length === 0 ? '<tr><td colspan="3" style="text-align:center">لا توجد بيانات</td></tr>' : 
+                              top5CustomersByCount.map((c: any) => `<tr><td><b>${c.name}</b></td><td>${c.phone}</td><td><b>${c.count} طلب</b></td></tr>`).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="col">
+                        <div class="section-title">💰 أكثر 5 عملاء شراءً</div>
+                        <table>
+                          <thead><tr><th>اسم العميل</th><th>الهاتف</th><th>المبلغ الإجمالي</th></tr></thead>
+                          <tbody>
+                            ${top5CustomersBySpent.length === 0 ? '<tr><td colspan="3" style="text-align:center">لا توجد بيانات</td></tr>' : 
+                              top5CustomersBySpent.map((c: any) => `<tr><td><b>${c.name}</b></td><td>${c.phone}</td><td><b>${c.totalSpent} ج.م</b></td></tr>`).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="grid-2">
+                      <div class="col">
+                        <div class="section-title">🔥 أكثر 10 أصناف طلباً</div>
+                        <table>
+                          <thead><tr><th>الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
+                          <tbody>
+                            ${top10ProductsByQty.length === 0 ? '<tr><td colspan="3" style="text-align:center">لا توجد بيانات</td></tr>' : 
+                              top10ProductsByQty.map((item: any, i: number) => `<tr><td><b>${i+1}. ${item.name}</b></td><td>${item.qty} وجبة</td><td>${item.totalAmount} ج.م</td></tr>`).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="col">
+                        <div class="section-title">❄️ أقل 5 أصناف طلباً (تحتاج ترويج)</div>
+                        <table>
+                          <thead><tr><th>الصنف</th><th>عدد الطلبات</th></tr></thead>
+                          <tbody>
+                            ${bottom5ProductsByQty.length === 0 ? '<tr><td colspan="2" style="text-align:center">لا توجد بيانات</td></tr>' : 
+                              bottom5ProductsByQty.map((item: any, i: number) => `<tr><td><b>${i+1}. ${item.name}</b></td><td style="color: #e11d48"><b>${item.qty} طلب فقط</b></td></tr>`).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="footer-print">
+                      جميع الحقوق محفوظة © Grill & Greens - النظام السحابي للإدارة والمبيعات (سوهاج)
+                    </div>
+                  </div>
+                  <script>
+                    window.onload = function() { window.print(); window.close(); };
+                  </script>
+                </body>
+              </html>
+            `);
+            printWindow.document.close();
+          };
+
           return (
             <div className="space-y-6">
               {/* شريط التحكم وفلترة التاريخ وزر الطباعة */}
@@ -1722,7 +1719,7 @@ export default function CompleteEnterpriseAdminDashboard() {
                 )}
               </div>
 
-              {/* المحتوى المعروض داخل الموقع (بتصميم أنيق ومرتب) */}
+              {/* المحتوى المعروض داخل الموقع */}
               <div id="printable-reports-section" className="space-y-6">
                 
                 {/* كروت الملخص المالي الثلاثة */}
