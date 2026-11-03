@@ -439,7 +439,7 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // تسوية الدفع الإلكتروني والمحفظة وخصم 30ج توصيل فوراً من الكاش مثل صورتك
+  // 🔥 التسوية الفورية للدفع الإلكتروني والمحفظة وإضافة الإجمالي شامل التوصيل مع خصم 30ج رسوم التوصيل من الكاش في نفس اللحظة
   const confirmDeliveryWithPayment = async () => {
     if (!pendingDeliveryOrder) return;
 
@@ -484,6 +484,7 @@ export default function CompleteEnterpriseAdminDashboard() {
         });
       }
     } else {
+      // 1. إضافة الإجمالي شامل التوصيل إلى حساب InstaPay أو المحفظة
       walletInserts.push({
         account_id: deliveryPaymentAccount,
         account_name: accountNames[deliveryPaymentAccount],
@@ -495,6 +496,7 @@ export default function CompleteEnterpriseAdminDashboard() {
         date: new Date().toLocaleString('ar-EG')
       });
 
+      // 2. في نفس اللحظة: خصم رسوم التوصيل (30 ج.م) من الكاش / درج المحل (تسوية توصيل أوردر)
       if (deliveryFee > 0) {
         walletInserts.push({
           account_id: 'cash',
@@ -1504,6 +1506,7 @@ export default function CompleteEnterpriseAdminDashboard() {
 
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
+            {/* 🏪 أزرار حالة المتجر الجديدة */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 🏪 حالة المتجر بصفحة العميل (مغلق / مفتوح / تلقائي)
