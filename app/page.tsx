@@ -266,7 +266,7 @@ export default function CustomerMenu() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#b93828] via-transparent to-transparent"></div>
         </div>
 
-        {/* كرت الهيدر الأحمر الاحترافي كما في الصورة */}
+        {/* كرت الهيدر الأحمر الاحترافي */}
         <div className="max-w-xl mx-auto px-4 -mt-24 relative z-10">
           <div className="bg-[#b93828] border-2 border-[#a12f21] rounded-3xl p-5 shadow-2xl space-y-4 text-white">
             <div className="flex items-center justify-between gap-3">
@@ -372,7 +372,7 @@ export default function CustomerMenu() {
           </div>
         )}
 
-        {/* 3. شريط الأقسام */}
+        {/* 3. العنوان الرئيسي وعرض الأقسام أو الأصناف */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-sm font-black text-stone-800 flex items-center gap-1.5">
@@ -381,27 +381,11 @@ export default function CustomerMenu() {
             {selectedCategory !== 'all' && (
               <button 
                 onClick={() => setSelectedCategory('all')} 
-                className="text-xs font-black text-[#b93828] hover:underline"
+                className="text-xs font-black text-[#b93828] hover:underline bg-white px-3 py-1.5 rounded-xl border border-stone-200 shadow-sm"
               >
-                ← العرض لكل الأقسام
+                ← العودة لكل الأقسام
               </button>
             )}
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all shadow-sm ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#b93828] text-white shadow-md scale-105'
-                    : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -459,24 +443,24 @@ export default function CustomerMenu() {
               </button>
             </div>
           ) : selectedCategory === 'all' ? (
-            // عرض الكروت الاحترافية للأقسام كما في صورتك
-            <div className="grid grid-cols-2 gap-3">
+            // عرض الكروت الكبيرة للأقسام فقط (بدون شريط علوي)
+            <div className="grid grid-cols-2 gap-3.5">
               {CATEGORIES.filter(c => c.id !== 'all').map((cat) => {
                 const count = menuItems.filter(item => item.category === cat.name || item.category === cat.id).length;
                 return (
                   <div
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.name)}
-                    className="bg-white border border-stone-200/80 hover:border-[#b93828] p-4 rounded-3xl shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between text-center space-y-3 group"
+                    className="bg-white border border-stone-200/90 hover:border-[#b93828] p-5 rounded-3xl shadow-sm hover:shadow-lg transition cursor-pointer flex flex-col justify-between text-center space-y-4 group"
                   >
-                    <div className="w-12 h-12 bg-[#fcf8f2] group-hover:bg-[#b93828]/10 rounded-2xl mx-auto flex items-center justify-center text-2xl transition">
+                    <div className="w-14 h-14 bg-[#fcf8f2] group-hover:bg-[#b93828]/10 rounded-2xl mx-auto flex items-center justify-center text-3xl transition shadow-inner">
                       {cat.name.includes('مشويات') ? '🥩' : cat.name.includes('وجبات') ? '🍱' : cat.name.includes('محاشي') ? '🥬' : cat.name.includes('طواجن') ? '🍲' : cat.name.includes('طيور') ? '🍗' : '🥗'}
                     </div>
                     <div>
-                      <h3 className="font-black text-stone-900 text-sm group-hover:text-[#b93828] transition">{cat.name}</h3>
-                      <p className="text-[11px] text-stone-400 font-bold mt-0.5">{count} صنف</p>
+                      <h3 className="font-black text-stone-900 text-base group-hover:text-[#b93828] transition">{cat.name}</h3>
+                      <p className="text-[11px] text-stone-400 font-bold mt-1">{count} صنف متاح</p>
                     </div>
-                    <span className="text-[11px] font-black text-stone-500 bg-[#fcf8f2] py-1.5 rounded-xl block transition group-hover:bg-[#b93828] group-hover:text-white">
+                    <span className="text-xs font-black text-stone-600 bg-[#fcf8f2] py-2 rounded-2xl block transition group-hover:bg-[#b93828] group-hover:text-white shadow-sm">
                       عرض الأصناف ←
                     </span>
                   </div>
@@ -484,9 +468,17 @@ export default function CustomerMenu() {
               })}
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="text-center py-12 text-stone-500 font-black bg-white rounded-3xl border border-stone-200">لا توجد أصناف متوفرة في هذا القسم حالياً.</div>
+            <div className="text-center py-12 text-stone-500 font-black bg-white rounded-3xl border border-stone-200 shadow-sm space-y-3">
+              <p>لا توجد أصناف متوفرة في هذا القسم حالياً.</p>
+              <button 
+                onClick={() => setSelectedCategory('all')}
+                className="bg-[#b93828] text-white text-xs font-black px-4 py-2 rounded-xl"
+              >
+                العودة للأقسام
+              </button>
+            </div>
           ) : (
-            // عرض الأصناف داخل القسم
+            // عرض الأصناف داخل القسم المحدد
             filteredItems.map((item: MenuItem) => (
               <div
                 key={item.id}
