@@ -62,6 +62,16 @@ export default function CompleteEnterpriseAdminDashboard() {
   // أزرار حالة المتجر (مغلق / مفتوح / تلقائي)
   const [storeStatusMode, setStoreStatusMode] = useState<string>('auto');
 
+  // 📊 تقارير شاملة - الفلاتر
+  const [reportFilter, setReportFilter] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('all');
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
+
+  // 💰 التحويل بين الكروت في السيولة
+  const [transferFrom, setTransferFrom] = useState<string>('instapay');
+  const [transferTo, setTransferTo] = useState<string>('cash');
+  const [transferAmount, setTransferAmount] = useState<string>('');
+
   const [promoOfferAdmin, setPromoOfferAdmin] = useState<{
     type: 'text' | 'image';
     title: string;
@@ -567,6 +577,65 @@ export default function CompleteEnterpriseAdminDashboard() {
       await supabase.from('purchase_transactions').update({ status: 'cancelled' }).eq('id', id);
       fetchPurchases();
       alert(`تم إلغاء الحركة وإعادة مبلغ ${refundAmount} ج.م إلى (${refundAccountName}) بنجاح ✅`);
+    }
+  };
+
+  // 💰 دالة التحويل بين الحسابات والكروت
+  const handleTransferBetweenAccounts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = Number(transferAmount);
+    if (!amt || amt <= 0) {
+      alert('يرجى إدخال مبلغ تحويل صحيح');
+      return;
+    }
+    if (transferFrom === transferTo) {
+      alert('لا يمكن التحويل لنفس الحساب!');
+      return;
+    }
+
+    const accountNames: Record<string, string> = {
+      cash: 'الكاش / درج المحل',
+      instapay: 'InstaPay',
+      e_wallet: 'المحفظة الإلكترونية',
+      savings: 'المُدخرات الشخصية',
+    };
+
+    const fromName = accountNames[transferFrom] || transferFrom;
+    const toName = accountNames[transferTo] || transferTo;
+
+    const nowStr = new Date().toLocaleString('ar-EG');
+
+    // 1. خصم من الحساب المصدر
+    const expenseLog = {
+      account_id: transferFrom,
+      account_name: fromName,
+      type: 'expense',
+      category: 'تحويل بين الحسابات',
+      amount: amt,
+      source: `تحويل إلى (${toName})`,
+      notes: `سحب مبلغ ${amt} ج.م ونقله لـ (${toName})`,
+      date: nowStr
+    };
+
+    // 2. إيداع في الحساب المستهدف
+    const incomeLog = {
+      account_id: transferTo,
+      account_name: toName,
+      type: 'income',
+      category: 'تحويل بين الحسابات',
+      amount: amt,
+      source: `تحويل من (${fromName})`,
+      notes: `إيداع مبلغ ${amt} ج.م محول من (${fromName})`,
+      date: nowStr
+    };
+
+    const { error } = await supabase.from('wallet_logs').insert([expenseLog, incomeLog]);
+
+    if (error) {
+      alert('حدث خطأ أثناء تنفيذ التحويل: ' + error.message);
+    } else {
+      alert(`تم تحويل مبلغ ${amt} ج.م من (${fromName}) إلى (${toName}) بنجاح! 🔄`);
+      setTransferAmount('');
     }
   };
 
@@ -1423,45 +1492,36 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
+        {/* 📊 قسم التقارير الشاملة المطور بفلاتر وأعلى وأقل الأصناف والعملاء */}
         {activeTab === 'reports' && (() => {
-          const filteredSales = activeSales.filter(o => {
-            if (!salesDateFrom && !salesDateTo) return true;
-            const orderDate = new Date(o.created_at).getTime();
-            const from = salesDateFrom ? new Date(salesDateFrom).getTime() : 0;
-            const to = salesDateTo ? new Date(salesDateTo).setHours(23, 59, 59) : Infinity;
-            return orderDate >= from && orderDate <= to;
+          const now = new Date();
+
+          const filteredReportOrders = orders.filter(o => o.status === 'completed').filter(o => {
+            const orderDate = new Date(o.created_at);
+            if (reportFilter === 'today') {
+              return orderDate.toDateString() === now.toDateString();
+            } else if (reportFilter === 'week') {
+              const weekAgo = new Date();
+              weekAgo.setDate(now.getDate() - 7);
+              return orderDate >= weekAgo;
+            } else if (reportFilter === 'month') {
+              return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+            } else if (reportFilter === 'custom') {
+              if (!reportStartDate || !reportEndDate) return true;
+              return orderDate >= new Date(reportStartDate) && orderDate <= new Date(reportEndDate + 'T23:59:59');
+            }
+            return true;
           });
 
-          const filteredPurchases = activePurchases.filter(p => {
-            if (!salesDateFrom && !salesDateTo) return true;
-            const pDate = new Date(p.created_at || p.purchase_date).getTime();
-            const from = salesDateFrom ? new Date(salesDateFrom).getTime() : 0;
-            const to = salesDateTo ? new Date(salesDateTo).setHours(23, 59, 59) : Infinity;
-            return pDate >= from && pDate <= to;
-          });
+          const totalReportFoodSales = filteredReportOrders.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
+          const totalReportCount = filteredReportOrders.length;
 
-          const itemStats: { [key: string]: { name: string; qty: number; total: number } } = {};
-          filteredSales.forEach(order => {
-            const items = parseOrderItems(order.items);
-            items.forEach((it: any) => {
-              const name = it.name || it.title || 'صنف غير مسمى';
-              const qty = Number(it.qty || it.quantity || 1);
-              const price = Number(it.price || 0);
-              if (!itemStats[name]) {
-                itemStats[name] = { name, qty: 0, total: 0 };
-              }
-              itemStats[name].qty += qty;
-              itemStats[name].total += qty * price;
-            });
-          });
-
-          const topProducts = Object.values(itemStats).sort((a, b) => b.qty - a.qty).slice(0, 5);
-
-          const customerStats: { [key: string]: { name: string; phone: string; count: number; totalSpent: number } } = {};
-          filteredSales.forEach(order => {
-            const phone = order.phone || 'بدون رقم';
-            const name = order.customer_name || 'عميل غير معروف';
-            const foodTotal = calculateFoodTotalOnly(order);
+          // 1. حساب إحصائيات العملاء (طلبات ومبالغ)
+          const customerStats: { [phone: string]: { name: string; phone: string; count: number; totalSpent: number } } = {};
+          filteredReportOrders.forEach(o => {
+            const phone = o.phone || 'بدون رقم';
+            const name = o.customer_name || 'عميل غير معروف';
+            const foodTotal = calculateFoodTotalOnly(o);
 
             if (!customerStats[phone]) {
               customerStats[phone] = { name, phone, count: 0, totalSpent: 0 };
@@ -1470,34 +1530,137 @@ export default function CompleteEnterpriseAdminDashboard() {
             customerStats[phone].totalSpent += foodTotal;
           });
 
-          const topCustomers = Object.values(customerStats).sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5);
+          const customerList = Object.values(customerStats);
+          const top5CustomersByCount = [...customerList].sort((a, b) => b.count - a.count).slice(0, 5);
+          const top5CustomersBySpent = [...customerList].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5);
 
-          const netFoodSales = filteredSales.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
-          const totalExpenses = filteredPurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-          const netProfit = netFoodSales - totalExpenses;
+          // 2. حساب إحصائيات الأصناف المباعة (أكثر وأقل)
+          const itemStats: { [name: string]: { name: string; qty: number; totalAmount: number } } = {};
+          filteredReportOrders.forEach(o => {
+            const items = parseOrderItems(o.items);
+            items.forEach((it: any) => {
+              const name = it.name || it.title || 'صنف غير مسمى';
+              const qty = Number(it.qty || it.quantity || 1);
+              const price = Number(it.price || 0);
+
+              if (!itemStats[name]) {
+                itemStats[name] = { name, qty: 0, totalAmount: 0 };
+              }
+              itemStats[name].qty += qty;
+              itemStats[name].totalAmount += qty * price;
+            });
+          });
+
+          const itemList = Object.values(itemStats);
+          const top10ProductsByQty = [...itemList].sort((a, b) => b.qty - a.qty).slice(0, 10);
+          const bottom5ProductsByQty = [...itemList].sort((a, b) => a.qty - b.qty).slice(0, 5);
 
           return (
             <div className="space-y-6">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-xl">
+              {/* شريط الفلترة واختيار التاريخ */}
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">📊 التقرير المالي والإحصائي للمطعم</h2>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">📊 التقارير الشاملة والأداء</h2>
+                  
+                  <div className="flex flex-wrap gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
+                    <button onClick={() => setReportFilter('today')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'today' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>اليوم</button>
+                    <button onClick={() => setReportFilter('week')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'week' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الأسبوع</button>
+                    <button onClick={() => setReportFilter('month')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'month' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الشهر</button>
+                    <button onClick={() => setReportFilter('all')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'all' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الكل</button>
+                    <button onClick={() => setReportFilter('custom')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'custom' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>تاريخ مخصص 📅</button>
+                  </div>
+                </div>
+
+                {reportFilter === 'custom' && (
+                  <div className="flex flex-wrap gap-3 items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs pt-3">
+                    <label className="font-bold text-slate-300">من تاريخ:</label>
+                    <input type="date" value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-white outline-none" />
+                    <label className="font-bold text-slate-300">إلى تاريخ:</label>
+                    <input type="date" value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-white outline-none" />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="bg-slate-950 border border-emerald-500/20 p-5 rounded-2xl">
+                    <p className="text-xs text-slate-400 font-bold">إجمالي مبيعات الفترة</p>
+                    <p className="text-3xl font-black text-emerald-400 mt-1">{totalReportFoodSales} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
+                  </div>
+                  <div className="bg-slate-950 border border-blue-500/20 p-5 rounded-2xl">
+                    <p className="text-xs text-slate-400 font-bold">إجمالي الأوردرات المكتملة</p>
+                    <p className="text-3xl font-black text-blue-400 mt-1">{totalReportCount} <span className="text-xs font-bold text-slate-400">طلب</span></p>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-900 border border-emerald-500/20 p-6 rounded-3xl shadow-xl">
-                  <p className="text-xs text-emerald-400 font-bold">إجمالي المبيعات (الوجبات فقط)</p>
-                  <p className="text-3xl font-black text-white mt-2">{netFoodSales} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+              {/* كروت العملاء والأصناف */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* أكثر 5 عملاء طلباً (بالعدد) */}
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>👑</span> أكثر 5 عملاء طلباً (عدد الطلبات)
+                  </h3>
+                  <div className="space-y-2">
+                    {top5CustomersByCount.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحدد</p> : top5CustomersByCount.map((c, i) => (
+                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                        <div>
+                          <p className="font-bold text-white">{c.name}</p>
+                          <p className="text-[10px] text-slate-400">{c.phone}</p>
+                        </div>
+                        <span className="font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">{c.count} طلب</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-rose-500/20 p-6 rounded-3xl shadow-xl">
-                  <p className="text-xs text-rose-400 font-bold">المصروفات والمشتريات</p>
-                  <p className="text-3xl font-black text-white mt-2">{totalExpenses} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                {/* أكثر 5 عملاء شراءً (بالمبلغ) */}
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>💰</span> أكثر 5 عملاء شراءً (إجمالي المبلغ)
+                  </h3>
+                  <div className="space-y-2">
+                    {top5CustomersBySpent.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحدد</p> : top5CustomersBySpent.map((c, i) => (
+                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                        <div>
+                          <p className="font-bold text-white">{c.name}</p>
+                          <p className="text-[10px] text-slate-400">{c.phone}</p>
+                        </div>
+                        <span className="font-black text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">{c.totalSpent} ج.م</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="bg-slate-900 border border-blue-500/20 p-6 rounded-3xl shadow-xl">
-                  <p className="text-xs text-blue-400 font-bold">صافي الأرباح</p>
-                  <p className="text-3xl font-black text-white mt-2">{netProfit} <span className="text-xs font-normal text-slate-400">ج.م</span></p>
+                {/* أكثر 10 أصناف طلباً */}
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>🔥</span> أكثر 10 أصناف طلباً (الأكثر مبيعاً)
+                  </h3>
+                  <div className="space-y-2">
+                    {top10ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد مبيعات في هذه الفترة</p> : top10ProductsByQty.map((item, i) => (
+                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                        <span className="font-bold text-white">{i + 1}. {item.name}</span>
+                        <div className="text-left">
+                          <span className="font-black text-emerald-400 block">{item.qty} وجبة</span>
+                          <span className="text-[10px] text-slate-400">({item.totalAmount} ج.م)</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* أقل 5 أصناف طلباً */}
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>❄️</span> أقل 5 أصناف طلباً (تحتاج ترويج)
+                  </h3>
+                  <div className="space-y-2">
+                    {bottom5ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد أصناف كافية</p> : bottom5ProductsByQty.map((item, i) => (
+                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                        <span className="font-bold text-white">{i + 1}. {item.name}</span>
+                        <span className="font-bold text-rose-400 bg-rose-500/10 px-3 py-1 rounded-xl border border-rose-500/20">{item.qty} طلب فقط</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1653,7 +1816,72 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'finance' && <PersonalFinance />}
+        {/* 💳 قسم المحفظة والسيولة المالية + نموذج التحويل الواضح بين الكروت */}
+        {activeTab === 'finance' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                🔄 تحويل أموال بين الكروت والحسابات
+              </h2>
+              <p className="text-xs text-slate-400">
+                يمكنك سحب أي مبلغ من حساب (مثل انستاباي أو المحفظة) ونقله مباشرة لحساب آخر (مثل الكاش أو المدخرات).
+              </p>
+
+              <form onSubmit={handleTransferBetweenAccounts} className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs">
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">التحويل من (المصدر):</label>
+                  <select
+                    value={transferFrom}
+                    onChange={e => setTransferFrom(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-white font-bold outline-none focus:border-emerald-500"
+                  >
+                    <option value="instapay">📱 InstaPay</option>
+                    <option value="cash">💵 الكاش / درج المحل</option>
+                    <option value="e_wallet">💳 المحفظة الإلكترونية</option>
+                    <option value="savings">🏦 المُدخرات الشخصية</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">التحويل إلى (المستهدف):</label>
+                  <select
+                    value={transferTo}
+                    onChange={e => setTransferTo(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-white font-bold outline-none focus:border-emerald-500"
+                  >
+                    <option value="cash">💵 الكاش / درج المحل</option>
+                    <option value="instapay">📱 InstaPay</option>
+                    <option value="e_wallet">💳 المحفظة الإلكترونية</option>
+                    <option value="savings">🏦 المُدخرات الشخصية</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">المبلغ المراد تحويله (ج.م):</label>
+                  <input
+                    type="number"
+                    placeholder="مثال: 1000"
+                    value={transferAmount}
+                    onChange={e => setTransferAmount(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-white font-bold outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-3 rounded-xl transition shadow-lg shadow-emerald-900/30"
+                  >
+                    تأكيد وتحويل المبلغ ⚡
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <PersonalFinance />
+          </div>
+        )}
       </main>
 
       {pendingDeliveryOrder && (
