@@ -85,9 +85,39 @@ export default function CustomerMenu() {
     fetchMenuItems();
     fetchPromoOffer();
     checkWorkingHours();
+
+    // الاستماع اللحظي لتغييرات حالة المتجر أو العروض من لوحة الإدارة
+    const settingsChannel = supabase
+      .channel('realtime_customer_status_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+        fetchPromoOffer();
+        checkWorkingHours();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(settingsChannel);
+    };
   }, []);
 
-  const checkWorkingHours = () => {
+  const checkWorkingHours = async () => {
+    // جلب الحالة اليدوية من قاعدة البيانات (Settings) أولاً
+    const { data } = await supabase.from('settings').select('*').eq('key', 'store_status_mode').maybeSingle();
+    
+    if (data && data.value) {
+      const mode = data.value.mode || 'auto';
+      if (mode === 'open') {
+        setIsOpenNow(true);
+        setStatusText('مفتوح الآن 🟢');
+        return;
+      } else if (mode === 'closed') {
+        setIsOpenNow(false);
+        setStatusText('مغلق الآن 🔴');
+        return;
+      }
+    }
+
+    // إذا كان الوضع (auto) يتم حساب الوقت تلقائياً
     const now = new Date();
     const day = now.getDay();
     const hour = now.getHours();
