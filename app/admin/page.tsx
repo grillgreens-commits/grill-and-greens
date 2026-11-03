@@ -449,7 +449,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 🔥 التسوية الفورية للدفع الإلكتروني والمحفظة وإضافة الإجمالي شامل التوصيل مع خصم 30ج رسوم التوصيل من الكاش في نفس اللحظة
   const confirmDeliveryWithPayment = async () => {
     if (!pendingDeliveryOrder) return;
 
@@ -494,7 +493,6 @@ export default function CompleteEnterpriseAdminDashboard() {
         });
       }
     } else {
-      // 1. إضافة الإجمالي شامل التوصيل إلى حساب InstaPay أو المحفظة
       walletInserts.push({
         account_id: deliveryPaymentAccount,
         account_name: accountNames[deliveryPaymentAccount],
@@ -506,7 +504,6 @@ export default function CompleteEnterpriseAdminDashboard() {
         date: new Date().toLocaleString('ar-EG')
       });
 
-      // 2. في نفس اللحظة: خصم رسوم التوصيل (30 ج.م) من الكاش / درج المحل (تسوية توصيل أوردر)
       if (deliveryFee > 0) {
         walletInserts.push({
           account_id: 'cash',
@@ -580,7 +577,6 @@ export default function CompleteEnterpriseAdminDashboard() {
     }
   };
 
-  // 💰 دالة التحويل بين الحسابات والكروت
   const handleTransferBetweenAccounts = async (e: React.FormEvent) => {
     e.preventDefault();
     const amt = Number(transferAmount);
@@ -605,7 +601,6 @@ export default function CompleteEnterpriseAdminDashboard() {
 
     const nowStr = new Date().toLocaleString('ar-EG');
 
-    // 1. خصم من الحساب المصدر
     const expenseLog = {
       account_id: transferFrom,
       account_name: fromName,
@@ -617,7 +612,6 @@ export default function CompleteEnterpriseAdminDashboard() {
       date: nowStr
     };
 
-    // 2. إيداع في الحساب المستهدف
     const incomeLog = {
       account_id: transferTo,
       account_name: toName,
@@ -814,6 +808,52 @@ export default function CompleteEnterpriseAdminDashboard() {
       setIngredientStock('');
       fetchIngredients();
     }
+  };
+
+  // زر طباعة التقارير بنسق A4 واحترافي
+  const handlePrintReports = () => {
+    const reportContent = document.getElementById('printable-reports-section');
+    if (!reportContent) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>التقرير الشامل - Grill & Greens</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Cairo', Tahoma, Arial, sans-serif; background: #fff; color: #000; margin: 0; padding: 10px; font-size: 13px; }
+            .header-print { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .header-print h1 { margin: 0; font-size: 20px; }
+            .header-print p { margin: 5px 0 0; font-size: 13px; color: #555; }
+            .summary-box { display: flex; justify-content: space-around; border: 1px solid #000; padding: 10px; margin-bottom: 20px; text-align: center; background: #f9f9f9; }
+            .summary-item h3 { margin: 0; font-size: 16px; color: #111; }
+            .summary-item p { margin: 5px 0 0; font-size: 14px; font-weight: bold; }
+            .section-title { font-size: 15px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; margin: 15px 0 8px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: right; }
+            th { background-color: #eee; }
+            .footer-print { text-align: center; margin-top: 30px; font-size: 11px; border-top: 1px dashed #000; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-print">
+            <h1>Grill & Greens - التقرير المالي والإحصائي الشامل</h1>
+            <p>تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}</p>
+          </div>
+          ${reportContent.innerHTML}
+          <div class="footer-print">
+            جميع الحقوق محفوظة © Grill & Greens - سوهاج
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   if (!isAuthenticated) {
@@ -1492,7 +1532,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 📊 قسم التقارير الشاملة المطور بفلاتر وأعلى وأقل الأصناف والعملاء */}
+        {/* 📊 قسم التقارير الشاملة المطور (إجمالي المبيعات، المشتريات، صافي الأرباح، وزر طباعة A4) */}
         {activeTab === 'reports' && (() => {
           const now = new Date();
 
@@ -1513,10 +1553,28 @@ export default function CompleteEnterpriseAdminDashboard() {
             return true;
           });
 
-          const totalReportFoodSales = filteredReportOrders.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
-          const totalReportCount = filteredReportOrders.length;
+          const filteredReportPurchases = activePurchases.filter(p => {
+            const pDate = new Date(p.created_at || p.purchase_date);
+            if (reportFilter === 'today') {
+              return pDate.toDateString() === now.toDateString();
+            } else if (reportFilter === 'week') {
+              const weekAgo = new Date();
+              weekAgo.setDate(now.getDate() - 7);
+              return pDate >= weekAgo;
+            } else if (reportFilter === 'month') {
+              return pDate.getMonth() === now.getMonth() && pDate.getFullYear() === now.getFullYear();
+            } else if (reportFilter === 'custom') {
+              if (!reportStartDate || !reportEndDate) return true;
+              return pDate >= new Date(reportStartDate) && pDate <= new Date(reportEndDate + 'T23:59:59');
+            }
+            return true;
+          });
 
-          // 1. حساب إحصائيات العملاء (طلبات ومبالغ)
+          const totalReportFoodSales = filteredReportOrders.reduce((sum, item) => sum + calculateFoodTotalOnly(item), 0);
+          const totalReportPurchasesCost = filteredReportPurchases.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+          const netReportProfit = totalReportFoodSales - totalReportPurchasesCost;
+
+          // 1. إحصائيات العملاء
           const customerStats: { [phone: string]: { name: string; phone: string; count: number; totalSpent: number } } = {};
           filteredReportOrders.forEach(o => {
             const phone = o.phone || 'بدون رقم';
@@ -1534,7 +1592,7 @@ export default function CompleteEnterpriseAdminDashboard() {
           const top5CustomersByCount = [...customerList].sort((a, b) => b.count - a.count).slice(0, 5);
           const top5CustomersBySpent = [...customerList].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5);
 
-          // 2. حساب إحصائيات الأصناف المباعة (أكثر وأقل)
+          // 2. إحصائيات الأصناف
           const itemStats: { [name: string]: { name: string; qty: number; totalAmount: number } } = {};
           filteredReportOrders.forEach(o => {
             const items = parseOrderItems(o.items);
@@ -1557,17 +1615,27 @@ export default function CompleteEnterpriseAdminDashboard() {
 
           return (
             <div className="space-y-6">
-              {/* شريط الفلترة واختيار التاريخ */}
+              {/* شريط التحكم والأزرار */}
               <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-lg font-bold text-white flex items-center gap-2">📊 التقارير الشاملة والأداء</h2>
                   
-                  <div className="flex flex-wrap gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
-                    <button onClick={() => setReportFilter('today')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'today' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>اليوم</button>
-                    <button onClick={() => setReportFilter('week')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'week' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الأسبوع</button>
-                    <button onClick={() => setReportFilter('month')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'month' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الشهر</button>
-                    <button onClick={() => setReportFilter('all')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'all' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الكل</button>
-                    <button onClick={() => setReportFilter('custom')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'custom' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>تاريخ مخصص 📅</button>
+                  <div className="flex items-center gap-3">
+                    {/* زر طباعة التقارير */}
+                    <button
+                      onClick={handlePrintReports}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-emerald-900/30"
+                    >
+                      <span>🖨️</span> طباعة التقارير (A4)
+                    </button>
+
+                    <div className="flex flex-wrap gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
+                      <button onClick={() => setReportFilter('today')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'today' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>اليوم</button>
+                      <button onClick={() => setReportFilter('week')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'week' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الأسبوع</button>
+                      <button onClick={() => setReportFilter('month')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'month' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الشهر</button>
+                      <button onClick={() => setReportFilter('all')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'all' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>الكل</button>
+                      <button onClick={() => setReportFilter('custom')} className={`px-3 py-1.5 rounded-xl font-bold transition ${reportFilter === 'custom' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}>تاريخ مخصص 📅</button>
+                    </div>
                   </div>
                 </div>
 
@@ -1579,87 +1647,95 @@ export default function CompleteEnterpriseAdminDashboard() {
                     <input type="date" value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-white outline-none" />
                   </div>
                 )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  <div className="bg-slate-950 border border-emerald-500/20 p-5 rounded-2xl">
-                    <p className="text-xs text-slate-400 font-bold">إجمالي مبيعات الفترة</p>
-                    <p className="text-3xl font-black text-emerald-400 mt-1">{totalReportFoodSales} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
-                  </div>
-                  <div className="bg-slate-950 border border-blue-500/20 p-5 rounded-2xl">
-                    <p className="text-xs text-slate-400 font-bold">إجمالي الأوردرات المكتملة</p>
-                    <p className="text-3xl font-black text-blue-400 mt-1">{totalReportCount} <span className="text-xs font-bold text-slate-400">طلب</span></p>
-                  </div>
-                </div>
               </div>
 
-              {/* كروت العملاء والأصناف */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* أكثر 5 عملاء طلباً (بالعدد) */}
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>👑</span> أكثر 5 عملاء طلباً (عدد الطلبات)
-                  </h3>
-                  <div className="space-y-2">
-                    {top5CustomersByCount.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحدد</p> : top5CustomersByCount.map((c, i) => (
-                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                        <div>
-                          <p className="font-bold text-white">{c.name}</p>
-                          <p className="text-[10px] text-slate-400">{c.phone}</p>
-                        </div>
-                        <span className="font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">{c.count} طلب</span>
-                      </div>
-                    ))}
+              {/* المنطقة القابلة للطباعة حصرياً (A4 Layout) */}
+              <div id="printable-reports-section" className="space-y-6">
+                {/* كروت المبيعات، المشتريات، وصافي الأرباح */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="summary-item bg-slate-900 border border-emerald-500/20 p-5 rounded-3xl shadow-xl">
+                    <p className="text-xs text-emerald-400 font-bold">إجمالي المبيعات (صافي الوجبات)</p>
+                    <p className="text-3xl font-black text-white mt-1">{totalReportFoodSales} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
+                  </div>
+                  <div className="summary-item bg-slate-900 border border-rose-500/20 p-5 rounded-3xl shadow-xl">
+                    <p className="text-xs text-rose-400 font-bold">إجمالي المشتريات والخامات</p>
+                    <p className="text-3xl font-black text-white mt-1">{totalReportPurchasesCost} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
+                  </div>
+                  <div className="summary-item bg-slate-900 border border-blue-500/20 p-5 rounded-3xl shadow-xl">
+                    <p className="text-xs text-blue-400 font-bold">صافي الأرباح</p>
+                    <p className="text-3xl font-black text-white mt-1">{netReportProfit} <span className="text-xs font-bold text-slate-400">ج.م</span></p>
                   </div>
                 </div>
 
-                {/* أكثر 5 عملاء شراءً (بالمبلغ) */}
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>💰</span> أكثر 5 عملاء شراءً (إجمالي المبلغ)
-                  </h3>
-                  <div className="space-y-2">
-                    {top5CustomersBySpent.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحدد</p> : top5CustomersBySpent.map((c, i) => (
-                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                        <div>
-                          <p className="font-bold text-white">{c.name}</p>
-                          <p className="text-[10px] text-slate-400">{c.phone}</p>
+                {/* كروت العملاء والأصناف */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* أكثر 5 عملاء طلباً (بالعدد) */}
+                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
+                      <span>👑</span> أكثر 5 عملاء طلباً (عدد الطلبات)
+                    </h3>
+                    <div className="space-y-2">
+                      {top5CustomersByCount.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحددة</p> : top5CustomersByCount.map((c, i) => (
+                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                          <div>
+                            <p className="font-bold text-white">{c.name}</p>
+                            <p className="text-[10px] text-slate-400">{c.phone}</p>
+                          </div>
+                          <span className="font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">{c.count} طلب</span>
                         </div>
-                        <span className="font-black text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">{c.totalSpent} ج.م</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* أكثر 10 أصناف طلباً */}
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>🔥</span> أكثر 10 أصناف طلباً (الأكثر مبيعاً)
-                  </h3>
-                  <div className="space-y-2">
-                    {top10ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد مبيعات في هذه الفترة</p> : top10ProductsByQty.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                        <span className="font-bold text-white">{i + 1}. {item.name}</span>
-                        <div className="text-left">
-                          <span className="font-black text-emerald-400 block">{item.qty} وجبة</span>
-                          <span className="text-[10px] text-slate-400">({item.totalAmount} ج.م)</span>
+                  {/* أكثر 5 عملاء شراءً (بالمبلغ) */}
+                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
+                      <span>💰</span> أكثر 5 عملاء شراءً (إجمالي المبلغ)
+                    </h3>
+                    <div className="space-y-2">
+                      {top5CustomersBySpent.length === 0 ? <p className="text-xs text-slate-500">لا توجد بيانات للفترة المحددة</p> : top5CustomersBySpent.map((c, i) => (
+                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                          <div>
+                            <p className="font-bold text-white">{c.name}</p>
+                            <p className="text-[10px] text-slate-400">{c.phone}</p>
+                          </div>
+                          <span className="font-black text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">{c.totalSpent} ج.م</span>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* أقل 5 أصناف طلباً */}
-                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>❄️</span> أقل 5 أصناف طلباً (تحتاج ترويج)
-                  </h3>
-                  <div className="space-y-2">
-                    {bottom5ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد أصناف كافية</p> : bottom5ProductsByQty.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
-                        <span className="font-bold text-white">{i + 1}. {item.name}</span>
-                        <span className="font-bold text-rose-400 bg-rose-500/10 px-3 py-1 rounded-xl border border-rose-500/20">{item.qty} طلب فقط</span>
-                      </div>
-                    ))}
+                  {/* أكثر 10 أصناف طلباً */}
+                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
+                      <span>🔥</span> أكثر 10 أصناف طلباً (الأكثر مبيعاً)
+                    </h3>
+                    <div className="space-y-2">
+                      {top10ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد مبيعات في هذه الفترة</p> : top10ProductsByQty.map((item, i) => (
+                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                          <span className="font-bold text-white">{i + 1}. {item.name}</span>
+                          <div className="text-left">
+                            <span className="font-black text-emerald-400 block">{item.qty} وجبة</span>
+                            <span className="text-[10px] text-slate-400">({item.totalAmount} ج.م)</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* أقل 5 أصناف طلباً */}
+                  <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-3">
+                    <h3 className="section-title text-sm font-bold text-white flex items-center gap-2">
+                      <span>❄️</span> أقل 5 أصناف طلباً (تحتاج ترويج)
+                    </h3>
+                    <div className="space-y-2">
+                      {bottom5ProductsByQty.length === 0 ? <p className="text-xs text-slate-500">لا توجد أصناف كافية</p> : bottom5ProductsByQty.map((item, i) => (
+                        <div key={i} className="flex justify-between items-center bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs">
+                          <span className="font-bold text-white">{i + 1}. {item.name}</span>
+                          <span className="font-bold text-rose-400 bg-rose-500/10 px-3 py-1 rounded-xl border border-rose-500/20">{item.qty} طلب فقط</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1669,7 +1745,6 @@ export default function CompleteEnterpriseAdminDashboard() {
 
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
-            {/* 🏪 أزرار حالة المتجر الجديدة */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 🏪 حالة المتجر بصفحة العميل (مغلق / مفتوح / تلقائي)
@@ -1816,7 +1891,6 @@ export default function CompleteEnterpriseAdminDashboard() {
           </div>
         )}
 
-        {/* 💳 قسم المحفظة والسيولة المالية + نموذج التحويل الواضح بين الكروت */}
         {activeTab === 'finance' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
