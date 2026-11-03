@@ -21,7 +21,6 @@ export interface MenuItem {
 export interface Category {
   id: string;
   name: string;
-  icon?: string;
 }
 
 export const CATEGORIES: Category[] = [
@@ -48,7 +47,7 @@ export default function CustomerMenu() {
   const [orderSent, setOrderSent] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string | number | null>(null);
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
-
+  
   // حالة المتجر (مفتوح / مغلق / تلقائي) المربوطة بلوحة الإدارة
   const [storeStatusMode, setStoreStatusMode] = useState<string>('auto');
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
@@ -250,45 +249,46 @@ export default function CustomerMenu() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f5f0] text-stone-800 font-sans dir-rtl pb-28" dir="rtl">
+    <div className="min-h-screen bg-[#fcf8f2] text-stone-900 font-sans dir-rtl pb-28" dir="rtl">
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Tajawal:wght@700;900&display=swap');
         body { font-family: 'Cairo', 'Tajawal', sans-serif; }
       `}</style>
       
-      {/* 1. البانر العلوي الفاخر */}
+      {/* 1. البانر العلوي وصورة الخلفية الفاخرة */}
       <div className="relative">
-        <div className="h-44 w-full bg-gradient-to-r from-[#8a221a] via-[#b93828] to-[#183a24] overflow-hidden relative">
+        <div className="h-44 w-full bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] overflow-hidden relative">
           <img 
             src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" 
             alt="Cover" 
-            className="w-full h-full object-cover opacity-30 mix-blend-overlay"
+            className="w-full h-full object-cover opacity-25 mix-blend-overlay"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#b93828]/90 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#b93828] via-transparent to-transparent"></div>
         </div>
 
-        {/* كرت الهيدر الاحترافي المدمج (اللوجو، الحالة، الأزرار) */}
-        <div className="max-w-xl mx-auto px-4 -mt-20 relative z-10">
-          <div className="bg-white/95 backdrop-blur-md border border-stone-200/80 rounded-3xl p-5 shadow-2xl space-y-4">
+        {/* كرت الهيدر الأحمر الاحترافي كما في الصورة */}
+        <div className="max-w-xl mx-auto px-4 -mt-24 relative z-10">
+          <div className="bg-[#b93828] border-2 border-[#a12f21] rounded-3xl p-5 shadow-2xl space-y-4 text-white">
             <div className="flex items-center justify-between gap-3">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-black text-stone-900 tracking-tight">Grill & Greens</h1>
+                  <h1 className="text-xl font-black text-white tracking-tight">Grill & Greens</h1>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border flex items-center gap-1 ${
                     isOpenNow 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300' 
-                      : 'bg-rose-50 text-rose-700 border-rose-300'
+                      ? 'bg-emerald-600/90 text-white border-emerald-400' 
+                      : 'bg-stone-900/90 text-rose-300 border-rose-500'
                   }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isOpenNow ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOpenNow ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`}></span>
                     {isOpenNow ? 'مفتوح الآن 🟢' : 'مغلق الآن 🔴'}
                   </span>
                 </div>
-                <p className="text-xs text-stone-600 font-bold">
-                  العنوان: سوهاج • أكل بيتي ومشويات • ⏳ تجهيز الأوردر: 1 - 2 ساعة
+                <p className="text-xs text-stone-100 font-bold leading-relaxed">
+                  العنوان: سوهاج • أكل بيتي ومشويات<br/>
+                  ⏳ تجهيز الأوردر: 1 - 2 ساعة
                 </p>
               </div>
 
-              <div className="w-16 h-16 bg-[#f8f5f0] border-2 border-[#b93828] rounded-2xl overflow-hidden shadow-inner flex items-center justify-center p-1 shrink-0">
+              <div className="w-16 h-16 bg-white border-2 border-stone-200 rounded-2xl overflow-hidden shadow-md flex items-center justify-center p-1 shrink-0">
                 <img 
                   src="https://www2.0zz0.com/2025/12/05/23/289980791.png" 
                   alt="Logo" 
@@ -297,21 +297,21 @@ export default function CustomerMenu() {
               </div>
             </div>
 
-            {/* أزرار التفاعل السريع */}
-            <div className="grid grid-cols-5 gap-1.5 pt-2 border-t border-stone-100 text-[11px] font-black">
-              <a href={SOCIAL_LINKS.phoneCall} className="bg-[#b93828] hover:bg-[#a12f21] text-white py-2 rounded-xl flex items-center justify-center gap-1 shadow transition">
+            {/* أزرار التواصل والسوشيال ميديا داخل الهيدر الأحمر */}
+            <div className="grid grid-cols-5 gap-1 pt-2 border-t border-white/20 text-[10px] sm:text-[11px] font-black">
+              <a href={SOCIAL_LINKS.phoneCall} className="bg-white/15 hover:bg-white/25 text-white py-2 rounded-xl flex items-center justify-center gap-1 transition">
                 📞 اتصال
               </a>
-              <a href={SOCIAL_LINKS.whatsapp} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl flex items-center justify-center gap-1 shadow transition">
+              <a href={SOCIAL_LINKS.whatsapp} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl flex items-center justify-center gap-1 transition">
                 💬 واتساب
               </a>
-              <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl flex items-center justify-center gap-1 shadow transition">
+              <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="bg-white/15 hover:bg-white/25 text-white py-2 rounded-xl flex items-center justify-center gap-1 transition">
                 فيسبوك
               </a>
-              <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="bg-pink-600 hover:bg-pink-500 text-white py-2 rounded-xl flex items-center justify-center gap-1 shadow transition">
+              <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="bg-white/15 hover:bg-white/25 text-white py-2 rounded-xl flex items-center justify-center gap-1 transition">
                 انستجرام
               </a>
-              <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer" className="bg-stone-900 hover:bg-stone-800 text-white py-2 rounded-xl flex items-center justify-center gap-1 shadow transition">
+              <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer" className="bg-white/15 hover:bg-white/25 text-white py-2 rounded-xl flex items-center justify-center gap-1 transition">
                 تيك توك
               </a>
             </div>
@@ -321,38 +321,38 @@ export default function CustomerMenu() {
 
       <div className="max-w-xl mx-auto px-4 mt-6 space-y-6">
         
-        {/* 3. كرت العرض الخاص المميز */}
+        {/* 2. كرت العرض الخاص المميز */}
         {!loadingPromo && promoOffer && promoOffer.isActive && (
           <div className="space-y-3">
             <h2 className="text-sm font-black text-stone-800 flex items-center gap-1.5 px-1">
               <span>🔥</span> عروض خاصة
             </h2>
 
-            <div className="relative overflow-hidden rounded-3xl border border-[#b93828]/40 bg-gradient-to-r from-[#b93828] via-[#a12f21] to-[#183a24] p-5 text-white shadow-xl">
+            <div className="relative overflow-hidden rounded-3xl border border-stone-200 bg-white p-5 text-stone-900 shadow-xl">
               {promoOffer.type === 'image' && promoOffer.imageUrl ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-2.5 py-1 rounded-lg">
-                      عرض اليوم المميز 👑
+                    <span className="bg-[#b93828] text-white text-[10px] font-black px-2.5 py-1 rounded-lg">
+                      عرض اليوم 👑
                     </span>
                   </div>
                   <img 
                     src={promoOffer.imageUrl} 
                     alt="عرض اليوم" 
-                    className="w-full h-auto max-h-56 rounded-2xl object-cover border border-white/20"
+                    className="w-full h-auto max-h-56 rounded-2xl object-cover border border-stone-100"
                   />
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-1.5">
-                    <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-2.5 py-1 rounded-lg inline-block">
-                      عرض اليوم المميز 👑
+                    <span className="bg-[#b93828] text-white text-[10px] font-black px-2.5 py-1 rounded-lg inline-block">
+                      عرض اليوم 👑
                     </span>
-                    <h3 className="text-lg font-black leading-tight">{promoOffer.title}</h3>
-                    <p className="text-xs font-bold text-stone-200">{promoOffer.description}</p>
+                    <h3 className="text-base font-black leading-tight text-stone-900">{promoOffer.title}</h3>
+                    <p className="text-xs font-bold text-stone-500">{promoOffer.description}</p>
                   </div>
                   <div className="text-left shrink-0">
-                    <span className="text-2xl font-black block text-amber-200">{promoOffer.price} <span className="text-xs font-bold">ج.م</span></span>
+                    <span className="text-2xl font-black block text-[#b93828]">{promoOffer.price} <span className="text-xs font-bold text-stone-400">ج.م</span></span>
                     <button 
                       onClick={() => addToCart({
                         id: 'promo-offer-special',
@@ -361,7 +361,7 @@ export default function CustomerMenu() {
                         category: 'العروض',
                         description: promoOffer.description
                       })}
-                      className="mt-2 bg-white text-[#b93828] hover:bg-stone-100 w-10 h-10 rounded-2xl font-black text-xl flex items-center justify-center shadow-lg transition active:scale-95"
+                      className="mt-2 bg-[#b93828] hover:bg-[#a12f21] text-white w-10 h-10 rounded-2xl font-black text-xl flex items-center justify-center shadow-md transition active:scale-95"
                     >
                       +
                     </button>
@@ -372,7 +372,7 @@ export default function CustomerMenu() {
           </div>
         )}
 
-        {/* 4. عرض الأقسام بشكل كروت احترافية (عند اختيار "الكل") أو عرض الأصناف مباشرة */}
+        {/* 3. شريط الأقسام */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-sm font-black text-stone-800 flex items-center gap-1.5">
@@ -388,7 +388,6 @@ export default function CustomerMenu() {
             )}
           </div>
 
-          {/* شريط تصفح الأقسام السريع */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
             {CATEGORIES.map((cat) => (
               <button
@@ -406,7 +405,7 @@ export default function CustomerMenu() {
           </div>
         </div>
 
-        {/* 5. عرض محتوى الأقسام أو الأصناف */}
+        {/* 4. محتوى الأقسام أو الأصناف */}
         <main className="space-y-3 pt-1">
           {loadingMenu ? (
             <div className="text-center py-12 text-stone-500 font-black">جاري تحميل أشهى الوجبات... ⏳</div>
@@ -420,7 +419,7 @@ export default function CustomerMenu() {
                 رقم الطلب: <span className="font-black text-[#b93828] text-sm">#{String(orderId).split('-')[0].toUpperCase()}</span>
               </p>
               
-              <div className="bg-[#f8f5f0] p-4 rounded-2xl border border-stone-200 text-right text-xs space-y-2 max-w-sm mx-auto font-bold">
+              <div className="bg-[#fcf8f2] p-4 rounded-2xl border border-stone-200 text-right text-xs space-y-2 max-w-sm mx-auto font-bold">
                 <p className="border-b border-stone-200 pb-1 text-stone-700">تفاصيل الفاتورة:</p>
                 <div className="flex justify-between text-stone-600">
                   <span>إجمالي الأصناف:</span>
@@ -460,7 +459,7 @@ export default function CustomerMenu() {
               </button>
             </div>
           ) : selectedCategory === 'all' ? (
-            // عرض الكروت الاحترافية للأقسام عند اختيار "الكل"
+            // عرض الكروت الاحترافية للأقسام كما في صورتك
             <div className="grid grid-cols-2 gap-3">
               {CATEGORIES.filter(c => c.id !== 'all').map((cat) => {
                 const count = menuItems.filter(item => item.category === cat.name || item.category === cat.id).length;
@@ -470,14 +469,14 @@ export default function CustomerMenu() {
                     onClick={() => setSelectedCategory(cat.name)}
                     className="bg-white border border-stone-200/80 hover:border-[#b93828] p-4 rounded-3xl shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between text-center space-y-3 group"
                   >
-                    <div className="w-12 h-12 bg-[#f8f5f0] group-hover:bg-[#b93828]/10 rounded-2xl mx-auto flex items-center justify-center text-2xl transition">
+                    <div className="w-12 h-12 bg-[#fcf8f2] group-hover:bg-[#b93828]/10 rounded-2xl mx-auto flex items-center justify-center text-2xl transition">
                       {cat.name.includes('مشويات') ? '🥩' : cat.name.includes('وجبات') ? '🍱' : cat.name.includes('محاشي') ? '🥬' : cat.name.includes('طواجن') ? '🍲' : cat.name.includes('طيور') ? '🍗' : '🥗'}
                     </div>
                     <div>
                       <h3 className="font-black text-stone-900 text-sm group-hover:text-[#b93828] transition">{cat.name}</h3>
-                      <p className="text-[11px] text-stone-400 font-bold mt-0.5">{count} صنف متاحة</p>
+                      <p className="text-[11px] text-stone-400 font-bold mt-0.5">{count} صنف</p>
                     </div>
-                    <span className="text-[11px] font-black text-[#b93828] bg-[#f8f5f0] py-1.5 rounded-xl block transition group-hover:bg-[#b93828] group-hover:text-white">
+                    <span className="text-[11px] font-black text-stone-500 bg-[#fcf8f2] py-1.5 rounded-xl block transition group-hover:bg-[#b93828] group-hover:text-white">
                       عرض الأصناف ←
                     </span>
                   </div>
@@ -487,13 +486,13 @@ export default function CustomerMenu() {
           ) : filteredItems.length === 0 ? (
             <div className="text-center py-12 text-stone-500 font-black bg-white rounded-3xl border border-stone-200">لا توجد أصناف متوفرة في هذا القسم حالياً.</div>
           ) : (
-            // عرض الأصناف داخل القسم المحدد
+            // عرض الأصناف داخل القسم
             filteredItems.map((item: MenuItem) => (
               <div
                 key={item.id}
                 className="bg-white border border-stone-200/80 hover:border-stone-300 p-4 rounded-3xl shadow-sm flex items-center justify-between gap-4 transition"
               >
-                <div className="w-20 h-20 bg-[#f8f5f0] rounded-2xl overflow-hidden shrink-0 border border-stone-200 flex items-center justify-center shadow-inner">
+                <div className="w-20 h-20 bg-[#fcf8f2] rounded-2xl overflow-hidden shrink-0 border border-stone-200 flex items-center justify-center shadow-inner">
                   {item.image_url ? (
                     <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                   ) : (
@@ -530,7 +529,7 @@ export default function CustomerMenu() {
         </main>
       </div>
 
-      {/* الفوتر الاحترافي */}
+      {/* الفوتر */}
       <footer className="bg-stone-900 text-stone-400 text-xs py-8 px-4 text-center mt-12 space-y-3 border-t border-stone-800 font-bold">
         <p className="font-black text-stone-200 text-sm">Grill & Greens - سوهاج</p>
         <div className="flex justify-center items-center gap-4 text-stone-400 text-xs">
@@ -551,7 +550,7 @@ export default function CustomerMenu() {
         </div>
       </footer>
 
-      {/* 6. الشريط العائم للسلة */}
+      {/* الشريط العائم للسلة */}
       {cart.length > 0 && !orderSent && (
         <div className="fixed bottom-4 left-4 right-4 max-w-lg mx-auto z-40">
           <button
@@ -569,7 +568,7 @@ export default function CustomerMenu() {
         </div>
       )}
 
-      {/* 7. نافذة السلة وتأكيد الطلب الاحترافية */}
+      {/* نافذة السلة وتأكيد الطلب */}
       {isCartOpen && !orderSent && (
         <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 font-bold">
           <div className="bg-white border border-stone-200 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl">
@@ -594,7 +593,7 @@ export default function CustomerMenu() {
               ))}
             </div>
 
-            <div className="bg-[#f8f5f0] p-3 rounded-2xl space-y-1.5 text-xs text-stone-600 border border-stone-200">
+            <div className="bg-[#fcf8f2] p-3 rounded-2xl space-y-1.5 text-xs text-stone-600 border border-stone-200">
               <div className="flex justify-between">
                 <span>المجموع الفرعي للأصناف:</span>
                 <span>{itemsSubtotal} ج.م</span>
@@ -616,31 +615,31 @@ export default function CustomerMenu() {
             <form onSubmit={handlePlaceOrder} className="space-y-3 pt-1 text-xs">
               <div>
                 <label className="block text-[11px] font-black text-stone-600 mb-1">اسم العميل *</label>
-                <input type="text" required placeholder="الاسم الكريم" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full bg-[#f8f5f0] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
+                <input type="text" required placeholder="الاسم الكريم" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full bg-[#fcf8f2] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] font-black text-stone-600 mb-1">رقم الهاتف *</label>
-                  <input type="tel" required placeholder="01xxxxxxxxx" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-[#f8f5f0] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
+                  <input type="tel" required placeholder="01xxxxxxxxx" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-[#fcf8f2] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-black text-stone-600 mb-1">رقم إضافي (اختياري)</label>
-                  <input type="tel" placeholder="01xxxxxxxxx" value={altPhone} onChange={e => setAltPhone(e.target.value)} className="w-full bg-[#f8f5f0] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
+                  <input type="tel" placeholder="01xxxxxxxxx" value={altPhone} onChange={e => setAltPhone(e.target.value)} className="w-full bg-[#fcf8f2] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] font-black text-stone-600 mb-1">نوع الاستلام</label>
-                  <select value={orderType} onChange={e => setOrderType(e.target.value as any)} className="w-full bg-[#f8f5f0] border border-stone-200 rounded-2xl p-3 text-stone-900 font-black outline-none">
+                  <select value={orderType} onChange={e => setOrderType(e.target.value as any)} className="w-full bg-[#fcf8f2] border border-stone-200 rounded-2xl p-3 text-stone-900 font-black outline-none">
                     <option value="delivery">توصيل دليفري (+30 ج.م)</option>
                     <option value="takeaway">استلام من المطعم (0 ج.م)</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-[11px] font-black text-stone-600 mb-1">طريقة الدفع *</label>
-                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full bg-[#f8f5f0] border border-stone-200 rounded-2xl p-3 text-[#b93828] font-black outline-none">
+                  <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full bg-[#fcf8f2] border border-stone-200 rounded-2xl p-3 text-[#b93828] font-black outline-none">
                     <option value="cash">💵 كاش عند الاستلام</option>
                     <option value="instapay">📱 انستاباي (InstaPay)</option>
                     <option value="wallet">💳 محفظة إلكترونية</option>
@@ -657,13 +656,13 @@ export default function CustomerMenu() {
               {orderType === 'delivery' && (
                 <div>
                   <label className="block text-[11px] font-black text-stone-600 mb-1">العنوان التفصيلي *</label>
-                  <input type="text" required placeholder="الشارع - العمارة - العلامة المميزة" value={address} onChange={e => setAddress(e.target.value)} className="w-full bg-[#f8f5f0] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
+                  <input type="text" required placeholder="الشارع - العمارة - العلامة المميزة" value={address} onChange={e => setAddress(e.target.value)} className="w-full bg-[#fcf8f2] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
                 </div>
               )}
 
               <div>
                 <label className="block text-[11px] font-black text-stone-600 mb-1">ملاحظات للوجبة</label>
-                <input type="text" placeholder="مثال: بدون بصل، زيادة طحينة..." value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-[#f8f5f0] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
+                <input type="text" placeholder="مثال: بدون بصل، زيادة طحينة..." value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-[#fcf8f2] border border-stone-200 rounded-2xl p-3 text-stone-900 outline-none focus:border-[#b93828]" />
               </div>
 
               <button type="submit" disabled={submittingOrder} className="w-full bg-[#b93828] hover:bg-[#a12f21] text-white font-black py-3.5 rounded-2xl shadow-lg transition mt-2 shadow-[#b93828]/30">
