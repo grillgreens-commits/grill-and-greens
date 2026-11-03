@@ -47,6 +47,9 @@ export default function CustomerMenu() {
   const [orderSent, setOrderSent] = useState<boolean>(false);
   const [orderId, setOrderId] = useState<string | number | null>(null);
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
+  
+  // حالة المتجر (مفتوح / مغلق / تلقائي)
+  const [storeStatusMode, setStoreStatusMode] = useState<string>('auto');
   const [isOpenNow, setIsOpenNow] = useState<boolean>(true);
 
   // إعدادات العرض الخاص
@@ -83,20 +86,51 @@ export default function CustomerMenu() {
   useEffect(() => {
     fetchMenuItems();
     fetchPromoOffer();
-    checkWorkingHours();
+    fetchStoreStatusSettings();
+
+    // الاستماع اللحظي لتغييرات إعدادات المتجر من لوحة الإدارة
+    const settingsChannel = supabase
+      .channel('realtime_customer_store_status')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+        fetchPromoOffer();
+        fetchStoreStatusSettings();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(settingsChannel);
+    };
   }, []);
 
-  const checkWorkingHours = () => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-
-    if (day === 5) {
-      setIsOpenNow(false);
-    } else if (hour >= 11 && hour < 20) {
-      setIsOpenNow(true);
+  const fetchStoreStatusSettings = async () => {
+    const { data } = await supabase.from('settings').select('*').eq('key', 'store_status_mode').maybeSingle();
+    if (data && data.value) {
+      const mode = data.value.mode || 'auto';
+      setStoreStatusMode(mode);
+      evaluateStoreOpenState(mode);
     } else {
+      evaluateStoreOpenState('auto');
+    }
+  };
+
+  const evaluateStoreOpenState = (mode: string) => {
+    if (mode === 'open') {
+      setIsOpenNow(true);
+    } else if (mode === 'closed') {
       setIsOpenNow(false);
+    } else {
+      // التوقيت التلقائي
+      const now = new Date();
+      const day = now.getDay();
+      const hour = now.getHours();
+
+      if (day === 5) {
+        setIsOpenNow(false);
+      } else if (hour >= 11 && hour < 20) {
+        setIsOpenNow(true);
+      } else {
+        setIsOpenNow(false);
+      }
     }
   };
 
@@ -264,7 +298,7 @@ export default function CustomerMenu() {
                 : 'bg-[#3b1513]/80 text-[#fca5a5] border-[#8a221a]'
             }`}>
               <span className={`w-2 h-2 rounded-full ${isOpenNow ? 'bg-[#4ade80] animate-pulse' : 'bg-[#ef4444]'}`}></span>
-              {isOpenNow ? 'مفتوح الآن 🟢' : 'مغلق (الجمعة إجازة) 🔴'}
+              {isOpenNow ? 'مفتوح الآن 🟢' : 'مغلق حالياً 🔴'}
             </span>
 
             <span className="bg-[#1a1a1a] text-stone-300 border border-stone-800 px-2 py-1.5 rounded-xl shadow-sm flex-1 text-center whitespace-nowrap">
